@@ -1,0 +1,54 @@
+**********************************************************************
+*                                                                        
+* (C) COPYRIGHT IBM CORPORATION 2008.                                    
+*     Copyright Contributors to the GenevaERS Project.                   
+* SPDX-License-Identifier: Apache-2.0                                    
+*                                                                        
+**********************************************************************  
+*                                                                        
+*  Licensed under the Apache License, Version 2.0 (the "License");      
+*  you may not use this file except in compliance with the License.     
+*  You may obtain a copy of the License at                              
+*                                                                        
+*     http://www.apache.org/licenses/LICENSE-2.0                         
+*                                                                        
+*  Unless required by applicable law or agreed to in writing, software  
+*  distributed under the License is distributed on an "AS IS" BASIS,    
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express         
+*  or implied.                                                          
+*  See the License for the specific language governing permissions   
+*  and limitations under the License.                                       
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*   GVB0210A _ VDP PROGRAM FILE RECORD                                *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+VDP0210_EXIT_PGM_RECORD   DSECT
+*
+VDP0210_REC_LEN                           DS HL02
+VDP0210_RDW_FLAGS                         DS XL02
+*
+VDP0210_VIEWID                            DS FL04
+VDP0210_INPUT_FILE_ID                     DS FL04
+VDP0210_COLUMN_ID                         DS FL04
+VDP0210_RECORD_TYPE                       DS HL02
+VDP0210_SEQUENCE_NBR                      DS HL02
+VDP0210_RECORD_ID                         DS FL04
+VDP0210_PROGRAM_NAME                      DS CL48
+VDP0210_MODULE_NAME                       DS CL48
+VDP0210_EXIT_TYPE                         DS FL04
+VDP0210_PROGRAM_TYPE                      DS FL04
+* EQUATES FOR VDP0210_PROGRAM_TYPE+3
+VDP0210_PROGTYPE_LECOBOL                  EQU X'01'
+VDP0210_PROGTYPE_COBOL2                   EQU X'02'
+VDP0210_PROGTYPE_C                        EQU X'03'
+VDP0210_PROGTYPE_CPP                      EQU X'04'
+VDP0210_PROGTYPE_JAVA                     EQU X'05'
+VDP0210_PROGTYPE_ASM                      EQU X'06'
+*
+VDP0210_OPTIMIZABLE                       DS CL01
+                                          DS CL03
+VDP0210_POSIX_DIRECTORY                   DS CL1024
+VDP0210_POSIX_FILE_NAME                   DS CL256
+                                          DS CL16

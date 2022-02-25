@@ -1,0 +1,88 @@
+**********************************************************************
+*                                                                        
+* (C) COPYRIGHT IBM CORPORATION 2018.                                    
+*     Copyright Contributors to the GenevaERS Project.                   
+* SPDX-License-Identifier: Apache-2.0                                    
+*                                                                        
+**********************************************************************  
+*                                                                        
+*  Licensed under the Apache License, Version 2.0 (the "License");      
+*  you may not use this file except in compliance with the License.     
+*  You may obtain a copy of the License at                              
+*                                                                        
+*     http://www.apache.org/licenses/LICENSE-2.0                         
+*                                                                        
+*  Unless required by applicable law or agreed to in writing, software  
+*  distributed under the License is distributed on an "AS IS" BASIS,    
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express         
+*  or implied.                                                          
+*  See the License for the specific language governing permissions   
+*  and limitations under the License.                                       
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*   GVB2300B _ VDP SORT KEY ATTRIBUTES RECORD                         *
+*    THIS IS THE IN MEMORY VERSION OF THE RECORD                      *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+VDP2300B_SORT_KEY_ATTR_RECORD  DSECT
+*
+VDP2300B_REC_LEN                          DS HL02
+VDP2300B_RDW_FLAGS                        DS XL02
+*
+VDP2300B_NEXT                             DS XL08 NEXT RECORD SAME TYPE
+VDP2300B_NEXT_PTR                         DS XL08 NEXT RECORD PERIOD
+VDP2300B_VIEWID                           DS FL04
+VDP2300B_INPUT_FILE_ID                    DS FL04
+VDP2300B_COLUMN_ID                        DS FL04
+VDP2300B_RECORD_TYPE                      DS HL02
+VDP2300B_SEQUENCE_NBR                     DS HL02
+VDP2300B_RECORD_ID                        DS FL04
+VDP2300B_XVIEW_SORT_KEY_ID                DS FL04
+VDP2300B_SORT_SEQ_ID                      DS FL04
+VDP2300B_SORT_BREAK_FOOTER_OPTION         DS FL04
+VDP2300B_SORT_BREAK_HEADER_OPTION         DS FL04
+VDP2300B_SUBTOTAL_COUNT_IND               DS CL01
+                                          DS CL03
+VDP2300B_SORT_KEY_PREFIX                  DS CL48
+VDP2300B_SORT_KEY_DISP_OPT_ID             DS FL04
+VDP2300B_RTD_LR_FIELD_ID                  DS FL04
+VDP2300B_RTD_JOIN_ID                      DS FL04
+VDP2300B_SK_FORMAT_ID                     DS FL04
+VDP2300B_SK_SIGNED_IND                    DS CL01
+                                          DS CL01
+VDP2300B_SK_START_POSITION                DS HL02
+VDP2300B_SK_FIELD_LENGTH                  DS HL02
+VDP2300B_SK_ORDINAL_POSITION              DS HL02
+VDP2300B_SK_DECIMAL_COUNT                 DS HL02
+VDP2300B_SK_ROUNDING                      DS HL02
+VDP2300B_SK_FIELD_CONTENT_ID              DS FL04
+VDP2300B_SK_JUSTIFY_ID                    DS FL04
+VDP2300B_SK_ORDINAL_OFFSET                DS HL02
+                                          DS CL46
+VDP2300B_ST_FORMAT_ID                     DS FL04
+VDP2300B_ST_SIGNED_IND                    DS CL01
+                                          DS CL01
+VDP2300B_ST_START_POSITION                DS HL02
+VDP2300B_ST_FIELD_LENGTH                  DS HL02
+VDP2300B_ST_ORDINAL_POSITION              DS HL02
+VDP2300B_ST_DECIMAL_COUNT                 DS HL02
+VDP2300B_ST_ROUNDING                      DS HL02
+VDP2300B_ST_FIELD_CONTENT_ID              DS FL04
+VDP2300B_ST_JUSTIFY_ID                    DS FL04
+VDP2300B_ST_ORDINAL_OFFSET                DS HL02
+                                          DS CL46
+VDP2300B_DESC_FORMAT_ID                   DS FL04
+VDP2300B_DESC_SIGNED_IND                  DS CL01
+                                          DS CL01
+VDP2300B_DESC_START_POSITION              DS HL02
+VDP2300B_DESC_FIELD_LENGTH                DS HL02
+VDP2300B_DESC_ORDINAL_POSITION            DS HL02
+VDP2300B_DESC_DECIMAL_COUNT               DS HL02
+VDP2300B_DESC_ROUNDING                    DS HL02
+VDP2300B_DESC_FIELD_CONTENT_ID            DS FL04
+VDP2300B_DESC_JUSTIFY_ID                  DS FL04
+VDP2300B_DESC_ORDINAL_OFFSET              DS HL02
+                                          DS CL46
+VDP2300B_PERFORM_BREAK_LOGIC              DS FL04
+                                          DS CL12

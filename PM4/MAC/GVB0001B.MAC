@@ -1,0 +1,72 @@
+**********************************************************************
+*                                                                        
+* (C) COPYRIGHT IBM CORPORATION 2008.                                    
+*     Copyright Contributors to the GenevaERS Project.                   
+* SPDX-License-Identifier: Apache-2.0                                    
+*                                                                        
+**********************************************************************  
+*                                                                        
+*  Licensed under the Apache License, Version 2.0 (the "License");      
+*  you may not use this file except in compliance with the License.     
+*  You may obtain a copy of the License at                              
+*                                                                        
+*     http://www.apache.org/licenses/LICENSE-2.0                         
+*                                                                        
+*  Unless required by applicable law or agreed to in writing, software  
+*  distributed under the License is distributed on an "AS IS" BASIS,    
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express         
+*  or implied.                                                          
+*  See the License for the specific language governing permissions  
+*  and limitations under the License.                                       
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*   GVB0001B _ VDP GENERATION RECORD                                  *
+*    THIS IS THE IN MEMORY VERSION OF THE RECORD                      *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+VDP0001B_GENERATION_RECORD  DSECT
+*
+VDP0001B_REC_LEN                          DS H
+VDP0001B_RDW_FLAGS                        DS XL02
+*
+VDP0001B_NEXT                             DS XL08 next rec same type
+VDP0001B_NEXT_PTR                         DS XL08 next record period
+VDP0001B_VIEWID                           DS F
+VDP0001B_INPUT_FILE_ID                    DS F
+VDP0001B_COLUMN_ID                        DS F
+VDP0001B_RECORD_TYPE                      DS H
+VDP0001B_SEQUENCE_NBR                     DS H
+VDP0001B_RECORD_ID                        DS F
+VDP0001B_RUN_NBR                          DS F
+VDP0001B_RUN_DATE                         DS CL08
+VDP0001B_ENVIRONMENT_ID                   DS F
+VDP0001B_BIG_ENDIAN_IND                   DS CL01
+VDP0001B_ASCII_IND                        DS CL01
+VDP0001B_VERSION_INFO                     DS H
+VDP0001B_SERVER_COUNT                     DS F
+VDP0001B_INPUT_FILE_COUNT                 DS F
+VDP0001B_PGM_FILE_COUNT                   DS F
+VDP0001B_LR_COUNT                         DS F
+VDP0001B_LR_FIELD_COUNT                   DS F
+VDP0001B_LR_INDEX_FIELD_COUNT             DS F
+VDP0001B_JOIN_STEP_COUNT                  DS F
+VDP0001B_PGM_PARM_COUNT                   DS F
+VDP0001B_VIEW_COUNT                       DS F
+VDP0001B_EXTRACT_RECORD_COUNT             DS F
+VDP0001B_RUN_CPU_SECONDS                  DS F
+VDP0001B_MAX_STD_EXT_FILE_NBR             DS F
+                                          DS H
+VDP0001B_MAX_DECIMAL_DIGITS               DS XL01
+VDP0001B_MAX_DECIMAL_PLACES               DS XL01
+                                          DS H
+VDP0001B_DESCRIPTION                      DS CL48
+VDP0001B_DEBUG_INFO                       DS 0CL48
+VDP0001B_DATE                             DS CL10
+                                          DS CL1
+VDP0001B_TIME                             DS CL8
+                                          ds cl29  (rest of debug info)
+*       on a half word boundary here so use fl4 for following fields
+VDP0001B_VDP_BYTE_COUNT                   DS Fl4
+
+VDP0001B_record_count                     ds fl4

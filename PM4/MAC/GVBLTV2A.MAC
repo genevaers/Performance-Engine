@@ -1,0 +1,78 @@
+**********************************************************************
+*                                                                        
+* (C) COPYRIGHT IBM CORPORATION 2004.                                    
+*     Copyright Contributors to the GenevaERS Project.                   
+* SPDX-License-Identifier: Apache-2.0                                    
+*                                                                        
+**********************************************************************  
+*                                                                        
+*  Licensed under the Apache License, Version 2.0 (the "License");      
+*  you may not use this file except in compliance with the License.     
+*  You may obtain a copy of the License at                              
+*                                                                        
+*     http://www.apache.org/licenses/LICENSE-2.0                         
+*                                                                        
+*  Unless required by applicable law or agreed to in writing, software  
+*  distributed under the License is distributed on an "AS IS" BASIS,    
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express         
+*  or implied.                                                          
+*  See the License for the specific language governing permissions   
+*  and limitations under the License.                                       
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *         
+*   GVBLTV2A - LOGIC TABLE "VARIABLE NAME/F2" RECORD                  *         
+*                                                                     *         
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *         
+*                                                                               
+LTV2_REC                     DSECT                                              
+*                                                                               
+LTV2_FILE_ID                 DS     FL04                                        
+LTV2_ROW_NBR                 DS     FL04                                        
+LTV2_VIEW_ID                 DS     FL04                                        
+LTV2_FUNCTION_CODE           DS    0CL04                                        
+LTV2_MAIN_FUNCTION           DS     CL02                                        
+LTV2_SUB_FUNCTION            DS     CL02                                        
+LTV2_SOURCE_SEQ_NBR          DS     HL02                                        
+LTV2_SUFFIX_SEQ_NBR          DS     HL02                                        
+LTV2_GOTO_ROW1               DS     FL04                                        
+LTV2_GOTO_ROW2               DS     FL04                                        
+LTV2_RECORD_TYPE             DS     FL04                                        
+LTV2_COLUMN_ID               DS     FL04                                        
+LTV2_COMPARE_TYPE            DS     FL04                                        
+LTV2_VALUE_AREA1             DS    0CL260                                       
+LTV2_VALUE_LENGTH1           DS     FL04                                        
+LTV2_VALUE1                  DS     CL256                                       
+LTV2_FIELD_AREA1             DS    0CL84                                        
+LTV2_FILE_ID1                DS     FL04                                        
+LTV2_LR_ID1                  DS     FL04                                        
+LTV2_FIELD_ID1               DS     FL04                                        
+LTV2_FIELD_FORMAT1           DS     FL04                                        
+LTV2_SIGN_IND1               DS     BL01                                        
+                             DS     CL01                                        
+LTV2_START_POSITION1         DS     HL02                                        
+LTV2_FIELD_LENGTH1           DS     HL02                                        
+LTV2_ORDINAL_POSITION1       DS     HL02                                        
+LTV2_NO_OF_DECIMALS1         DS     HL02                                        
+LTV2_ROUNDING1               DS     HL02                                        
+LTV2_CONTENT_ID1             DS     FL04                                        
+LTV2_JUSTIFY_ID1             DS     FL04                                        
+LTV2_MASK1                   DS     CL48                                        
+LTV2_VALUE_AREA2             DS    0CL260                                       
+LTV2_VALUE_LENGTH2           DS     FL04                                        
+LTV2_VALUE2                  DS     CL256                                       
+LTV2_FIELD_AREA2             DS    0CL84                                        
+LTV2_FILE_ID2                DS     FL04                                        
+LTV2_LR_ID2                  DS     FL04                                        
+LTV2_FIELD_ID2               DS     FL04                                        
+LTV2_FIELD_FORMAT2           DS     FL04                                        
+LTV2_SIGN_IND2               DS     BL01                                        
+                             DS     CL01                                        
+LTV2_START_POSITION2         DS     HL02                                        
+LTV2_FIELD_LENGTH2           DS     HL02                                        
+LTV2_ORDINAL_POSITION2       DS     HL02                                        
+LTV2_NO_OF_DECIMALS2         DS     HL02                                        
+LTV2_ROUNDING2               DS     HL02                                        
+LTV2_CONTENT_ID2             DS     FL04                                        
+LTV2_JUSTIFY_ID2             DS     FL04                                        
+LTV2_MASK2                   DS     CL48                                        
+LTV2_ACCUM_NAME              DS     CL48                                        

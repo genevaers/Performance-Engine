@@ -1,0 +1,167 @@
+**********************************************************************
+*                                                                        
+* (C) COPYRIGHT IBM CORPORATION 2004.                                    
+*     Copyright Contributors to the GenevaERS Project.                   
+* SPDX-License-Identifier: Apache-2.0                                    
+*                                                                        
+**********************************************************************  
+*                                                                        
+*  Licensed under the Apache License, Version 2.0 (the "License");      
+*  you may not use this file except in compliance with the License.     
+*  You may obtain a copy of the License at                              
+*                                                                        
+*     http://www.apache.org/licenses/LICENSE-2.0                         
+*                                                                        
+*  Unless required by applicable law or agreed to in writing, software  
+*  distributed under the License is distributed on an "AS IS" BASIS,    
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express         
+*  or implied.                                                          
+*  See the License for the specific language governing permissions   
+*  and limitations under the License.                                       
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *         
+*   GVBLTV3 - SELECTION LOGIC TABLE - ENTRY DEFINITION                *         
+*                                                                     *         
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *         
+*                                                                               
+LTBLV3   DSECT                 LOGIC TABLE  ENTRY/ELEMENT  FORMAT               
+*                                                                               
+V3CODSEG DS   0AL04            GENERATED CODE SEGMENT ADDRESS FOR  ROW          
+V3ROWNO  DS    FL04            LOGIC    TABLE ROW     NUMBER (THIS ROW)         
+V3DRIVER DS    CL08            PHYSICAL  FILE DDNAME                            
+V3REQNO  DS    CL08            REPORT REQUEST NUMBER                            
+V3FUNC   DS    CL02            FUNCTION  CODE                                   
+V3THRDID DS   0HL02            THREAD    ID   NUMBER         ("ES" ROW)         
+V3FILENO DS   0HL02            EXTRACT   FILE NUMBER         ("WR" ROW)         
+V3SRTCOL DS    HL02            SORT OR COLUMN NUMBER                            
+V3FILEID DS    CL08            LOGICAL FILE   ID                                
+V3RECID  DS    CL04            LOGICAL RECORD ID                                
+V3FLDID  DS    CL03            FIELD   ID                                       
+         DS    CL01                                                             
+V3FLDPOS DS    HL02            FIELD   POSITION                                 
+V3FLDLEN DS    HL02            FIELD   LENGTH                                   
+V3FLDFMT DS    CL01            FIELD   FORMAT                                   
+V3NDEC   DS    PL01            FIELD   NO. OF DECIMAL  PLACES                   
+V3COLOFF DS    HL02            COLUMN  OFFSET IN  DATA AREA("DT", "DL")         
+V3OCCLST DS   0AL04            MULTIPLE OCCURRENCE LIST/CHAIN OF FIELDS         
+V3STRNO  DS    CL02            ROLLUP   STRUCTURE  NUMBER                       
+V3DATPOS DS   0HL02            EFFECTIVE  DATE     POSITION ("BD","BE")         
+V3LKUPOS DS   0HL02            LOOK-UP    FIELD    POSITION      ("SK")         
+V3STRLVL DS    CL02            ROLLUP   STRUCTURE  LEVEL                        
+V3REDEFN DS    CL48            REDEFINITION  AREA                               
+V3TRUE   DS    FL04            TRUE     CONDITION  ROW NUMBER/ADDRESS           
+V3FALSE  DS    FL04            FALSE    CONDITION  ROW NUMBER/ADDRESS           
+*                                                                               
+V3EXADDR DS   0AL04            EXTRACT   FILE CONTROL  AREA ADDRESS(WR)         
+V3NEXTES DS   0AL04            NEXT  CONCATENATED  "ES" ROW ADDRESS(ES)         
+V3RBADDR DS    AL04            REFERENCE FILE RECORD BUFFER ADDRESS(_L)         
+V3RPTBEG DS    AL04            CURRENT REPORT BEGINNING ROW ADDRESS             
+V3FLAGS  DS    XL02            PROCESSING  FLAGS                                
+V3CBREAK EQU   X'80'             1--- ---- BREAK  IN GENERATED CODE             
+V3TBOMIT EQU   X'40'             -1-- ---- TRUE BRANCH OMITTED IN CODE          
+V3CONCAT EQU   X'20'             --1- ---- CONCATENATED EVENT  FILE             
+V3RTOKEN EQU   X'10'             ---1 ---- EVENT FILE IS TOKEN                  
+V3GENLEN DS    HL02            SIZE OF GENERATED CODE + LITERALS (EST)          
+*                                                                               
+V3ENTLEN EQU   *-LTBLV3        LOGIC TABLE ENTRY/ELEMENT LENGTH                 
+         EJECT                                                                  
+         ORG   V3REDEFN                                                         
+V3LOWVAL DS    CL46            SELECTION FIELD  LOW VALUE    ("ST" ROW)         
+V3RELOPR DS    CL02            RELATIONAL  OPERATOR          ("SE" ROW)         
+         ORG   V3REDEFN+24                                                      
+V3HIVAL  DS    CL24            SELECTION FIELD HIGH VALUE                       
+*                                                                               
+         ORG   V3REDEFN                                                         
+V3DEFFIL DS    HL02            DEFAULT   EXTRACT FILE   NO   ("NR" ROW)         
+V3USERID DS    CL08            USER      ID                  ("NR" ROW)         
+V3LIMIT  DS    FL04            EXTRACT   RECORD  COUNT  LIMIT("NR" ROW)         
+V3MAXCOL DS    HL02            MAXIMUM   COLUMN  NO - "CT/CL"("NR" ROW)         
+V3DEFSUB DS    CL08            DEFAULT   EXTRACT WRITE  SUBROUTINE              
+V3VIEWTP DS    CL01            VIEW   TYPE ('B' - BASE  VIEW)                   
+V3STATUS DS    CL01            REPORT STATUS (L=LIMIT EXCEEDED)  ("NR")         
+V3ETOKEN DS   0CL01            EVENT  DATA  IS   TOKEN  INDICATOR("NR")         
+V3MAXOCC DS    HL02            MAXIMUM   VALUE FOR FIXED OCC ("NR" ROW)         
+V3RPTCNT DS    FL04            REPORT    EXTRACT RECORD COUNT("NR" ROW)         
+V3RPTFND DS    FL04            REPORT    LOOKUPS        FOUND("NR" ROW)         
+V3RPTNOT DS    FL04            REPORT    LOOKUPS    NOT FOUND("NR" ROW)         
+V3SORTLN DS    HL02            SORT AREA LENGTH              ("NR" ROW)         
+V3TITLLN DS    HL02            SORT TITL LENGTH              ("NR" ROW)         
+V3DATALN DS    HL02            DATA AREA LENGTH              ("NR" ROW)         
+V3NSORT  DS    HL02            NUMBER OF SORT  FIELDS        ("NR" ROW)         
+*                                                                               
+         ORG   V3REDEFN                                                         
+V3HDROPT DS    CL01            HEADER  OPTION   CODE (N, S, V("ES" ROW)         
+V3VERNO  DS    CL05            VERSION NUMBER                ("ES" ROW)         
+V3CTLCNT DS    CL09            CONTROL COUNT                 ("ES" ROW)         
+V3RDSUBR DS    CL08            EVENT   READ  SUBROUTINE NAME ("ES" ROW)         
+V3FILTYP DS    CL01            EVENT   FILE  TYPE (V,D, , )  ("ES" ROW)         
+V3EDITPR DS    CL08            DB2     EDIT  PROC       NAME ("ES" ROW)         
+V3OBJID  DS    HL02            DB2     OBJECT  ID (TABLE)    ("ES" ROW)         
+V3PIPEA  DS    AL04            "PIPED" OUTPUT  EXTRACT  FILE ("ES" ROW)         
+V3FILCNT DS    PL06            EVENT   FILE    RECORD  COUNT ("ES" ROW)         
+*                                                                               
+         ORG   V3REDEFN                                                         
+V3PROCDT DS    CL08            PROCESSED  DATE               ("EN" ROW)         
+V3PROCTM DS    CL06            PROCESSED  TIME               ("EN" ROW)         
+V3MAXFIL DS    CL02            MAXIMUM EXTRACT FILE NUMBER   ("EN" ROW)         
+V3FINPDT DS    CL06            FINANCIAL  PERIOD    DATE     ("EN" ROW)         
+V3RUNDT  DS    CL08            CURRENT    RUN  DATE          ("EN" ROW)         
+*                                                                               
+         ORG   V3REDEFN                                                         
+V3LVLPOS DS   0HL02            STRUCTURE LEVEL NUMBER POSITION   ("HL")         
+V3COLSIZ DS    HL02            EDITED  COLUMN SIZE/WIDTH   ("DT", "DL")         
+V3COLFMT DS    CL01            EDITED  COLUMN FORMAT       ("DT", "DL")         
+V3COLDEC DS    PL01            EDITED  COLUMN DECIMALS     ("DT", "DL")         
+V3RNDFAC DS    PL01            EDITED  ROUNDING  FACTOR    ("DT", "DL")         
+V3MASK   DS    CL25            EDITED  DATA   MASK         ("DT", "DL")         
+V3COLGAP DS    HL02            INTERCOLUMN   GAP/SPACING   ("DT", "DL")         
+V3SEGLEN DS    HL02            MULT OCCURS   SEG  LENGTH   ("DT", "DL")         
+V3COLOCC DS    HL02            FIXED    OCCURRENCE COUNT   ("DT", "DL")         
+V3OCCPOS DS    HL02            VARIABLE OCCUR  CNT POSITION("DT", "DL")         
+V3OCCLEN DS    HL02            VARIABLE OCCUR  CNT LENGTH  ("DT", "DL")         
+V3OCCFMT DS    CL01            VARIABLE OCCUR  CNT FORMAT  ("DT", "DL")         
+V3JUST   DS    CL01            DATA    JUSTIFICATION(L,C,R)("DT", "DL")         
+V3GAPVAL DS    CL01            INTERCOLUMN GAP VALUE       ("DT", "DL")         
+         DS    XL05                                                             
+*                                                                               
+         ORG   V3REDEFN                                                         
+V3KEYLEN DS    HL02            SORT KEY SIZE/WIDTH         ("KT", "KL")         
+V3KEYFMT DS    CL01            SORT KEY FORMAT             ("KT", "KL")         
+V3KEYDEC DS    PL01            SORT KEY DECIMALS           ("KT", "KL")         
+V3KEYRND DS    PL01            SORT KEY ROUNDING  FACTOR   ("KT", "KL")         
+V3KEYMSK DS    CL25            SORT KEY MASK               ("KT", "KL")         
+V3SRTSEQ DS    CL01            SORT     SEQUENCE (A,D)     ("KT", "KL")         
+         DS    CL17                                                             
+*                                                                               
+         ORG   V3REDEFN                                                         
+V3CMPPOS DS    HL02            COMPARE  FIELD POSITION           ("SF")         
+V3CMPLEN DS    HL02            COMPARE  FIELD LENGTH             ("SF")         
+V3CMPFMT DS    CL01            COMPARE  FIELD FORMAT             ("SF")         
+V3CMPDEC DS    PL01            COMAPRE  FIELD DECIMALS           ("SF")         
+V3CMPOPR DS    CL02            COMPARE  FIELD RELATIONAL OPERATOR "SF")         
+V3CMPRID DS    CL04            COMPARE  FIELD LOGICAL RECORD ID  ("SF")         
+         DS    CL12                                                             
+V3CMPFID DS    CL04            COMPARE  FIELD FILED   ID                        
+         DS    CL20                                                             
+*                                                                               
+         ORG   V3REDEFN                                                         
+V3SUBNAM DS    CL08            NON-GENEVA CALLED  SUBROUTINE     ("RN")         
+V3SUBPRM DS    CL30            SUBROUTINE PARAMETERS             ("RN")         
+         DS    CL10                                                             
+*                                                                               
+         ORG   V3REDEFN                                                         
+V3WRTSUB DS    CL08            WRITE EXIT SUBROUTINE  NAME   ("WR" ROW)         
+V3WRTADR DS    AL04            WRITE EXIT SUBROUTINE  ADDR   ("WR" ROW)         
+V3WRTWRK DS    AL04            WRITE EXIT PGM   WORK  AREA   ("WR" ROW)         
+V3WRTCEE DS    AL04            TRUE  EXIT PGM  ENTRY  POINT  ("WR" ROW)         
+V3WRTCNT DS    FL04            EXTRACT    RECORD  COUNT      ("WR" ROW)         
+V3VIEWB  DS    FL04            VIEW  BASE NUMBER             ("WR" ROW)         
+*                                                                               
+         ORG   V3STRNO                                                          
+V3DSNAME DS    CL44            DATA SET NAME                 ("EP" ROW)         
+V3VOLSER DS    CL06            VOLUME   SERIAL NUMBER        ("EP" ROW)         
+*                                                                               
+         ORG   V3STRNO                                                          
+V3ERRFIL DS    CL25            DATA ERROR FILL CHARACTERS    ("RP" ROW)         
+V3OVRFIL DS    CL25            OVERFLOW   FILL CHARACTERS    ("RP" ROW)         
+         ORG                                                                    

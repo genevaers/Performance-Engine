@@ -1,0 +1,39 @@
+         macro
+.*                                                                        
+.* (C) COPYRIGHT IBM CORPORATION 2008.                                    
+.*     Copyright Contributors to the GenevaERS Project.                   
+.* SPDX-License-Identifier: Apache-2.0                                    
+.*                                                                        
+.**********************************************************************  
+.*                                                                        
+.*  Licensed under the Apache License, Version 2.0 (the "License");      
+.*  you may not use this file except in compliance with the License.     
+.*  You may obtain a copy of the License at                              
+.*                                                                        
+.*     http://www.apache.org/licenses/LICENSE-2.0                         
+.*                                                                        
+.*  Unless required by applicable law or agreed to in writing, software  
+.*  distributed under the License is distributed on an "AS IS" BASIS,    
+.*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express         
+.*  or implied.                                                          
+.*  See the License for the specific language governing permissions
+.*  and limitations under the License.   
+.* 
+         rptit  &msg=?,&to=prntrdw
+         aif  ('&msg' eq '?').justprnt
+         lay   r1,&msg
+         mvc   &to.(l'&msg),0(r1)
+.justprnt anop
+         ly    r1,ctrldcba
+         GBLC  &SYSAM64           System global
+         SYSSTATE TEST            ensure value is set
+         AIF ('&SYSAM64' EQ 'NO').PUT31  in A31  - so just issue PUT
+.*           otherwise bracket with sysstate/samxx
+         sysstate amode64=NO
+         sam31
+         put   (1),&to.
+         sam64
+         sysstate amode64=YES
+         mexit
+.put31   put   (1),&to.
+         mend

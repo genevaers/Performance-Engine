@@ -1,0 +1,305 @@
+          MACRO
+&LABEL    GVBMSG &TYPE,&GENENV=,&MSGNO=0,&MSGPFX=GVB,&SUBNO=0,&SUB1=,&S+
+               UB2=,&SUB3=,&SUB4=,&SUB5=,&SUB6=,&SUB7=,&SUB8=,&MF=,&MSG+
+               BUFFER=,&PREFIX=,&LOGDCBA=
+.*
+.* (C) COPYRIGHT IBM CORPORATION 2021.
+.*     Copyright Contributors to the GenevaERS Project.
+.* SPDX-License-Identifier: Apache-2.0
+.*
+.**********************************************************************
+.*
+.*  Licensed under the Apache License, Version 2.0 (the "License");
+.*  you may not use this file except in compliance with the License.
+.*  You may obtain a copy of the License at
+.*
+.*     http://www.apache.org/licenses/LICENSE-2.0
+.*
+.*  Unless required by applicable law or agreed to in writing, software
+.*  distributed under the License is distributed on an "AS IS" BASIS,
+.*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+.*  or implied.
+.*  See the License for the specific language governing permissions
+.*  and limitations under the License.
+.*
+.*
+.*MACRO NAME: GVBMSG                                                  *
+.*                                                                    *
+.*DESCRIPTIVE NAME: Message routine calling macro                     *
+.*                                                                    *
+.*GVBMSG LOG/WTO/FORMAT,                                              *
+.*       GENENV=addr of GENENV area (required for MR95 with type LOG  *
+.*              need for ziip status and address of log DCB)          *
+.*       MSGPFX=abc, (default GVB)                                    *
+.*       MSGNO=nnnn, (number, equate, or register (reg in brackets)   *
+.*       MSGBUFFER=(addr,len)                                         *
+.*       SUBNO=n,                                                     *
+.*       SUBx=(addr,len)                                              *
+.*       PREFIX=                                                      *
+.*       LOGDCBA=address of DCB of log file to write to               *
+.*               (not required if GENENV is specified)                *
+.*                                                                    *
+.* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **
+         GBLC  &DA_PREFIX  Data area prefix i.e. dsect or list
+&LABEL2  SETC  'GENMSG'    default dsect/list name
+&MSG     SETC  '&PREFIX'   dsect/List form prefix
+&TYPEU   SETC  (UPPER '&TYPE')
+.*                                                                    *
+.* Parameter checking                                                 *
+.*                                                                    *
+         AIF   ('&LABEL' EQ '').SETLAB1
+&LABEL2  SETC  '&LABEL'
+.SETLAB1 ANOP
+.*
+         AIF   ('&TYPEU' EQ 'DSECT').MSGDSCT
+         AIF   ('&MF' EQ 'L').MSGLIST
+         AIF   ('&TYPEU' EQ 'LOG' OR '&TYPEU' EQ 'WTO' OR '&TYPEU' EQ  +
+               'FORMAT').MSG1
+         MNOTE 12,'***  GVBMSG INVALID TYPE &TYPE'
+         AGO   .FINISH
+.MSG1    ANOP
+.*
+         AIF   ('&TYPEU' NE 'LOG').MSG1A
+         AIF   ('&GENENV' NE '').MSG1A
+         AIF   ('&LOGDCBA' NE '').MSG1A
+     MNOTE 12,'***  GVBMSG WRITE TO LOG MUST SUPPLY GENENV OR LOGDCBA'
+.*
+.MSG1A   ANOP
+         AIF   ('&MSGNO'(1,1) EQ '(').MSG2B
+.MSG2A   ANOP
+&MSGNON  SETC  '&MSGNO'            message number
+         AGO   .MSG2C
+.MSG2B   ANOP
+&MSGNOR  SETC  '&MSGNO'(2,K'&MSGNO-2)
+.MSG2C   ANOP
+.*
+&SIZEPFX SETA  K'&MSGPFX
+         AIF   ('&SIZEPFX' EQ '3').MSG3
+         MNOTE 12,'***  GVBMSG MSGPFX MUST BE 3 CHARACTERS'
+         AGO   .FINISH
+.MSG3    ANOP
+.*
+         AIF   ('&SUBNO' LE '8').MSG5
+         MNOTE 12,'***  GVBMSG SUBNO MUST BE 0-8'
+.*
+         AGO   .FINISH
+.*
+.MSG5    ANOP
+         AIF   ('&SUBNO' EQ '1').MSGSUB1
+         AIF   ('&SUBNO' EQ '2').MSGSUB2
+         AIF   ('&SUBNO' EQ '3').MSGSUB3
+         AIF   ('&SUBNO' EQ '4').MSGSUB4
+         AIF   ('&SUBNO' EQ '5').MSGSUB5
+         AIF   ('&SUBNO' EQ '6').MSGSUB6
+         AIF   ('&SUBNO' EQ '7').MSGSUB7
+         AIF   ('&SUBNO' EQ '8').MSGSUB8
+.*
+.MSGSUB8 ANOP
+         AIF   ('&SUB8' EQ '').ERRSUB1
+.MSGSUB7 ANOP
+         AIF   ('&SUB7' EQ '').ERRSUB1
+.MSGSUB6 ANOP
+         AIF   ('&SUB6' EQ '').ERRSUB1
+.MSGSUB5 ANOP
+         AIF   ('&SUB5' EQ '').ERRSUB1
+.MSGSUB4 ANOP
+         AIF   ('&SUB4' EQ '').ERRSUB1
+.MSGSUB3 ANOP
+         AIF   ('&SUB3' EQ '').ERRSUB1
+.MSGSUB2 ANOP
+         AIF   ('&SUB2' EQ '').ERRSUB1
+.MSGSUB1 ANOP
+         AIF   ('&SUB1' EQ '').ERRSUB1
+         AGO   .INITIAL
+.ERRSUB1 ANOP
+         MNOTE 12,'* GVBMSG substitution parameters must be supplied'
+         AGO   .FINISH
+.*
+.INITIAL ANOP  .  Initialisation
+.*
+.* Assign character to request type
+.*
+&TYPECH  SETC  '&TYPEU'(1,1)
+
+.*
+.* Build the parameter list                                           *
+.*                                                                    *
+         LAY   1,&MF(2)           Address parm list area
+         MVI   0(1),C'&TYPECH'    Type parameter
+.*
+         AIF   ('&MSGPFX' EQ 'GVB').MSGPFX1 If prefix is default set 0
+         LAY   0,&MSGPFX          Message prefix
+         AGO   .MSGPFX2
+.MSGPFX1 ANOP
+         LA    0,0                No prefix override
+.MSGPFX2 ANOP
+         ST    0,12(0,1)          STORE INTO PARAM. LIST
+.*
+         AIF   ('&GENENV' EQ '').MSGENV1 If GENENV not defined set 0
+         AIF   ('&GENENV'(1,1) EQ '(').MSGENV3 If register notation
+         LAY   0,&GENENV          Address of GENENV
+         AGO   .MSGENV2
+.MSGENV3 ANOP
+&GENENVR SETC  '&GENENV'(2,K'&GENENV-2)
+         ST    &GENENVR,4(0,1)    Address of GENENV
+         AGO   .MSGENV4
+.MSGENV1 ANOP
+         LA    0,0                No prefix override
+.MSGENV2 ANOP
+         ST    0,4(0,1)           STORE INTO PARAM. LIST
+.MSGENV4 ANOP
+.*
+.*
+         AIF   ('&LOGDCBA' EQ '').MSGDCB1 If LOGDCBA not defined set 0
+         AIF   ('&LOGDCBA'(1,1) EQ '(').MSGDCB3 If register notation
+         LAY   0,&LOGDCBA         Address of LOGDCBA
+         AGO   .MSGDCB2
+.MSGDCB3 ANOP
+&LGDCBAR SETC  '&LOGDCBA'(2,K'&LOGDCBA-2)
+         ST    &LGDCBAR,8(0,1)    Address of LOGDCBA
+         AGO   .MSGDCB4
+.MSGDCB1 ANOP
+         LA    0,0                No prefix override
+.MSGDCB2 ANOP
+         ST    0,8(0,1)           STORE INTO PARAM. LIST
+.MSGDCB4 ANOP
+.*
+         AIF   ('&MSGNO'(1,1) EQ '(').MSGNUM1 Register notation
+         LHI   0,&MSGNON          Message number
+         ST    0,16(0,1)          STORE INTO PARAM. LIST
+         AGO   .MSGNUM2
+.MSGNUM1 ANOP
+         ST    &MSGNOR,16(0,1)    Message number in register
+.MSGNUM2 ANOP
+.*
+         AIF   ('&MSGBUFFER' EQ '').MSGBUF1 If no buffer supplied set 0
+         LAY   0,&MSGBUFFER(1)    Message buffer
+         AGO   .MSGBUF2
+.MSGBUF1 ANOP
+         LA    0,0                No buffer provided
+.MSGBUF2 ANOP
+         ST    0,20(0,1)          STORE INTO PARAM. LIST
+.*
+         AIF   ('&MSGBUFFER' EQ '').MSGBUF3 If no buffer supplied set 0
+         LAY   0,&MSGBUFFER(2)    Message buffer
+         AGO   .MSGBUF4
+.MSGBUF3 ANOP
+         LA    0,0                No buffer provided
+.MSGBUF4 ANOP
+         ST    0,24(0,1)          STORE INTO PARAM. LIST
+.*
+         LHI   0,&SUBNO           PICKUP  PARAMETER
+         ST    0,28(0,1)          STORE INTO PARAM. LIST
+.*
+         AIF   ('&SUB1' EQ '').SUBFIN
+         LAY   0,&SUB1(1)         PICKUP  PARAMETER
+         ST    0,32(0,1)          STORE INTO PARAM. LIST
+.*
+         LAY   0,&SUB1(2)         PICKUP  PARAMETER
+         ST    0,36(0,1)          STORE INTO PARAM. LIST
+.*
+         AIF   ('&SUB2' EQ '').SUBFIN
+         LAY   0,&SUB2(1)         PICKUP  PARAMETER
+         ST    0,40(0,1)          STORE INTO PARAM. LIST
+.*
+         LAY   0,&SUB2(2)         PICKUP  PARAMETER
+         ST    0,44(0,1)          STORE INTO PARAM. LIST
+.*
+         AIF   ('&SUB3' EQ '').SUBFIN
+         LAY   0,&SUB3(1)         PICKUP  PARAMETER
+         ST    0,48(0,1)          STORE INTO PARAM. LIST
+.*
+         LAY   0,&SUB3(2)         PICKUP  PARAMETER
+         ST    0,52(0,1)          STORE INTO PARAM. LIST
+.*
+         AIF   ('&SUB4' EQ '').SUBFIN
+         LAY   0,&SUB4(1)         PICKUP  PARAMETER
+         ST    0,56(0,1)          STORE INTO PARAM. LIST
+.*
+         LAY   0,&SUB4(2)         PICKUP  PARAMETER
+         ST    0,60(0,1)          STORE INTO PARAM. LIST
+.*
+         AIF   ('&SUB5' EQ '').SUBFIN
+         LAY   0,&SUB5(1)         PICKUP  PARAMETER
+         ST    0,64(0,1)          STORE INTO PARAM. LIST
+.*
+         LAY   0,&SUB5(2)         PICKUP  PARAMETER
+         ST    0,68(0,1)          STORE INTO PARAM. LIST
+.*
+         AIF   ('&SUB6' EQ '').SUBFIN
+         LAY   0,&SUB6(1)         PICKUP  PARAMETER
+         ST    0,72(0,1)          STORE INTO PARAM. LIST
+.*
+         LAY   0,&SUB6(2)         PICKUP  PARAMETER
+         ST    0,76(0,1)          STORE INTO PARAM. LIST
+.*
+         AIF   ('&SUB7' EQ '').SUBFIN
+         LAY   0,&SUB7(1)         PICKUP  PARAMETER
+         ST    0,80(0,1)          STORE INTO PARAM. LIST
+.*
+         LAY   0,&SUB7(2)         PICKUP  PARAMETER
+         ST    0,84(0,1)          STORE INTO PARAM. LIST
+.*
+         AIF   ('&SUB8' EQ '').SUBFIN
+         LAY   0,&SUB8(1)         PICKUP  PARAMETER
+         ST    0,88(0,1)          STORE INTO PARAM. LIST
+.*
+         LAY   0,&SUB8(2)         PICKUP  PARAMETER
+         ST    0,92(0,1)          STORE INTO PARAM. LIST
+.*
+.SUBFIN  ANOP
+.*
+         L     15,=V(GVBUTMSG)
+         BASSM 14,15                             BRANCH TO ENTRY POINT
+.*
+         AGO   .FINISH
+.* DEFINE THE PARAMETER LIST AREA (TO BE USED IN MF=(E,list-addr)
+.*
+.MSGLIST ANOP
+         AIF   ('&PREFIX' NE '').PREF1
+&MSG     SETC  'MMM'
+.PREF1   ANOP
+&LABEL2  DS    0F
+&OP      SETC  'DC'
+         AGO   .MSGLIST1
+.*
+.* DEFINE THE DSECT
+.*
+.MSGDSCT ANOP
+.*
+         AIF   ('&PREFIX' NE '').PREF2
+&MSG     SETC  'MSG'
+.PREF2   ANOP
+.*
+&OP      SETC  'DS'
+.*
+&LABEL2    DSECT
+.MSGLIST1 ANOP
+&MSG.TYPE  &OP AL4(0)         REQUEST TYPE
+&MSG.GENV  &OP A(0)           ADDRESS OF GENENV
+&MSG.DCBA  &OP A(0)           ADDRESS OF LOG DCB
+&MSG.PFX   &OP A(0)           MESSAGE PREFIX (POINTER TO 3 BYTES)
+&MSG.NUM   &OP AL4(0)         MESSAGE NUMBER
+&MSG.BUFFA &OP A(0)           ADDRESS OF BUFFER TO PUT WRITE MESSAGE
+&MSG.BUFFL &OP AL4(0)         LENGTH OF THE BUFFER
+&MSG.#SUB  &OP AL4(0)         NUMBER OF SYMBOLS TO SUBSITUTE INTO MSG
+&MSG.S1PTR &OP A(0)           POINTER TO SUBSTIUTION TEXT 1
+&MSG.S1LEN &OP AL4(0)         SUBSTITUTION TEXT LENGTH 1
+&MSG.S2PTR &OP A(0)           POINTER TO SUBSTIUTION TEXT 2
+&MSG.S2LEN &OP AL4(0)         SUBSTITUTION TEXT LENGTH 2
+&MSG.S3PTR &OP A(0)           POINTER TO SUBSTIUTION TEXT 3
+&MSG.S3LEN &OP AL4(0)         SUBSTITUTION TEXT LENGTH 3
+&MSG.S4PTR &OP A(0)           POINTER TO SUBSTIUTION TEXT 4
+&MSG.S4LEN &OP AL4(0)         SUBSTITUTION TEXT LENGTH 4
+&MSG.S5PTR &OP A(0)           POINTER TO SUBSTIUTION TEXT 5
+&MSG.S5LEN &OP AL4(0)         SUBSTITUTION TEXT LENGTH 5
+&MSG.S6PTR &OP A(0)           POINTER TO SUBSTIUTION TEXT 6
+&MSG.S6LEN &OP AL4(0)         SUBSTITUTION TEXT LENGTH 6
+&MSG.S7PTR &OP A(0)           POINTER TO SUBSTIUTION TEXT 7
+&MSG.S7LEN &OP AL4(0)         SUBSTITUTION TEXT LENGTH 7
+&MSG.S8PTR &OP A(0)           POINTER TO SUBSTIUTION TEXT 8
+&MSG.S8LEN &OP AL4(0)         SUBSTITUTION TEXT LENGTH 8
+&LABEL2._L EQU *-&LABEL2      LENGTH OF GENMSG
+.*
+.FINISH  ANOP
+         MEND

@@ -1,0 +1,48 @@
+**********************************************************************
+*                                                                        
+* (C) COPYRIGHT IBM CORPORATION 2008.                                    
+*     Copyright Contributors to the GenevaERS Project.                   
+* SPDX-License-Identifier: Apache-2.0                                    
+*                                                                        
+**********************************************************************  
+*                                                                        
+*  Licensed under the Apache License, Version 2.0 (the "License");      
+*  you may not use this file except in compliance with the License.     
+*  You may obtain a copy of the License at                              
+*                                                                        
+*     http://www.apache.org/licenses/LICENSE-2.0                         
+*                                                                        
+*  Unless required by applicable law or agreed to in writing, software  
+*  distributed under the License is distributed on an "AS IS" BASIS,    
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express         
+*  or implied.                                                          
+*  See the License for the specific language governing permissions    
+*  and limitations under the License.                                       
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *         
+*   GVB0050A _ VDP CONTROL RECORD                                     *         
+*                                                                     *         
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *         
+*                                                                              
+VDP0050_CONTROL_RECORD  DSECT                                                   
+*                                                                               
+VDP0050_REC_LEN                           DS HL02                               
+VDP0050_RDW_FLAGS                         DS XL02                               
+*                                                                               
+VDP0050_VIEWID                            DS FL04                               
+VDP0050_INPUT_FILE_ID                     DS FL04                               
+VDP0050_COLUMN_ID                         DS FL04                               
+VDP0050_RECORD_TYPE                       DS HL02                               
+VDP0050_SEQUENCE_NBR                      DS HL02                               
+VDP0050_RECORD_ID                         DS FL04                               
+*                                                                               
+VDP0050_MONTH_OF_FISCAL_PERIOD            DS HL02                               
+VDP0050_LOW_PERIOD_VALUE                  DS HL02                               
+VDP0050_HIGH_PERIOD_VALUE                 DS HL02                               
+                                          DS CL02                               
+VDP0050_EFFECTIVE_DATE                    DS CL08                               
+VDP0050_TERM_DATE                         DS CL08                               
+VDP0050_FISCAL_DATE                       DS CL08                               
+VDP0050_NAME                              DS CL256                              
+VDP0050_DESCRIPTION                       DS CL256                              
+                                          DS CL64                               

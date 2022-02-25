@@ -1,0 +1,64 @@
+**********************************************************************
+*                                                                        
+* (C) COPYRIGHT IBM CORPORATION 2004,2008.                                    
+*     Copyright Contributors to the GenevaERS Project.                   
+* SPDX-License-Identifier: Apache-2.0                                    
+*                                                                        
+**********************************************************************  
+*                                                                        
+*  Licensed under the Apache License, Version 2.0 (the "License");      
+*  you may not use this file except in compliance with the License.     
+*  You may obtain a copy of the License at                              
+*                                                                        
+*     http://www.apache.org/licenses/LICENSE-2.0                         
+*                                                                        
+*  Unless required by applicable law or agreed to in writing, software  
+*  distributed under the License is distributed on an "AS IS" BASIS,    
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express         
+*  or implied.                                                          
+*  See the License for the specific language governing permissions  
+*  and limitations under the License.                                       
+*
+VDP0001_GENERATION_RECORD   DSECT
+*
+VDP0001_REC_LEN                           DS H
+VDP0001_RDW_FLAGS                         DS XL02
+*
+VDP0001_VIEWID                            DS F
+VDP0001_INPUT_FILE_ID                     DS F
+VDP0001_COLUMN_ID                         DS F
+VDP0001_RECORD_TYPE                       DS H
+VDP0001_SEQUENCE_NBR                      DS H
+VDP0001_RECORD_ID                         DS F
+VDP0001_RUN_NBR                           DS F
+VDP0001_RUN_DATE                          DS CL08
+VDP0001_ENVIRONMENT_ID                    DS F
+VDP0001_BIG_ENDIAN_IND                    DS CL01
+VDP0001_ASCII_IND                         DS CL01
+VDP0001_VERSION_INFO                      DS H
+VDP0001_SERVER_COUNT                      DS F
+VDP0001_INPUT_FILE_COUNT                  DS F
+VDP0001_PGM_FILE_COUNT                    DS F
+VDP0001_LR_COUNT                          DS F
+VDP0001_LR_FIELD_COUNT                    DS F
+VDP0001_LR_INDEX_FIELD_COUNT              DS F
+VDP0001_JOIN_STEP_COUNT                   DS F
+VDP0001_PGM_PARM_COUNT                    DS F
+VDP0001_VIEW_COUNT                        DS F
+VDP0001_EXTRACT_RECORD_COUNT              DS F
+VDP0001_RUN_CPU_SECONDS                   DS F
+VDP0001_MAX_STD_EXT_FILE_NBR              DS F
+                                          DS H
+VDP0001_MAX_DECIMAL_DIGITS                DS XL01
+VDP0001_MAX_DECIMAL_PLACES                DS XL01
+                                          DS H
+VDP0001_DESCRIPTION                       DS CL48
+VDP0001_DEBUG_INFO                        DS 0CL48
+VDP0001_DATE                              DS CL10
+                                          DS CL1
+VDP0001_TIME                              DS CL8
+                                          ds cl29  (rest of debug info)
+*       on a half word boundary here so use fl4 for following fields
+VDP0001_VDP_BYTE_COUNT                    DS Fl4
+
+vdp0001_record_count                      ds fl4

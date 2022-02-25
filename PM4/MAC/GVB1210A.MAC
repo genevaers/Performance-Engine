@@ -1,0 +1,90 @@
+**********************************************************************
+*                                                                        
+* (C) COPYRIGHT IBM CORPORATION 2003.                                    
+*     Copyright Contributors to the GenevaERS Project.                   
+* SPDX-License-Identifier: Apache-2.0                                    
+*                                                                        
+**********************************************************************  
+*                                                                        
+*  Licensed under the Apache License, Version 2.0 (the "License");      
+*  you may not use this file except in compliance with the License.     
+*  You may obtain a copy of the License at                              
+*                                                                        
+*     http://www.apache.org/licenses/LICENSE-2.0                         
+*                                                                        
+*  Unless required by applicable law or agreed to in writing, software  
+*  distributed under the License is distributed on an "AS IS" BASIS,    
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express         
+*  or implied.                                                          
+*  See the License for the specific language governing permissions   
+*  and limitations under the License.                                       
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *         
+*   GVB1210A _ VDP SUMMARY COLUMN CALCULATION RECORD                  *         
+*                                                                     *         
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *         
+*                                                                               
+VDP1210_EXCEPTION_RECORD DSECT                                                  
+*                                                                               
+VDP1210_REC_LEN                           DS  HL02                              
+VDP1210_RDW_FLAGS                         DS  XL02                              
+*                                                                               
+VDP1210_VIEWID                            DS  FL04                              
+VDP1210_INPUT_FILE_ID                     DS  FL04                              
+VDP1210_COLUMN_ID                         DS  FL04                              
+VDP1210_RECORD_TYPE                       DS  HL02                              
+VDP1210_SEQUENCE_NBR                      DS  HL02                              
+VDP1210_RECORD_ID                         DS  FL04                              
+                                          DS  CL60                              
+VDP1210_STACK_LENGTH                      DS  HL02                              
+                                          DS  CL06                              
+VDP1210_STACK                             DS 0C                                 
+*                                                                               
+VDP1210_STACK_FUNCTION        DSECT                                             
+*                                                                               
+VDP1210_STACK_BRANCH                      DS 0CL08                              
+VDP1210_STACK_BRANCH_OP_ID                DS  FL04    VALUE = 1 - 7             
+VDP1210_STACK_BRANCH_OFFSET               DS  FL04    COLUMN NUMBER             
+*                                                                               
+                              ORG         VDP1210_STACK_FUNCTION                
+VDP1210_STACK_PUSH_CONSTANT               DS 0CL52                              
+VDP1210_STACK_PUSH_NBR_OP_ID              DS  FL04    VALUE = 8                 
+VDP1210_STACK_PUSH_NBR                    DS  CL48    GENEVA NUMBER             
+*                                                                               
+                              ORG         VDP1210_STACK_FUNCTION                
+VDP1210_STACK_PUSH_COLUMN                 DS 0CL08                              
+VDP1210_STACK_PUSH_COL_OP_ID              DS  FL04    VALUE = 9                 
+VDP1210_STACK_PUSH_COL_NBR                DS  FL04    COLUMN NUMBER             
+*                                                                               
+                              ORG         VDP1210_STACK_FUNCTION                
+VDP1210_STACK_OPERATION_CODE              DS  FL04                              
+*                                                                               
+*    10=ADD  11=SUBTRACT  12=MULITPLY  13=DIVIDE  14=NEG  15=ABS                
+*                                                                               
+*                                                                               
+                              ORG         VDP1210_STACK_FUNCTION                
+VDP1210_STACK_POWER_OP_CD                 DS 0CL08                              
+VDP1210_STACK_POWER_OP_ID                 DS  FL04    VALUE = 16                
+VDP1210_STACK_POWER_NBR                   DS  FL04    EXPONENT                  
+*                                                                               
+                              ORG                                               
+VDP1210_STACK_ROUND_OP_CD                 DS 0CL08                              
+VDP1210_STACK_ROUND_OP_ID                 DS  FL04    VALUE = 17                
+VDP1210_STACK_ROUND_NBR                   DS  FL04    #DECIMALS                 
+*                                                                               
+                              ORG         VDP1210_STACK_FUNCTION                
+VDP1210_STACK_PUSH_PRIOR_COLUMN           DS 0CL08                              
+VDP1210_STACK_PUSH_PR_COL_OP_ID           DS  FL04    VALUE = 18                
+VDP1210_STACK_PUSH_PR_COL_NBR             DS  FL04    COLUMN NUMBER             
+*                                                                               
+                              ORG         VDP1210_STACK_FUNCTION                
+VDP1210_STACK_PUSH_TEXT                   DS 0CL260                             
+VDP1210_STACK_PUSH_TEXT_OP_ID             DS  FL04    VALUE = 19                
+VDP1210_STACK_PUSH_TEXT_STRING            DS  CL256   TEXT STRING               
+*                                                                               
+                              ORG         VDP1210_STACK_FUNCTION                
+VDP1210_STACK_PUSH_INTERNAL               DS 0CL52                              
+VDP1210_STACK_PUSH_INT_OP_ID              DS  FL04    VALUE = 20                
+VDP1210_STACK_PUSH_INT_NBR                DS  CL48    INTERNAL NUMBER           
+*                                                                               
+                              ORG                                               

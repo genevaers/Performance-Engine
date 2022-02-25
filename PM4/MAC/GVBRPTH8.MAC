@@ -1,0 +1,148 @@
+* Headings for GVBMR88
+*
+**********************************************************************
+*                                                                        
+* (C) COPYRIGHT IBM CORPORATION 2004.                                    
+*     Copyright Contributors to the GenevaERS Project.                   
+* SPDX-License-Identifier: Apache-2.0                                    
+*                                                                        
+**********************************************************************  
+*                                                                        
+*  Licensed under the Apache License, Version 2.0 (the "License");      
+*  you may not use this file except in compliance with the License.     
+*  You may obtain a copy of the License at                              
+*                                                                        
+*     http://www.apache.org/licenses/LICENSE-2.0                         
+*                                                                        
+*  Unless required by applicable law or agreed to in writing, software  
+*  distributed under the License is distributed on an "AS IS" BASIS,    
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express         
+*  or implied.                                                          
+*  See the License for the specific language governing permissions   
+*  and limitations under the License.                                       
+*
+REPORT_HEADINGS DS 0F
+rptcont_hd1  dc 0cl(rptcont_hd1e-rptcont_hd1s)
+rptcont_hd1s dc al2(rptcont_hd1e-rptcont_hd1s),al2(0)
+             dc c'    Tag    Section name'
+rptcont_hd1e equ *
+*
+rptcont_hd2  dc 0cl(rptcont_hd2e-rptcont_hd2s)
+rptcont_hd2s dc al2(rptcont_hd2e-rptcont_hd2s),al2(0)
+             dc c'    -----  ---------------------------------'
+rptcont_hd2e equ *
+*
+rptiref_hd1  dc 0cl(rptiref_hd1e-rptiref_hd1s)
+rptiref_hd1s dc al2(rptiref_hd1e-rptiref_hd1s),al2(0)
+         dc c'          Key'
+rptiref_hd1e equ *
+*
+rptiref_hd2  dc 0cl(rptiref_hd2e-rptiref_hd2s)
+rptiref_hd2s dc al2(rptiref_hd2e-rptiref_hd2s),al2(0)
+         dc c'DD Name   Len  Record Count  Memory Usage    PF Name'
+rptiref_hd2e equ *
+*
+rptiref_hd3  dc 0cl(rptiref_hd3e-rptiref_hd3s)
+rptiref_hd3s dc al2(rptiref_hd3e-rptiref_hd3s),al2(0)
+         dc c'--------  ---  ------------  --------------  ------------x
+               ------------------------------------'
+rptiref_hd3e equ *
+*
+rptiref_hd4  dc 0cl(rptiref_hd4e-rptiref_hd4s)
+rptiref_hd4s dc al2(rptiref_hd4e-rptiref_hd4s),al2(0)
+         dc c'               ------------  --------------'
+rptiref_hd4e equ *
+*
+rptiref_hd5  dc 0cl(rptiref_hd5e-rptiref_hd5s)
+rptiref_hd5s dc al2(rptiref_hd5e-rptiref_hd5s),al2(0)
+         dc c'               ============  =============='
+rptiref_hd5e equ *
+*
+*
+rptirun_hd1  dc 0cl(rptirun_hd1e-rptirun_hd1s)
+rptirun_hd1s dc al2(rptirun_hd1e-rptirun_hd1s),al2(0)
+         dc c'DD Name   Record Count  Create Date/Time     Created By'
+rptirun_hd1e equ *
+*
+rptirun_hd2  dc 0cl(rptirun_hd2e-rptirun_hd2s)
+rptirun_hd2s dc al2(rptirun_hd2e-rptirun_hd2s),al2(0)
+         dc c'--------  ------------  -------------------  ------------x
+               ------------------------------------'
+rptirun_hd2e equ *
+*
+* ISRC for MR88
+rptisr8_hd1  dc 0cl(rptisr8_hd1e-rptisr8_hd1s)
+rptisr8_hd1s dc al2(rptisr8_hd1e-rptisr8_hd1s),al2(0)
+         dc c'DD Name   Record Count  '
+rptisr8_hd1e equ *
+*
+rptisr8_hd2  dc 0cl(rptisr8_hd2e-rptisr8_hd2s)
+rptisr8_hd2s dc al2(rptisr8_hd2e-rptisr8_hd2s),al2(0)
+         dc c'--------  --------------'
+rptisr8_hd2e equ *
+*
+rptisr8_hd3  dc 0cl(rptisr8_hd3e-rptisr8_hd3s)
+rptisr8_hd3s dc al2(rptisr8_hd3e-rptisr8_hd3s),al2(0)
+         dc c'          --------------'
+rptisr8_hd3e equ *
+*
+rptisr8_hd4  dc 0cl(rptisr8_hd4e-rptisr8_hd4s)
+rptisr8_hd4s dc al2(rptisr8_hd4e-rptisr8_hd4s),al2(0)
+         dc c'          =============='
+rptisr8_hd4e equ *
+*
+* OFIL
+rptofil_hd1  dc 0cl(rptofil_hd1e-rptofil_hd1s)
+rptofil_hd1s dc al2(rptofil_hd1e-rptofil_hd1s),al2(0)
+         dc c'DD Name   Record Count    View ID  Name'
+rptofil_hd1e equ *
+*
+rptofil_hd2  dc 0cl(rptofil_hd2e-rptofil_hd2s)
+rptofil_hd2s dc al2(rptofil_hd2e-rptofil_hd2s),al2(0)
+         dc c'--------  --------------  -------  ----------------------x
+               --------------------------'
+rptofil_hd2e equ *
+*
+*
+RHCONT   DC    0CL(RHCONTE-RHCONTS)
+RHCONTS  DC    AL2(RHCONTE-RHCONTS),AL2(0)
+         DC    C'Report Sections:'
+RHCONTE  EQU   *
+*
+RHPRM88  DC    0CL(RHPRM88E-RHPRM88S)
+RHPRM88S DC    AL2(RHPRM88E-RHPRM88S),AL2(0)
+         DC    C'~PARM - Contents of MR88PARM file:'
+RHPRM88E EQU   *
+*
+RHOPTS   DC    0CL(RHOPTSE-RHOPTSS)
+RHOPTSS  DC    AL2(RHOPTSE-RHOPTSS),AL2(0)
+         DC    C'~OPTS - Options in effect:'
+RHOPTSE  EQU   *
+*
+RHIRUN   DC    0CL(RHIRUNE-RHIRUNS)
+RHIRUNS  DC    AL2(RHIRUNE-RHIRUNS),AL2(0)
+         dc    c'~IRUN - Input run-control files:'
+RHIRUNE  EQU   *
+*
+* change 20729 IREF to IRPW
+RHIREF   DC    0CL(RHIREFE-RHIREFS)
+RHIREFS  DC    AL2(RHIREFE-RHIREFS),AL2(0)
+         dc    c'~IRPW - Input reference-phase work files:'
+RHIREFE  EQU   *
+*
+* change 20729 ISRC to IEPW
+RHISRC   DC    0CL(RHISRCE-RHISRCS)
+RHISRCS  DC    AL2(RHISRCE-RHISRCS),AL2(0)
+         dc    c'~IEPW - Input extract-phase work files:'
+RHISRCE  EQU   *
+*
+RHOFIL   DC    0CL(RHOFILE-RHOFILS)
+RHOFILS  DC    AL2(RHOFILE-RHOFILS),AL2(0)
+         dc    c'~OFIL - Output files:'
+RHOFILE  EQU   *
+*
+RHEXEC   DC    0CL(RHEXECE-RHEXECS)
+RHEXECS  DC    AL2(RHEXECE-RHEXECS),AL2(0)
+         dc    c'~EXEC - Execution summary:'
+RHEXECE  EQU   *
+*

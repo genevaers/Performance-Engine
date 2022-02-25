@@ -1,0 +1,730 @@
+**********************************************************************
+*
+* (C) COPYRIGHT IBM CORPORATION 2004, 2010.
+*     Copyright Contributors to the GenevaERS Project.
+* SPDX-License-Identifier: Apache-2.0
+*
+**********************************************************************
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+*  or implied.
+*  See the License for the specific language governing permissions
+*  and limitations under the License.
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*        LR FIELD DEFINITIONS                                         *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+FLDDEFN  DSECT                    LR  FIELD  DEFINITION
+*
+FDFILEID DS    CL08               FIELD  FILE     ID
+FDLRID   DS    XL04               FIELD  LOGICAL  RECORD ID
+FDFLDID  DS    XL04               FIELD  FIELD    ID
+FDFLDLEN DS    HL02               FIELD  LENGTH
+FDFLDFMT DS    HL02               FIELD  FORMAT
+FDFLDCON DS    HL02               FIELD  CONTENT  CODE
+FDNDEC   DS    xL01               FIELD  NO   OF  DECIMALS
+FDRNDFAC DS    xL01               FIELD  ROUNDING FACTOR
+FDSIGN   DS    CL01               FIELD  SIGNED   INDICATOR
+FDJUST   DS    CL01               FIELD  JUSTIFICATION
+*
+FDENTLEN EQU   *-FLDDEFN
+                     EJECT
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*        VIEW PARAMETERS                                              *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+VIEWREC  DSECT                    VIEW      DEFN   RECORD
+*
+VWNEXT   DS    AL04               NEXT      VIEW   DEFN    RECORD
+VWVIEW#  DS    FL04               VIEW      ID     NUMBER
+*
+VWSUMTYP DS    HL02               VIEW      SUMMARIZATION  TYPE (S,D)
+VWDESTYP DS    HL02               VIEW      DESTINATION    TYPE (O,B,F)
+*
+VWFLAGS  DS   0XL02               PROCESSING  FLAGS
+*
+VWFLAG1  DS    XL01     BYTE 1
+VWPRTDET EQU   X'80'  1--- ----   PRINT      DETAIL      IND
+VWZEROSP EQU   X'40'  -1-- ----   ZERO  LINE SUPPRESSION IND
+VWDWNIND EQU   X'20'  --1- ----   DOWNLOAD   FILE        IND
+VWDWNONL EQU   X'10'  ---1 ----   DOWNLOAD   ONLY        IND
+VWNOMIN  EQU   X'08'  ---- 1---   NO MIN/MAX COLUMNS
+VWNOFRST EQU   X'04'  ---- -1--   NO 1ST/LST COLUMNS
+*        EQU   X'02'  ---- --1-
+*        EQU   X'01'  ---- ---1
+*
+VWFLAG2  DS    XL01     BYTE 2
+VWPRINT  EQU   X'80'  1--- ----   USE   PRINT  AREA
+VWOUTDCB EQU   X'40'  -1-- ----   USE   OUTPUT DCB
+VWCRPIND EQU   X'20'  --1- ----   USE   CONSOLIDATED  REPORTING
+VWBLDCSV EQU   X'10'  ---1 ----   BUILD CSV FORMATTED OUTPUT
+VWEXEC   EQU   X'08'  ---- 1---   USE   EXEC   INFO   OUTPUT ROUTINE
+VWPVIT   EQU   X'04'  ---- -1--   USE   PIVOT  TABLE  OUTPUT ROUTINE
+VWNODD   EQU   X'02'  ---- --1-   RDJFCB FAILED: NO OUTPUT DD
+VWFXWDTH EQU   X'01'  ---- ---1   Use Fix Width Cols 4 Delimited Out
+*
+         DS    XL2                SPARE
+VWBASEV# DS    FL04               PERMUTATION  VIEW   BASE   VIEW#
+*
+VWSRTCNT DS    HL02               SORT      KEY        COUNT
+VWBRKCNT DS    HL02               SORT      BREAK      COUNT
+VWCOLCNT DS    HL02               BASE      COLUMN     COUNT
+         DS    XL2                SPARE
+*
+VWDESTID DS    FL04               DESTINATION   ID
+VWDESPTR DS    CL08               DESTINATION   PRINTER DDNAME
+VWDDNAME DS    CL08               OUTPUT    FILE DDNAME
+VWUPDMOD DS    HL02               UPDATE    MODE       (M,R,B)
+VWHEADLN DS    HL02               HEADING   LINES MAX
+VWFMTPGM DS    CL08               FORMAT    EXIT  PROGRAM NAME
+VWFMTPRM DS    CL32               FORMAT    EXIT  PROGRAM PARAMETERS
+*
+VWCURSEC DS    CL02               CURRENT   REPORT SECTION IDENTIFIER
+VWLINENO DS    HL02               CURRENT     LINE NUMBER
+VWPAGENO DS    PL04               CURRENT     PAGE NUMBER
+VWPAGSIZ DS    HL02               DESTINATION PAGE LENGTH
+VWLINSIZ DS    HL02               DESTINATION LINE LENGTH
+VWLINELN DS    HL02               REPORT      LINE LENGTH
+VWFINPDT DS    CL06               FISCAL    PERIOD   DATE
+VWCOMPNM DS    CL80               COMPANY   NAME
+VWTITLE  DS    CL80               REPORT    TITLE
+VWUSERID DS    CL08               INPUT     USER ID
+*
+VWFOLDER DS    FL04               VIEW      FOLDER   ID
+VWACCESS DS    CL08               ACCESS    CODE
+*
+VWEXCOND DS    AL04               EXCEPTION CONDITION  STACK   ADDR
+VWEXCNT  DS    HL02               EXCEPTION CONDITION  STACK   COUNT
+*
+VWOUTCNT DS    PL06               OUTPUT      COUNT
+VWLIMIT  DS    PL06               OUTPUT      LIMIT
+VWMRGCNT DS    PL06               MARGINAL    UPDATE   RECORD  COUNT
+*
+VWMAXRPT DS    HL02               MAXIMUM     REPORT   TITLE   LINES
+VWMAXFTR DS    HL02               MAXIMUM     REPORT   FOOTER  LINES
+VWRTADDR DS    AL04               VDP REPORT  TITLE    LINES   ADDRESS
+VWRFADDR DS    AL04               VDP REPORT  FOOTER   LINES   ADDRESS
+*
+VWMAXCOL DS    HL02               MAXIMUM     COLUMN   NUMBER
+VWCLCCOL DS    HL02               CALCULATED  COLUMN   COUNT
+VWMAXTTL DS    HL02               MAXIMUM   SORT TITLE LENGTH
+VWSETLEN DS    HL02               LENGTH OF ONE SET OF COLUMN  TOTALS
+VWOUTLEN DS    HL02               FORMATTED OUTPUT     LENGTH
+VWCENTER DS    HL02               CENTERING ADJUSTMENT
+VWSRTTOT DS    HL02               COMBINED  SORT  KEY LENGTHS
+VWTTLTOT DS    HL02               COMBINED  TITLE DESCRIPTION  LENGTHS
+VWSKADDR DS    AL04               VARIABLE  DATA  BEGINNING (SORT KEYS)
+VWLOWSKY DS    AL04               LOWEST SORT KEY DEFINITION   ADDRESS
+VWCOLADR DS    AL04               FIRST  COLUMN   DEFINITION   ADDRESS
+VWDCBADR DS    AL04               OUTPUT FILE DCB ADDRESS
+VWVDPADR DS    AL04               OUTPUT FILE VDP ADDRESS
+VWPGMADR DS    AL04               FORMAT    EXIT      CALL     ADDRESS
+VWFMTADR DS    AL04               FORMAT    EXIT      PROGRAM  ADDRESS
+VWFMTPTR DS    AL04               FORMAT    EXIT      RECORD   POINTER
+VWFMTRC  DS    FL04               FORMAT    EXIT      RETURN   CODE
+VWFMTWRK DS    AL04               FORMAT    EXIT      WORKAREA ANCHOR
+*
+VWRUN#   DS    FL04               RUN       NUMBER
+VWRUNDT  DS    CL08               RUN       DATE
+VWPROCDT DS    CL08               PROCESS   DATE
+VWPROCTM DS    CL06               PROCESS   TIME
+*
+VWFLDDEL DS    CL01               FIELD     DELIMITER
+VWRCDDEL DS    CL01               RECORD    DELIMITER
+VW_STRING_DELIMITER DS C          STRING    DELIMITER, MAY BE NULL
+*
+VWOVRFIL DS    CL48               OVERFLOW  FILL
+VWERRFIL DS    CL48               ERROR     FILL
+*
+         DS   0D
+VWRECLEN EQU   *-VIEWREC
+                     EJECT
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*        VIEW SORT KEYS                                               *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+SORTKEY  DSECT                    SORT KEY DEFINITIONS
+*
+SKSRTORD DS    HL02               COLUMN   SORT   ORDER
+*
+SKCOLSIZ DS    HL02               SORT     COLUMN   SIZE
+SKLBLLEN DS    HL02               SORT     LABEL  LENGTH
+SKLABEL  DS    CL48               SORT     LABEL
+SKFLDID  DS    XL04               SORT     FIELD      ID
+SKFLDLEN DS    HL02               SORT     FIELD  LENGTH
+SKFLDFMT DS    HL02               SORT     FIELD  FORMAT
+SKFLDSGN DS    CL01               SORT     FIELD  SIGN
+SKFLDCON DS    HL02               SORT     FIELD  CONTENT
+SKFLDDEC DS    xL01               SORT     FIELD  DECIMALS
+SKFLDRND DS    xL01               SORT     FIELD  ROUNDING FACTOR
+SKFLDMLN DS    HL02               SORT     FIELD  MASK     LENGTH
+SKFLDMSK DS    CL48               SORT     FIELD  MASK
+*
+SKFILEID DS    CL08               SORT     TITLE  FILE     ID
+SKLRID   DS    XL04               SORT     TITLE  LOGICAL  RECORD  ID
+SKTTLOFF DS    HL02               TITLE    KEY    OFFSET
+SKTTLLEN DS    HL02               TITLE    KEY    LENGTH
+SKTTLFMT DS    HL02               TITLE    KEY    FORMAT
+SKTTLCON DS    HL02               TITLE    KEY    CONTENT  CODE
+SKTTLDEC DS    xL01               TITLE    KEY    NO  OF   DECIMALS
+SKTTLRND DS    xL01               TITLE    KEY    ROUNDING
+*
+SKOUTPOS DS    HL02               SORT     TITLE  POSITION
+SKOUTLEN DS    HL02               SORT     TITLE  LENGTH
+SKOUTFMT DS    HL02               SORT     TITLE  FORMAT
+SKOUTCON DS    HL02               SORT     TITLE  CONTENT  CODE
+SKOUTDEC DS    xL01               SORT     TITLE  NO  OF   DECIMALS
+SKOUTRND DS    xL01               SORT     TITLE  ROUNDING
+SKOUTMLN DS    HL02               SORT     TITLE  MASK     LENGTH
+SKOUTMSK DS    CL48               SORT     TITLE  MASK
+*
+SKSRTSEQ DS    CL01               SORT     SEQUENCE    (A-ASC, D-DSC)
+SKSUBCNT DS    CL01               SUBTOTAL COUNT   PRINT   INDICATOR
+SKCOLDEF DS    AL04               COLUMN DEFINITION ADDRESS
+SKHDRBRK DS    HL02               SORT BREAK HEADER OPTION
+SKFTRBRK DS    HL02               SORT BREAK FOOTER OPTION
+SKDSPOPT DS    HL02               SUBTOTAL DISPLAY OPTION
+SKSUBLEN DS    HL02               SUBTOTAL LABEL   LENGTH
+SKSUBLBL DS    CL48               SUBTOTAL LABEL
+*
+SKCOLID  DS    FL04               SUBTOTAL COLUMN ID
+SKCOLNO  DS    HL02               SUBTOTAL COLUMN NUMBER
+*
+SKINDCNT DS    HL02               SORT     TITLE  INDENTATION  COUNT
+SKPREFXL DS    HL02               SUBTOTAL PREFIX LABEL  LENGTH
+SKVALOFF DS    HL02               SORT     VALUE         OFFSET
+SKDESCLN DS    HL02               SORT     TITLE  TEXT   LENGTH
+SKTTLTOT DS    HL02               SORT     TITLE  TOTAL  LENGTH
+SKLBADDR DS    AL04               SORT     TITLE  LOOK-UP  BUFR ADDRESS
+SK1300VL DS    AL04               SORT KEY VALUE  VDP1300  REC  ADDRESS
+SK1300DS DS    AL04               SORT     TITLE  VDP1300  REC  ADDRESS
+SK1400VL DS    AL04               SORT KEY VALUE  VDP1400  REC  ADDRESS
+SK1400DS DS    AL04               SORT     TITLE  VDP1400  REC  ADDRESS
+SKCOUNT  DS    PL06               SORT     BREAK  RECORD COUNT
+*
+SKTITLE  DS    CL160              SORT     TITLE
+*
+SKENTLEN EQU   *-SORTKEY
+                     EJECT
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*        VIEW COLUMN DEFINITIONS                                      *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+COLDEFN  DSECT                    REPORT REQUEST COLUMN DEFINITION
+*
+CDCOLNO  DS    HL02               COLUMN NUMBER
+CDCLCCOL DS    HL02               CALCULATED     COLUMN SEQ NUMBER
+CDCLCOFF DS    HL02               CALCULATED     COLUMN OFFSET
+CDPRTIND DS    CL01               COLUMN PRINT   INDICATOR
+CDHDJUST DS    CL01               COLUMN HEADER  JUSTIFICATION CODE
+CDCOLID  DS    FL04               COLUMN ID
+CDFLDID  DS    FL04               COLUMN FIELD   ID
+CDSRTDEF DS    AL04               SORT   KEY     DEFN  ADDRESS
+CDHEAD1  DS    CL48               COLUMN HEADING 1
+CDHEAD2  DS    CL48               COLUMN HEADING 2
+CDHEAD3  DS    CL48               COLUMN HEADING 3
+*
+CDCOLOFF DS    HL02               COLUMN OUTPUT  OFFSET
+CDCOLSIZ DS    HL02               COLUMN OUTPUT  SIZE  (WIDTH)  (-1)
+CDCOLGAP DS    HL02               INTERCOLUMN    GAP
+*
+CDOUTFMT DS    HL02               COLUMN    OUTPUT   FORMAT
+CDOUTCON DS    HL02               COLUMN    OUTPUT   CONTENT
+CDNDEC   DS    xL01               COLUMN    NO    OF DECIMALS
+CDRNDFAC DS    xL01               COLUMN    ROUNDING FACTOR
+CDSIGNED DS    CL01               COLUMN    SIGNED   INDICATOR
+CDOUTJUS DS    CL01               COLUMN    DATA JUSTIFICATION (L,C,R)
+         DS    CL01               (RESERVED)
+*
+CDSUBCNT DS    CL01               SUBTOTAL  COUNT    INDICATOR
+CDSUBLVL DS    HL02               SUBTOTAL  LEVEL    NO
+CDSUBOPT DS    HL02               SUBTOTAL  OPTION
+*
+CDEXAREA DS    HL02               COLUMN DATA   AREA ID
+CDDATOFF DS    HL02               COLUMN DATA   AREA OFFSET
+CDDATLEN DS    HL02               COLUMN DATA   AREA LENGTH (-1)
+*
+CDMSKLEN DS    HL02               OUTPUT MASK        LENGTH
+CDDETMSK DS    CL48               OUTPUT MASK
+*
+CDSUBLEN DS    HL02               SUBTOTAL LABEL     LENGTH
+CDSUBLBL DS    CL48               SUBTOTAL LABEL
+*
+CDCALCNT DS    HL02               COLUMN CALCULATION COUNT
+CDCALCTB DS    AL04               COLUMN CALCULATION TABLE ENTRY ADDR
+CDFMTFUN DS    AL04               OUTPUT FORMATTING  FUNCTION    CODE
+CDCALOPT DS    HL02               COLUMN CALCULATION OPTION
+*
+CDCSVCOL DS    CL146              CSV column header -- could be this
+*                                 big if 3 * 48 plus to spaces..
+         DS    0D
+*
+CDENTLEN EQU   *-COLDEFN
+                     EJECT
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*        COLUMN CALCULATION TABLE RECORD                              *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+CALCTBL  DSECT                    COLUMN CALCULATION TABLE ENTRY
+*
+CALCFUNC DS    A                  FUNCTION   ADDRESS
+CALCTGTA DS    A                  TARGET     COLUMN  ADDRESS
+CALCOP2A DS    A                  OPERAND 2  ADDRESS
+CALCVALU DS    xl(AccumDFPl)      COLUMN CALCULATION VALUE
+CALCOPER DS    H                  COLUMN CALCULATION OPERATOR
+BRNCH    EQU   1
+COMPEQ   EQU   2
+COMPNE   EQU   3
+COMPGT   EQU   4
+COMPGE   EQU   5
+COMPLT   EQU   6
+COMPLE   EQU   7
+PUSHV    EQU   8
+PUSHC    EQU   9
+ADD      EQU   10
+SUB      EQU   11
+MULT     EQU   12
+DIV      EQU   13
+NEG      EQU   14
+ABS      EQU   15
+         ds    0f
+CALCLEN  EQU   *-CALCTBL          A(SUBR), A(OPER 1), A(OPER 2)
+                     EJECT
+RTITLE   DSECT
+*
+RPTITLE  DS   0CL137              REPORT   TITLE    LINE
+RTRECLEN DS    HL02               LINE     LENGTH
+         DS    XL02
+RTCC     DS    CL01               CARRIAGE CONTROL
+RTLEFT   DS    CL24               LEFT     AREA
+         DS    CL02               FILLER
+RTCENTER DS    CL80               CENTER   AREA
+         DS    CL02               FILLER
+RTRIGHT  DS    CL24               RIGHT    AREA
+         DS    CL119              FILLER  (256 CHAR LINE LIMIT)
+*
+RTITLELN EQU   *-RTITLE
+                     EJECT
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*        E X T R A C T / H E A D E R / C O N T R O L   R E C O R D S  *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+EXTREC   DSECT                    DETAIL  RECORD WORK AREA
+*
+EXRECLEN DS    HL02
+         DS    XL02
+EXSORTLN DS    HL02               SORT    DATA    LENGTH
+EXTITLLN DS    HL02               TITLE   KEY     LENGTH
+EXDATALN DS    HL02               DATA    AREA    LENGTH
+EXNCOL   DS    HL02               NUMBER  OF  SUB-TOTAL  COLUMNS
+EXVIEW#  DS    FL04               VIEW    NUMBER
+EXSORTKY DS   0CL01               SORT KEY/TITLE KEY/COLUMN DATA  AREA
+                     SPACE 3
+HDRREC   DSECT                    HEADER  RECORD WORK AREA
+*
+HDRECLEN DS    HL02               RECORD  LENGTH
+         DS    XL02
+HDSORTLN DS    HL02               SORT    DATA    LENGTH
+HDTITLLN DS    HL02               TITLE   KEY     LENGTH
+HDDATALN DS    HL02               DATA    AREA    LENGTH
+HDNCOL   DS    HL02               NUMBER  OF  SUB-TOTAL  COLUMNS
+HDVIEW#  DS    FL04               VIEW    NUMBER
+HDSORTKY DS   0CL01               HEADER  SORT    KEY (LOW VALUES)
+*
+HDPREFLN EQU   *-HDRREC
+                     SPACE 3
+HDRDATA  DSECT                    HEADER  RECORD WORK AREA
+*
+HDRECCNT DS    PL06               RECORD  COUNT
+HDUSERID DS    CL08               USER    ID
+HDEVNTNM DS    CL08               EVENT   FILE   DDNAME
+HDSATIND DS    CL01               REQUEST SATISFIED  INDICATOR
+HD0C7IND DS    CL01               0C7     ABEND      INDICATOR
+HDOVRIND DS    CL01               EXTRACT LIMIT  EXCEEDED INDICATOR
+HDLIMIT  DS    PL06               EXTRACT RECORD LIMIT
+*
+HDDATLEN EQU   *-HDRDATA
+                     EJECT
+CTLREC   DSECT                    CONTROL RECORD WORK AREA
+*
+CTRECLEN DS    HL02               RECORD  LENGTH
+         DS    XL02
+CTSORTLN DS    HL02               SORT    DATA    LENGTH
+CTTITLLN DS    HL02               TITLE   KEY     LENGTH
+CTDATALN DS    HL02               DATA    AREA    LENGTH
+CTNCOL   DS    HL02               NUMBER  OF  SUB-TOTAL  COLUMNS
+CTVIEW#  DS    FL04               VIEW    NUMBER        (LOW VALUES)
+CTRECCNT DS    PL06               RECORD  COUNT
+CTFILENO DS    HL02               FILE    NUMBER
+CTPROCDT DS    CL08               PROCESSED DATE
+CTPROCTM DS    CL06               PROCESSED TIME
+CTFINPDT DS    CL06               FINANCIAL PERIOD DATE (CCYYMM)
+                     SPACE 5
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*        SUBTOTAL/SUMMARY EXTRACT COLUMN DEFINITION                   *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+COLEXTR  DSECT                 CALCULATION COLUMN DATA  AREA
+*
+COLNO    DS    HL02            CALCULATION COLUMN NUMBER
+COLDATA  DS    PL12            CALCULATION DATA
+*
+COLDATAL EQU   *-COLEXTR       CALCULATION COLUMN DATA  LENGTH
+                     EJECT
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*        LOOK-UP BUFFER AREA DEFINITION                               *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+LKUPBUFR DSECT                 LOOK-UP BUFFER AREA PREFIX
+*
+LBLEN    DS    HL02            BUFFER  LENGTH
+LBNEXT   DS    AL04            NEXT    BUFFER POINTER (0 = END-OF-LIST)
+*
+LBDDNAME DS   0CL08            FILE    DDNAME/ID
+LBFILEID DS    FL04            FILE    ID
+         DS    CL04            RIGHT   HALF   OF  DDNAME
+LBLRID   DS    FL04            LOGICAL RECORD ID
+LBKEYOFF DS    HL02            LOGICAL RECORD KEY OFFSET
+LBKEYLEN DS    HL02            LOGICAL RECORD KEY LENGTH
+LBRECLEN DS    HL02            MEMORY  RESIDENT   TABLE  ROW   LENGTH
+LBSUBADR DS   0AL04            CALLED  SUBROUTINE ADDRESS
+LBRECCNT DS    FL04            MEMORY  RESIDENT   TABLE  ROW   COUNT
+LBSUBNAM DS   0CL08            CALLED  SUBROUTINE NAME
+LBTBLBEG DS    AL04            MEMORY  RESIDENT   TABLE  BEGIN ADDRESS
+LBTBLEND DS    AL04            MEMORY  RESIDENT   TABLE  END   ADDRESS
+LBSUBWRK DS   0AL04            CALLED  SUBROUTINE WORK   AREA  ANCHOR
+LBMIDDLE DS    AL04            ADDRESS OF MIDDLE    ROW
+LBDSALET DS    AL04            DATASPACE  ACCESS    LIST   TOKEN
+LBLSTRC  DS    FL04            LAST    CALL  RETURN CODE
+LBLSTFND DS    AL04            LAST    CALL  ENTRY  FOUND  ADDRESS
+LBLSTCNT DS    PL06            LAST    CALL  EVENT  RECORD NUMBER
+LBEFFOFF DS    HL02            OFFSET  OF EFFECTIVE DATE
+LBFLAGS  DS    XL02            PROCESSING FLAGS
+LBMEMRES EQU   X'80'           ....1000 0000  MEMORY  RESIDENT TABLE
+LBEFFDAT EQU   X'40'           ....0100 0000  EFFECTIVE  DATES PRESENT
+LBSUBPGM EQU   X'20'           ....0010 0000  CALLED  SUBROUTINE
+LBEFFRMV EQU   X'10'           ....0001 0000  EFFECTIVE  DATES REMOVED
+LBEFFEND EQU   X'01'           ....0000 0001  END      DATES  PRESENT
+LBKEY    DS   0CL01            LOGICAL RECORD KEY
+LBDATA   DS   0CL01            LOGICAL RECORD DATA
+*
+LBPREFLN EQU   *-LKUPBUFR      RECORD  BUFFER AREA PREFIX LENGTH
+                     EJECT
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*        LOOK-UP TABLE DATA ENTRY DEFINITION                          *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+LKUPTBL  DSECT                 LOOK-UP TABLE  ENTRY DEFINITION
+*
+LKLOWENT DS    AL04            LOW  VALUE ROW ADDRESS
+LKHIENT  DS    AL04            HIGH VALUE ROW ADDRESS
+LKUPDATA DS   0CL01
+*
+LKPREFLN EQU   *-LKUPTBL       LOOK-UP TABLE  ENTRY PREFIX LENGTH
+                     SPACE 5
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*        LOOK-UP TABLE DATA HEADER RECORD DEFINITION                  *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+TBLHEADR DSECT                 TABLE   DATA   HEADER RECORD
+*
+TBFILEID DS    FL04            FILE    ID
+TBLRID   DS    FL04            LOGICAL RECORD ID
+TBRECCNT DS    FL04            RECORD  COUNT
+TBRECLEN DS    HL02            RECORD  LENGTH
+TBKEYOFF DS    HL02            KEY     OFFSET
+TBKEYLEN DS    HL02            KEY     LENGTH
+TBXFILE# DS   0HL02            "JLT"   EXTRACT  FILE NUMBER
+         DS    XL01            FILLER
+TBEFFIND DS    CL01            EFFECTIVE DATE INDICATOR (VERSION 3)
+         DS    XL01            FILLER
+TBEFFDAT DS    XL01            EFFECTIVE DATE OPTION CODE
+         DS    XL01            FILLER
+TBTXTFLG DS    XL01            TEXT DATA FLAG
+*
+TBHDRLEN EQU   *-TBLHEADR      TABLE   HEADER LENGTH
+                     EJECT
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*        COMMON LANGUAGE ENVIRONMENT INTERFACE                        *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+         SPACE 1
+LEINTER  DSECT
+         SPACE 1
+FMTPARML DS   0A                  FORMAT    EXIT     PARAMETER  LIST
+FMTPVIEW DS    A                  VIEW      NUMBER
+FMTPRECA DS    A                  INPUT     RECORD   ADDRESS
+FMTPARMA DS    A                  PARAMETER AREA     ADDRESS
+FMTPSECT DS    A                  REPORT    SECTION  CODE
+FMTPDATA DS    A                  DATA      AREA     ADDRESS
+FMTPOUTP DS    A                  OUTPUT    RECORD   POINTER
+FMTPWRKA DS    A                  WORKAREA  ANCHOR   POINTER    ADDR
+         SPACE 1
+LEPARM   DS   0A
+LEFUNCA  DS    A                  FUNCTION CODE
+LESUBRA  DS    A                  ENTRY    POINT   ADDRESS
+LETOKNA  DS    A                  LANGUAGE ENVIRONMENT TOKEN ADDRESS
+LEPARMA  DS    A                  CALLED   MODULE  PARAMETER LIST
+LERTNCA  DS    A                  RETURN   CODE
+LEREASA  DS    A                  REASON   CODE
+LEFDBKA  DS    A                  FEEDBACK AREA
+         SPACE 1
+LECEEADR DS    A                  LANGUAGE ENVIRONMENT INTERFACE  ADDR
+LETOKEN  DS    A                  LANGUAGE ENVIRONMENT TOKEN
+LESUBADR DS   2A                  CALLED   ENTRY POINT ADDR   (DBLWORD)
+LEPARMP  DS    A                  PARAMETER LIST ADDR
+LERTNC   DS    F                  RETURN   CODE
+LEREASON DS    F                  REASON   CODE
+LERETADR DS    A                  RETURN   ADDRESS
+LEFDBK   DS   3A                  FEEDBACK AREA
+         SPACE 1
+LEINTLEN EQU   *-LEINTER
+                     EJECT
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*        PARAMETER DATA (FROM JCL EXEC CARD)                          *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+PARMDATA DSECT                    PARAMETER DATA AREA
+*
+ECHOIND  DS    CL1                PRINT   FILE OUTPUT INDICATOR
+EXTROPT  DS    CL1                EXTRACT FILE SOURCE OPTION ("S", "W")
+NOHDROPT DS    CL1                NO  HEADER  RECORDS OPTION ("N", "Y")
+DISPXIDT DS    CL1                INCLUDE DT AREA IN XI SUBT ("N", "Y")
+IGNROVFL DS    CL1                IGNORE  OVERFLOW           ("N", "Y")
+ZERODIV  DS    CL1                ZERO    DIVIDE ABEND       ("N", "Y")
+GENDHDR  DS    CL1                Generate header for csv    ("N", "Y")
+EXTKEYL  DS    CL3                EXTRACT RECORD SORT KEY LENGTH
+VDPTBLMX DS    CL6                MISC    VDP  RECORD TABLE MAXIMUM
+XIOPTCD  DS    CL1                EXECUTIVE INFORMATION OPTION CODE
+ASCII    DS    CL1                OUTPUT ASCII DRILLDOWN ("A","E")
+MARGMODE DS    CL1                MARGINAL OR HISTORY MODE ("M","H")
+FIXWDDEL DS    CL1                Fixed Width with Delimiters("N","Y")
+MSGABEND DS    CL5                Abend on message #
+*
+PARMLEN  EQU   *-PARMDATA
+                     SPACE 5
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*      E N V I R O N M E N T   V A R I A B L E   D E F I N I T I O N  *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+ENVVTBL  DSECT                 ENVIRONMENT VARIABLES
+*
+ENVVNEXT DS    AL04            NEXT ENV    VARIABLE NAME
+ENVVNLEN DS    HL02            VARIABLE    NAME     LENGTH (-1)
+ENVVNAME DS    CL16            VARIABLE    NAME
+ENVVVLEN DS    HL02            VARIABLE    VALUE    LENGTH (-1)
+ENVVVALU DS    CL16            VARIABLE    VALUE
+*
+ENVVTLEN EQU   *-ENVVTBL       ENVIRONMENT VARIABLE DATA LENGTH
+*
+         ORG
+*
+         EJECT
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*        D Y N A M I C   A L L O C A T I O N   P A R A M E T E R S    *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+         SPACE 1
+         GVBAUR35 DSECT=YES
+                     EJECT
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*        DATA FORMAT CODES                                            *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+FM_ALNUM EQU   X'01'                    ALPHANUMERIC
+FM_ALPHA EQU   X'02'                    ALPHABETIC
+FM_NUM   EQU   X'03'                    NUMERIC
+FM_PACK  EQU   X'04'                    PACKED
+FM_SORTP EQU   X'05'                    PACKED  -  SORTABLE
+FM_BIN   EQU   X'06'                    BINARY
+FM_SORTB EQU   X'07'                    BINARY  -  SORTABLE
+FM_BCD   EQU   X'08'                    BINARY     CODED      DECIMAL
+FM_MASK  EQU   X'09'                    MASKED     NUMERIC
+FM_EDIT  EQU   X'0A'                    EDITED     NUMERIC
+FM_FLOAT EQU   X'0B'                    FLOATING   POINT
+FM_GEN#  EQU   X'0C'                    GENEVA     NUMBER
+*
+SIGNED   EQU   01                       SIGNED     FIELD      INDICATOR
+HIDDEN   EQU   01                       HIDDEN     COLUMN     INDICATOR
+PRNTDET  EQU   01                       PRINT      EXTRACT    DETAIL
+ENDRANGE EQU   02                       EFFECTIVE  END  DATES PRESENT
+*
+*  SORT SEQUENCE ("SKSRTSEQ")
+ASCEND   EQU   01                       SORT       ASCENDING
+DESCEND  EQU   02                       SORT       DESCENDING
+*
+SUMMARY  EQU   01                       SUMMARY    VIEW
+DETAIL   EQU   02                       DETAIL     VIEW
+MERGESUM EQU   03                       MERGE-SUMMARY     VIEW
+COPY     EQU   04                       COPY       VIEW
+EXTONLY  EQU   05                       EXTRACT    ONLY   VIEW
+*
+CATEGOR  EQU   01                       CATEGORIZE BREAKS
+ASDATA   EQU   02                       SUBTOTAL   BREAKS "AS DATA"
+INCLDESC EQU   03                       INCLUDE DESC WITH "AS DATA"
+*
+*  SORT BREAK HEADER OPTIONS ("SKHDRBRK")
+SAMEPAGE EQU   01  (S)                  PRINT BREAK HDR ON SAME PAGE
+NEWPAGE  EQU   02  (P)                  START BREAK HDR ON NEW  PAGE
+SUPPRESS EQU   03  (N)                  SUPPRESS SORT BREAK HEADER
+TITLEL1  EQU   04  (1)                  PROMOTE TO REPORT TITLE LINE 1
+TITLEL2  EQU   05  (2)                  PROMOTE TO REPORT TITLE LINE 2
+TITLEL3  EQU   06  (3)                  PROMOTE TO REPORT TITLE LINE 3
+TITLEL4  EQU   07  (3)                  PROMOTE TO REPORT TITLE LINE 4
+TITLEL5  EQU   08  (3)                  PROMOTE TO REPORT TITLE LINE 5
+*
+*  SORT BREAK FOOTER OPTIONS ("SKFTRBRK")
+NOSUBTTL EQU   01  (N)                  SUPPRESS SORT BREAK FOOTER
+SUBTOTAL EQU   02  (Y)                  PRINT    SORT BREAK FOOTER
+*
+*  DATA SOURCE AREA ID     ("CDEXAREA")
+SKAREA   EQU   01                       SORT   KEY AREA
+TKAREA   EQU   02                       TITLE  KEY AREA
+DTAREA   EQU   03                       DATA  "DT" AREA
+CTAREA   EQU   04                       CALC  "CT" AREA
+*
+*  COLUMN SUBTOTAL OPTIONS ("CDSUBOPT")
+NOSUBTOT EQU   01  (N)                  NO  COLUMN SUBTOTALING
+SUBTOT   EQU   02  (Y)                  SUBTOTAL   COLUMN
+MAX      EQU   03  (H)                  MAXIMUM    COLUMN VALUE (HIGH)
+MIN      EQU   04  (L)                  MINIMUM    COLUMN VALUE (LOW )
+FIRST    EQU   05  (B)                  FIRST      COLUMN VALUE (BEG )
+LAST     EQU   06  (E)                  LAST       COLUMN VALUE (END )
+DETMAX   EQU   10  (X)                  DETAIL LEVEL  MAXIMUM   VALUE
+DETMIN   EQU   11  (M)                  DETAIL LEVEL  MINIMUM   VALUE
+*
+*  COLUMN CALCULATION OPTIONS ("CDCALOPT")
+DETCALC  EQU   07  (D)                  CALCULATIONS  AT DETAIL LEVEL
+BRKCALC  EQU   08  (C)                  CALCULATIONS  AT  BREAK LEVEL
+RECALC   EQU   09  (R)                  CALCULATIONS  AT  BOTH  LEVELS
+*
+*  VIEW UPDATE MODE ("VWUPDMOD")
+REGEN    EQU   01                       REGENERATE MASTER (ALWAYS )
+MARGUPD  EQU   02                       MARGINAL   MASTER  UPDATE
+NEWMSTR  EQU   03                       NEW        MASTER (ONETIME)
+*
+*  OUTPUT DESTINATION TYPE ("VWDESTYP")
+BATCH    EQU   01                       BATCH/HARDCOPY
+ONLINE   EQU   02                       ONLINE     VIEW
+FILEFMT  EQU   03                       FILE       FORMAT
+EXECINF  EQU   04                       EXECUTIVE  INFORMATION
+EXCEL    EQU   05                       EXCEL
+LOTUS123 EQU   06                       LOTUS 123
+CSV      EQU   07                       COMMA SEPARATED VARIABLES
+PVITTBL  EQU   08                       EXCEL PIVOT     TABLE
+XML      EQU   09                       XML
+*
+*  TITLE AREA JUSTIFICATION CODES
+TTLLEFT  EQU   01                       LEFT   AREA
+TTLCENTR EQU   02                       CENTER AREA
+TTLRIGHT EQU   03                       RIGHT  AREA
+*
+*  TITLE AREA KEYWORD CODES
+TTLDATE  EQU   001                      PROCESS DATE
+TTLTIME  EQU   002                      PROCESS TIME
+TTLPAGE  EQU   003                      PAGE   NUMBER
+TTLVIEW  EQU   004                      VIEW   ID
+TTLTEXT  EQU   005                      TEXT
+TTLCONAM EQU   006                      COMPANY NAME
+TTLVWNAM EQU   007                      VIEW    NAME
+TTLOWNER EQU   008                      VIEW OWNER USER ID
+TTLSLBL1 EQU   011                      SORT KEY 1 LABEL
+TTLSVAL1 EQU   012                      SORT KEY 1 VALUE
+TTLSTTL1 EQU   013                      SORT KEY 1 TITLE
+TTLSLBL2 EQU   021                      SORT KEY 2 LABEL
+TTLSVAL2 EQU   022                      SORT KEY 2 VALUE
+TTLSTTL2 EQU   023                      SORT KEY 2 TITLE
+TTLSLBL3 EQU   031                      SORT KEY 3 LABEL
+TTLSVAL3 EQU   032                      SORT KEY 3 VALUE
+TTLSTTL3 EQU   033                      SORT KEY 3 TITLE
+TTLSLBL4 EQU   041                      SORT KEY 4 LABEL
+TTLSVAL4 EQU   042                      SORT KEY 4 VALUE
+TTLSTTL4 EQU   043                      SORT KEY 4 TITLE
+TTLSLBL5 EQU   051                      SORT KEY 5 LABEL
+TTLSVAL5 EQU   052                      SORT KEY 5 VALUE
+TTLSTTL5 EQU   053                      SORT KEY 5 TITLE
+TTLRUN#  EQU   501                      RUN NUMBER
+TTLRDATE EQU   502                      RUN DATE
+TTLFDATE EQU   503                      FISCAL DATE
+*
+***********************************************************************
+* RECORD FORMAT TYPES (RECFM)                                         *
+***********************************************************************
+RECFMU   EQU   00                 UNDEFINED
+RECFMFB  EQU   01                 FIXED BLOCK
+RECFMVB  EQU   02                 VAR   BLOCK
+RECFMFBA EQU   03                 FIXED BLOCK ANSI CC
+RECFMVBA EQU   04                 VAR   BLOCK ANSI CC
+*
+***********************************************************************
+* DATA SET ORGANIZATION (DSORG)                                       *
+***********************************************************************
+DSORGU   EQU   00                 UNDEFINED
+DSORGPS  EQU   01                 PHYSICAL SEQUENTIAL
+DSORGDA  EQU   02                 DIRECT ACCESS
+DSORGVS  EQU   03                 VSAM
+DSORGPO  EQU   04                 PARTITIONED
+*
+***********************************************************************
+*  FIELD DELIMITERS        ("VWFLDDEL")
+***********************************************************************
+COMMADEL EQU   01
+PIPEDEL  EQU   02
+TABDEL   EQU   03
+CRDEL    EQU   04
+*
+***********************************************************************
+*  STRING DELIMITERS
+***********************************************************************
+NOSTRDEL EQU   00       NO STRING DELIMITER
+SQSTRDEL EQU   01       SINGLE QUOTE
+DQSTRDEL EQU   02       DOUBLE QUOTE
+*
+***********************************************************************
+* SAVE SORT KEY AREA LENGTH                                           *
+***********************************************************************
+SVSORTLN EQU   2048
+*
+***********************************************************************
+* Accumulator length                                                 *
+***********************************************************************
+AccumDFPl EQU  16                16 for DFP (was 12 for packed decimal)
+*
+*

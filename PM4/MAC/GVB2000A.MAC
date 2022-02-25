@@ -1,0 +1,73 @@
+**********************************************************************
+*                                                                        
+* (C) COPYRIGHT IBM CORPORATION 2004, 2005.                                    
+*     Copyright Contributors to the GenevaERS Project.                   
+* SPDX-License-Identifier: Apache-2.0                                    
+*                                                                        
+**********************************************************************  
+*                                                                        
+*  Licensed under the Apache License, Version 2.0 (the "License");      
+*  you may not use this file except in compliance with the License.     
+*  You may obtain a copy of the License at                              
+*                                                                        
+*     http://www.apache.org/licenses/LICENSE-2.0                         
+*                                                                        
+*  Unless required by applicable law or agreed to in writing, software  
+*  distributed under the License is distributed on an "AS IS" BASIS,    
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express         
+*  or implied.                                                          
+*  See the License for the specific language governing permissions   
+*  and limitations under the License.                                       
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *         
+*   GVB2000A _ VDP COLUMN RECORD                                      *         
+*                                                                     *         
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *         
+*                                                                               
+VDP2000_COLUMN_RECORD   DSECT                                                   
+*                                                                               
+VDP2000_REC_LEN                           DS HL02                               
+VDP2000_RDW_FLAGS                         DS XL02                               
+*                                                                               
+VDP2000_VIEW_ID                           DS FL04                               
+VDP2000_INPUT_FILE_ID                     DS FL04                               
+VDP2000_COLUMN_ID                         DS FL04                               
+VDP2000_RECORD_TYPE                       DS HL02                               
+VDP2000_SEQUENCE_NBR                      DS HL02                               
+VDP2000_RECORD_ID                         DS FL04                               
+VDP2000_COLUMN_NAME                       DS CL48                               
+VDP2000_HIDDEN_IND                        DS CL01                               
+                                          DS CL03                               
+VDP2000_SUBTOTAL_TYPE_ID                  DS FL04                               
+VDP2000_SPACES_BEFORE_COLUMN              DS HL02                               
+VDP2000_EXTRACT_POINT_FILE_NBR            DS HL02                               
+VDP2000_EXTRACT_AREA_ID                   DS FL04                               
+VDP2000_EXTRACT_AREA_POSITION             DS HL02                               
+                                          DS CL02                               
+VDP2000_FIELD_ID                          DS FL04                               
+VDP2000_FIELD_NAME                        DS CL48                               
+VDP2000_EFFECTIVE_DATE                    DS CL08                               
+VDP2000_TERMINATION_DATE                  DS CL08                               
+VDP2000_FORMAT_ID                         DS FL04                               
+VDP2000_SIGNED_IND                        DS CL01                               
+                                          DS CL01                               
+VDP2000_START_POSITION                    DS HL02                               
+VDP2000_FIELD_LENGTH                      DS HL02                               
+VDP2000_ORDINAL_POSITION                  DS HL02                               
+VDP2000_DECIMAL_COUNT                     DS HL02                               
+VDP2000_ROUNDING                          DS HL02                               
+VDP2000_FIELD_CONTENT_ID                  DS FL04                               
+VDP2000_JUSTIFY_ID                        DS FL04                               
+VDP2000_ORDINAL_OFFSET                    DS HL02                               
+                                          DS CL46                               
+VDP2000_DETAIL_PREFIX                     DS CL48                               
+VDP2000_REPORT_MASK                       DS CL48                               
+VDP2000_SUBTOTAL_PREFIX                   DS CL48                               
+VDP2000_SUBTOTAL_MASK                     DS CL48                               
+VDP2000_DEFAULT_VALUE                     DS CL256                              
+VDP2000_XML_TAG                           DS CL256                              
+VDP2000_HEADER_JUSTIFY_ID                 DS FL04                               
+VDP2000_HEADER_LINE1                      DS CL256                              
+VDP2000_HEADER_LINE2                      DS CL256                              
+VDP2000_HEADER_LINE3                      DS CL256                              
+                                          DS CL16                               
