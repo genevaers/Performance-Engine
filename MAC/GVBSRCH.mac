@@ -1,0 +1,207 @@
+          MACRO
+          GVBSRCH &KEYLEN=0,&OFFSET=N,&VCON=N,&ENTRY=N
+.*
+.* (C) COPYRIGHT IBM CORPORATION 2019, 2020.
+.*     Copyright Contributors to the GenevaERS Project.
+.* SPDX-License-Identifier: Apache-2.0
+.*
+.**********************************************************************
+.*
+.*  Licensed under the Apache License, Version 2.0 (the "License");
+.*  you may not use this file except in compliance with the License.
+.*  You may obtain a copy of the License at
+.*
+.*     http://www.apache.org/licenses/LICENSE-2.0
+.*
+.*  Unless required by applicable law or agreed to in writing, software
+.*  distributed under the License is distributed on an "AS IS" BASIS,
+.*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+.*  or implied.
+.*  See the License for the specific language governing permissions
+.*  and limitations under the License.
+.*
+.* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **
+.*MACRO NAME: GVBSRCH                                                 *
+.*                                                                    *
+.*DESCRIPTIVE NAME: LOOK UP SEARCH ROUTINE                            *
+.*                                                                    *
+.* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **
+         LCLC  &SLAB              SRCH ROUTINE LABEL
+         AIF   ('&KEYLEN' GE '1' OR '&KEYLEN' LE '256').SRCH1
+         MNOTE 12,'***  GVBSRCH INVALID KEYLEN &KEYLEN'
+         AGO   .FINISH
+.SRCH1   ANOP
+&SLAB    SETC  'S&KEYLEN'
+.*                                                                    *
+         AIF   ('&OFFSET' EQ 'N').SRCH2
+&SLAB.TBLO DC    A(&SLAB.TBLA-GVBMR95)
+         AGO   .FINISHX
+.SRCH2   ANOP
+.*                                                                    *
+         AIF   ('&VCON' EQ 'N').SRCH3
+&SLAB.TBLV DC    V(&SLAB.TBLA)
+         AGO   .FINISHX
+.SRCH3   ANOP
+.*                                                                    *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*        T A B L E   L O O K U P                                      *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+         AIF   ('&ENTRY' EQ 'N').SRCH4
+         ENTRY &SLAB.TBLA
+.SRCH4   ANOP
+.*                                                                    *
+         USING LKUPBUFR,R5
+         using litp_hdr,r2
+&SLAB.TBLA DS  0D
+         ltg   R4,LBLSTFND        CHECK IF THIS KEY SAME AS LAST ???
+         USING LKUPTBL,R4
+         JNP   &SLAB.INIT
+*
+         lgr   R14,r4
+         CLC   LKUPKEY+4(&KEYLEN),0(R14) BYPASS SEARCH (USE PREVS) ?
+         be    l'mc_jump(,r10)    RETURN  TO  FOUND ADDRESS
+*
+&SLAB.INIT LG  R4,LBMIDDLE        LOAD ADDRESS  OF MIDDLE ENTRY
+                        SPACE 3
+&SLAB.LOOP lgr R3,R4              SAVE    LAST  ENTRY EXAMINED
+         LA    R14,LKUPDATA
+         CLC   LKUPKEY+4(&KEYLEN),0(R14)
+         JL    &SLAB.TOP            LOWER TOP
+         JH    &SLAB.BOT            RAISE BOTTOM
+*
+&SLAB.FND LA   R14,LKUPDATA       LOAD ADDRESS  OF DATA
+         stg   R14,LBLSTFND       SAVE ADDRESS  IN BUFFER PREFIX
+*
+         agsi  lbfndcnt,bin1       INCREMENT   COUNT
+         b     l'mc_jump(,r10)    RETURN  TO  FOUND ADDRESS
+                        SPACE 3
+&SLAB.TOP LTG  R4,LKLOWENT        LOAD ADDRESS   OF LOWER  VALUE NODE
+         JP    &SLAB.LOOP         YES - CONTINUE
+         J     &SLAB.CHK          NO  - CHECK FOR EFFECTIVE DATE
+*
+&SLAB.BOT LTG  R4,LKHIENT         LOAD ADDRESS   OF HIGHER VALUE NODE
+         JP    &SLAB.LOOP         YES - CONTINUE
+*
+         AIF   ('&KEYLEN' GT '4').EFFDAT
+*
+* NOT FOUND (AND NO EFFECTIVE DATES AS KEYLEN < 5)
+*
+&SLAB.CHK EQU  *
+&SLAB.NOT ds   0h
+         agsi  lbnotcnt,bin1       INCREMENT   COUNT
+*
+         lghi  R0,-1              SET TABLE ENTRY ADDRESS  TO HIGH VAL
+         STG   R0,LBLSTFND        SAVE ADDRESS (-1)
+*
+         if ltgf,r14,LBPARENT,p   LOAD PARENT JOIN LOOK-UP BUFFER ADDR
+           STG R0,LBLSTFND-LKUPBUFR(,R14)  store if positive
+         endif
+*
+         BR    R10                RETURN TO NOT FOUND ADDRESS
+.*
+         AGO   .FINISH
+.EFFDAT  ANOP
+*
+* NOT FOUND (BUT MIGHT HAVE EFFECTIVE DATES AS KEYLEN > 4)
+*
+&SLAB.CHK TM   LBFLAGS,LBEFFDAT   EFFECTIVE  START DATES PRESENT ???
+         JNO   &SLAB.END          NO  - CHECK  END DATES ONLY
+*
+         LA    R14,LKUPKEY+4      LOCATE EFFECTIVE DATE  WITHIN  KEY
+         agh   R14,LBEFFOFF
+         OC    0(4,R14),0(R14)    EFFECTIVE DATE PRESENT ???
+         JZ    &SLAB.NOT          NO  - EXACT MATCH WAS  REQUIRED
+*
+*        lgr   R1,R15  don't      CALC KEY LENGTH EXCLUDING DATE (-1)
+*        aghi  R1,-4   need!
+*
+         lgr   R4,R3              RECHECK LAST ENTRY EXAMINED
+         LA    R14,LKUPDATA
+         CLC   LKUPKEY+4(&KEYLEN),0(R14)
+         JH    &SLAB.HIGH
+                        SPACE 3
+&SLAB.LOW lgh  R0,LBRECLEN        LOAD LENGTH OF EACH TABLE ENTRY
+         aghi  R0,LKPREFLN
+*
+         LG    R14,LBTBLBEG       LOAD BEGINNING ADDRESS OF TABLE
+*
+         sgr   R4,R0
+         cgr   R4,R14             CHECK FOR BEGINNING OF TABLE  ???
+         JL    &SLAB.NOT          EXIT  IF  NO PREVIOUS  ENTRY
+*
+         LA    R14,LKUPDATA
+*
+&SLAB.HIGH EQU *                  SAME ROOT KEY EXCLUDING  DATE ???
+         CLC LKUPKEY+4(&KEYLEN-4),0(R14)
+         JNE   &SLAB.NOT          NO  - NOT  FOUND
+*
+         TM    LBFLAGS,LBEFFEND   END   DATES PRESENT ???
+         JNO   &SLAB.FND          NO  - THIS  ENTRY   QUALIFIES
+*
+         LA    R14,LKUPDATA+1     LOAD  DATA ADDRESS (DATE FOLLOWS KEY)
+         agh   R14,LBKEYLEN
+*
+         LA    R1,LKUPKEY+4       LOCATE EFFECTIVE DATE WITHIN KEY
+         agh   R1,LBEFFOFF
+*
+         CLC   0(4,R1),0(R14)     EFFECTIVE DATE EXCEEDS END DATE ???
+         JNH   &SLAB.FND          NO  - ENTRY FOUND
+*
+&SLAB.NOT ds   0h
+         agsi  lbnotcnt,bin1       INCREMENT   COUNT
+*
+         lghi  R0,-1              SET TABLE ENTRY ADDRESS  TO HIGH VAL
+         STG   R0,LBLSTFND        SAVE ADDRESS (-1)
+*
+         if ltgf,r14,LBPARENT,p   LOAD PARENT JOIN LOOK-UP BUFFER ADDR
+           STG R0,LBLSTFND-LKUPBUFR(,R14)  store if positive
+         endif
+*
+         BR    R10                RETURN TO NOT FOUND ADDRESS
+                        EJECT
+&SLAB.END TM    LBFLAGS,LBEFFEND   EFFECTIVE   END DATES ONLY ???
+         JNO   &SLAB.NOT          NO  - EXACT MATCH WAS REQUIRED
+*
+         LA    R14,LKUPKEY+4      LOCATE EFFECTIVE DATE WITHIN KEY
+         agh   R14,LBEFFOFF
+         OC    0(4,R14),0(R14)    EFFECTIVE DATE PRESENT ???
+         JZ    &SLAB.NOT          NO  - EXACT MATCH WAS  REQUIRED
+*
+*        lgr   R1,R15     don't   CALC KEY LENGTH EXCLUDING DATE (-1)
+*        aghi  R1,-4 need!
+*
+         lgr   R4,R3              RECHECK LAST ENTRY EXAMINED
+         LA    R14,LKUPDATA
+         CLC   LKUPKEY+4(&KEYLEN),0(R14)
+         JL    &SLAB.ENDL
+                        SPACE 3
+&SLAB.ENDH lgh R0,LBRECLEN        LOAD LENGTH OF EACH TABLE ENTRYY
+         aghi  R0,LKPREFLN
+*
+         LG    R14,LBTBLEND       LOAD ENDING    ADDRESS OF TABLE
+*
+         agr   R4,R0
+         cgr   R4,R14             CHECK FOR END OF TABLE ???
+         JNL   &SLAB.NOT          EXIT  IF  NO  HIGHER   ENTRY
+*
+         LA    R14,LKUPDATA
+*
+&SLAB.ENDL EQU *                  SAME  ROOT KEY EXCLUDING  DATE ???
+         CLC   LKUPKEY+4(&KEYLEN-4),0(R14)
+         JE    &SLAB.FND          YES - CORRECT  ENTRY FOUND
+         J     &SLAB.NOT          NO  - ENTRY WITH OKAY DATE NOT FOUND
+.*
+         AGO   .FINISH
+.*
+.FINISH  anop
+*
+         DROP  R4
+         DROP  R5
+         DROP  R2
+.*
+.FINISHX anop
+*
+         MEND

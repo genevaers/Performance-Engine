@@ -1,0 +1,93 @@
+**********************************************************************
+*
+* (C) COPYRIGHT IBM CORPORATION 2018, 2021.
+*     Copyright Contributors to the GenevaERS Project.
+* SPDX-License-Identifier: Apache-2.0
+*
+**********************************************************************
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+*  or implied.
+*  See the License for the specific language governing permissions
+*  and limitations under the License.
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*   GVB1000B _ VDP VIEW RECORD                                        *
+*    THIS IS THE IN MEMORY VERSION OF THE RECORD                      *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+VDP1000B_VIEW_RECORD  DSECT
+*
+VDP1000B_REC_LEN                          DS HL02
+VDP1000B_RDW_FLAGS                        DS XL02
+*
+* BEGIN PREFIX
+*
+VDP1000B_NEXT                             DS XL08 NEXT RECORD SAME TYPE
+VDP1000B_NEXT_PTR                         DS XL08 NEXT RECORD PERIOD
+VDP1000B_VIEWID                           DS FL04
+VDP1000B_INPUT_FILE_ID                    DS FL04
+VDP1000B_COLUMN_ID                        DS FL04
+VDP1000B_RECORD_TYPE                      DS HL02
+VDP1000B_SEQUENCE_NBR                     DS HL02
+VDP1000B_RECORD_ID                        DS FL04
+*
+* BEGIN DATA
+*
+VDP1000B_VIEW_NAME                        DS CL48
+VDP1000B_EFFECTIVE_DATE                   DS CL08
+VDP1000B_TERMINATION_DATE                 DS CL08
+VDP1000B_FOLDER_ID                        DS FL04
+VDP1000B_VIEW_STATUS                      DS FL04
+VDP1000B_VIEW_TYPE                        DS FL04
+VDP1000B_OWNER_USER                       DS CL08
+VDP1000B_OUTPUT_MEDIA                     DS FL04
+VDP1000B_DEFAULT_EXT_FILE_NBR             DS HL02
+VDP1000B_EXTRACT_SUMM_RECS_OLD            DS HL02 VALUE WAS 2 BYTES...
+* P1000_EXTRACT_FORMAT_ID                 DS FL04 (NOT USED)
+VDP1000B_EXTRACT_SUMM_RECS                DS FL04 ..NOW 4 BYTES & HERE
+VDP1000B_OUTPUT_LR_ID                     DS FL04
+VDP1000B_DEFAULT_OUTPUT_FILE_ID           DS FL04
+VDP1000B_OUTPUT_DESTINATION_ID            DS FL04
+VDP1000B_OUTPUT_TITLE_OPT_ID              DS FL04
+VDP1000B_OUTPUT_FOOTER_OPT_ID             DS FL04
+VDP1000B_OUTPUT_PAGE_SIZE_MAX             DS HL02
+VDP1000B_OUTPUT_LINE_SIZE_MAX             DS HL02
+VDP1000B_OUTPUT_COL_HDR_LNS_MAX           DS HL02
+VDP1000B_OUTPUT_NBR_OF_COPIES             DS HL02
+VDP1000B_OUTPUT_DETAIL_IND                DS CL01
+VDP1000B_ZERO_SUPPRESS_IND                DS CL01
+VDP1000B_REGEN_REQUIRED_IND               DS CL01
+VDP1000B_GEN_DELIM_HEADER                 DS CL01
+VDP1000B_REGEN_OPT_ID                     DS FL04
+VDP1000B_EXTRACT_MAX_REC_COUNT            DS FL04
+VDP1000B_OUTPUT_MAX_REC_COUNT             DS FL04
+VDP1000B_PROCESS_ASOF_DATE                DS CL08
+VDP1000B_LOOKUP_ASOF_DATE                 DS CL08
+VDP1000B_PROC_REL_PERIOD_ID               DS FL04
+VDP1000B_LOOKUP_REL_PERIOD_ID             DS FL04
+VDP1000B_FILL_ERROR_VALUE                 DS CL256
+VDP1000B_FILL_TRUNCATION_VALUE            DS CL256
+VDP1000B_FREQ_CODE_LETTERS                DS CL02
+VDP1000B_EXTRACT_SUMMARIZED               DS CL01
+VDP1000B_LANDSCAPE_MODE                   DS CL01
+VDP1000B_DYN_DIR_TREE_VALUE               DS FL04
+VDP1000B_UI_PKG_NBR                       DS FL04
+VDP1000B_WRITE_EXIT_PGM_ID                DS FL04
+VDP1000B_WRITE_EXIT_STARTUP               DS CL48
+VDP1000B_FORMAT_EXIT_PGM_ID               DS FL04
+VDP1000B_FORMAT_EXIT_STARTUP              DS CL48
+VDP1000B_XML_TAG                          DS CL256
+                                          DS FL04
+VDP1000B_CONTROL_ID                       DS FL04
+VDP1000B_USE_COUNT               DS FL04 USED BY MR96 FOR VIEW REPORT
+                                          DS CL04

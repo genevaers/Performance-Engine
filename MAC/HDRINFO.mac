@@ -1,0 +1,58 @@
+**********************************************************************
+*
+* (C) COPYRIGHT IBM CORPORATION 2008,2021.
+*     Copyright Contributors to the GenevaERS Project.
+* SPDX-License-Identifier: Apache-2.0
+*
+**********************************************************************
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+*  or implied.
+*  See the License for the specific language governing permissions
+*  and limitations under the License.
+**************123456789012345678901234567890123456789012345678901234567
+HDR_TOP DC 0X
+*
+HDR01 DC CL01'~12345678'
+HDR02 DC CL01' '
+*
+* Any number of lines can be defined for the TITLE
+* Each text line must be preceeded by a 2 byte length
+*
+HDR_TITLE DC 0X
+HDRT1L DC AL2(L'HDRT1)
+HDRT1  DC C'GenevaERS - The Single-Pass Optimization Engine'
+HDRT2L DC AL2(L'HDRT2)
+HDRT2  DC C'(https://genevaers.org)'
+HDRT4L DC AL2(L'HDRT4)
+HDRT4  DC C'Licensed under the Apache License, Version 2.0'
+HDR_TITLE_LEN EQU *-HDR_TITLE
+*
+* the following labels HDRnn must be left as is
+*
+HDR05 DC CL30'Performance Engine for z/OS - '
+HDR06 DS CL19           
+      ORG HDR06         
+      DC C'Release PM ' 
+      DC CL8'&SYSPARM.' 
+      ORG ,                  
+HDR07 DC CL01' '
+HDR08 DC CL17'Program ID:      '
+HDR09 DC CL17'Program Title:   '
+HDR10 DC CL17'Built:           '
+HDR11 DC CL01' '
+HDR12 DC CL17'Executed:        '
+HDR13 DC CL01' '
+HDR14 DC CL17'Report DD Name:  '
+HDR15 DC CL17'Report Title:    '
+HDR16 DC CL01' '
+*
+HDR_LEN EQU *-HDR_TOP
