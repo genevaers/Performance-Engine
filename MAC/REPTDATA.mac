@@ -1,0 +1,96 @@
+**********************************************************************
+*
+* (C) COPYRIGHT IBM CORPORATION 2004, 2020.
+*     Copyright Contributors to the GenevaERS Project.
+* SPDX-License-Identifier: Apache-2.0
+*
+**********************************************************************
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+*  or implied.
+*  See the License for the specific language governing permissions
+*  and limitations under the License.
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*   GVBLTHDA - LOGIC TABLE "HD" HEADER RECORD                         *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*        Dsects used in creating control reports                      *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+* Input run-control file summary
+*
+irunrept dsect
+irundd   ds    cl8               IRUN DD name
+irunf1   ds    cl2
+irunrcnt ds    cl12              IRUN Record count
+irunf2   ds    cl2
+irundate ds    cl10              IRUN Date
+irunf3   ds    cl1
+iruntime ds    cl8               IRUN Time
+irunf4   ds    cl2
+iruncrby ds    cl48              IRUN Created by
+irunrept_len equ *-irunrept
+*
+* Input reference work file summary (GREFnnn files)
+*
+irefrept dsect
+irefdd   ds    cl8               IREF DD name
+ireff1   ds    cl1
+irefklen ds    cl4               IREF Key length
+ireff2   ds    cl2
+irefrcnt ds    cl12              IREF Record count
+ireff3   ds    cl1
+irefmemu ds    cl15              IREF Memory usage
+ireff4   ds    cl2
+irefpfnm ds    cl48              IREF PF name
+irefrept_len equ *-irefrept
+*
+* Sort statistices
+*
+sortrept dsect
+sorttext ds    cl32              SORT text
+sortf1   ds    cl1
+sorttime ds    cl25              SORT time column
+sortrept_len equ *-sortrept
+*
+* isrc Input source files
+*
+isrcrept dsect
+isrcddn  ds    cl8               ISRC dd name
+isrcf1   ds    cl1
+isrcrcnt ds    cl15              ISRC Record Count
+isrcrept_len equ *-isrcrept
+*
+* ofil Output file summary
+*
+ofilrept dsect
+ofilddn  ds    cl8               ofil ddname
+ofilf1   ds    cl1
+ofilcnt  ds    cl15              ofil counts
+ofilf2   ds    cl2
+ofilvid  ds    cl07              view ID
+ofilf3   ds    cl2
+ofilname ds    cl48              name
+ofilrept_len equ *-ofilrept
+*
+* exec Execution summary
+*
+execrept dsect
+exectext ds    cl27              exec text
+*execf1   ds    cl1
+execcnt  ds    cl15              exec counts
+execrept_len equ *-execrept
+*

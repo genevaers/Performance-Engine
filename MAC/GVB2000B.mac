@@ -1,0 +1,76 @@
+**********************************************************************
+*
+* (C) COPYRIGHT IBM CORPORATION 2018, 2020.
+*     Copyright Contributors to the GenevaERS Project.
+* SPDX-License-Identifier: Apache-2.0
+*
+**********************************************************************
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+*  or implied.
+*  See the License for the specific language governing permissions
+*  and limitations under the License.
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*   GVB2000B _ VDP COLUMN RECORD                                      *
+*    THIS IS THE IN MEMORY VERSION OF THE RECORD                      *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+VDP2000B_COLUMN_RECORD  DSECT
+*
+VDP2000B_REC_LEN                          DS HL02
+VDP2000B_RDW_FLAGS                        DS XL02
+*
+VDP2000B_NEXT                             DS XL08 NEXT RECORD SAME TYPE
+VDP2000B_NEXT_PTR                         DS XL08 NEXT RECORD PERIOD
+VDP2000B_VIEW_ID                          DS FL04
+VDP2000B_INPUT_FILE_ID                    DS FL04
+VDP2000B_COLUMN_ID                        DS FL04
+VDP2000B_RECORD_TYPE                      DS HL02
+VDP2000B_SEQUENCE_NBR                     DS HL02
+VDP2000B_RECORD_ID                        DS FL04
+VDP2000B_COLUMN_NAME                      DS CL48
+VDP2000B_HIDDEN_IND                       DS CL01
+                                          DS CL03
+VDP2000B_SUBTOTAL_TYPE_ID                 DS FL04
+VDP2000B_SPACES_BEFORE_COLUMN             DS HL02
+VDP2000B_EXTRACT_POINT_FILE_NBR           DS HL02
+VDP2000B_EXTRACT_AREA_ID                  DS FL04
+VDP2000B_EXTRACT_AREA_POSITION            DS HL02
+                                          DS CL02
+VDP2000B_FIELD_ID                         DS FL04
+VDP2000B_FIELD_NAME                       DS CL48
+VDP2000B_EFFECTIVE_DATE                   DS CL08
+VDP2000B_TERMINATION_DATE                 DS CL08
+VDP2000B_FORMAT_ID                        DS FL04
+VDP2000B_SIGNED_IND                       DS CL01
+                                          DS CL01
+VDP2000B_START_POSITION                   DS HL02
+VDP2000B_FIELD_LENGTH                     DS HL02
+VDP2000B_ORDINAL_POSITION                 DS HL02
+VDP2000B_DECIMAL_COUNT                    DS HL02
+VDP2000B_ROUNDING                         DS HL02
+VDP2000B_FIELD_CONTENT_ID                 DS FL04
+VDP2000B_JUSTIFY_ID                       DS FL04
+VDP2000B_ORDINAL_OFFSET                   DS HL02
+                                          DS CL46
+VDP2000B_DETAIL_PREFIX                    DS CL48
+VDP2000B_REPORT_MASK                      DS CL48
+VDP2000B_SUBTOTAL_PREFIX                  DS CL48
+VDP2000B_SUBTOTAL_MASK                    DS CL48
+VDP2000B_DEFAULT_VALUE                    DS CL256
+VDP2000B_XML_TAG                          DS CL256
+VDP2000B_HEADER_JUSTIFY_ID                DS FL04
+VDP2000B_HEADER_LINE1                     DS CL256
+VDP2000B_HEADER_LINE2                     DS CL256
+VDP2000B_HEADER_LINE3                     DS CL256
+                                          DS CL16

@@ -1,0 +1,513 @@
+**********************************************************************
+*
+* (C) COPYRIGHT IBM CORPORATION 2009, 2021.
+*     Copyright Contributors to the GenevaERS Project.
+* SPDX-License-Identifier: Apache-2.0
+*
+**********************************************************************
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+*  or implied.
+*  See the License for the specific language governing permissions
+*  and limitations under the License.
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*  F O R M A T   0  -  COMMON LOGIC TABLE PREFIX DEFINITION           *
+*                                                                     *
+*        G O T O                              -  "GOTO"               *
+*        E N D   O F   S E T                  -  "ES"                 *
+*        E N D   O F   L O G I C   T A B L E  -  "EN"                 *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+* LTENTLEN EQU   120             AVERAGE  LOGIC TABLE ELEMENT LENGTH
+*
+LOGICTBL DSECT                 LOGIC    TABLE ENTRY/ELEMENT
+*
+LTROWLEN DS    HL02            LOGIC    TABLE ROW   LENGTH
+LTFLAGS  DS   0XL02            PROCESSING  FLAGS
+*                    BYTE 1
+LTFLAG1  DS    XL01
+LTESCLON EQU   X'80'             1--- ---- CLONED "ES"  SET
+LTLKUPRE EQU   X'40'             -1-- ---- LOOK-UP      PREFIX
+ltlkup_alloc  EQU   X'20'        --1- ---- look-up buffer allocated and
+*                                          address in ltlbaddr
+ltlkup_offset equ   x'10'        ---1 ---- ltluboff is valid
+LTOMITTB EQU   X'08'             ---- 1--- TRUE BRANCH OMITTED IN CODE
+LTOMITFB EQU   X'04'             ---- -1-- FLSE BRANCH OMITTED IN CODE
+LTOMITSR EQU   X'02'             ---- --1- SHIFT & RND OMITTED IN CODE
+LTOMITGO EQU   X'01'             ---- ---1 GOTO BRANCH OMITTED IN CODE
+*                    BYTE 2
+LTFLAG2  DS    XL01
+LTRTOKEN EQU   X'80'             1--- ---- EVENT FILE IS TOKEN
+LTNOTOPT EQU   X'40'             -1-- ---- NOT   OPTIMIZABLE   LOOK-UP
+LTOMITLD EQU   X'20'             --1- ---- FIRST LOAD INSTRUCTION OMTD
+LTLOCAL  EQU   X'10'             ---1 ---- LOCAL VARIABLE (VIEW)
+LTNOMODE EQU   X'08'             ---- 1--- If set, exit can switch
+LTPIPEOF EQU   X'04'             ---- -1-- PIPE WRITER EOF SIGNALLED
+LTEXTSUM EQU   X'02'             ---- --1- EXTRACT SUMMARIZATION EXISTS
+LTEVENTD EQU   X'01'             ---- ---1 INCL EVENT REC DUMP IN TRACE
+*
+LTROWNO  DS    FL04            LOGIC    TABLE ROW   NUMBER  (THIS FILE)
+LTVIEW#  DS    FL04            VIEW    NUMBER
+LTFUNC   DS   0CL04            FUNCTION  CODE
+LTMAJFUN DS    CL02            MAJOR     FUNCTION
+LTSUBFUN DS    CL02            SUB       FUNCTION
+*
+LTTRUE   DS    AL04            TRUE      CONDITION  ROW NUMBER/ADDRESS
+LTFALSE  DS    AL04            FALSE     CONDITION  ROW NUMBER/ADDRESS
+LTFUNTBL DS    AL04            FUNCTION  TABLE   ENTRY ADDRESS
+LTLOGNV  DS    AL04            Current View Logic table NV entry
+LTVIEWNV DS    AL04            CURRENT VIEW Machine code NV address
+LTCODSEG DS    AL04            GENERATED CODE SEGMENT  ADDRESS FOR ROW
+LTACADDR DS   0AL04            ACCUMULATOR LT  ROW     ADDRESS
+LTLBADDR DS   0AL04            LOOK-UP RECORD CONTROL   BUFFER ADDRESS
+LTLUBOFF DS   0AL04            LOOK-UP RECORD CONTROL   BUFFER OFFSET
+LTWREXTO DS    AL04            WRITE   EXTRACT RECORD   AREA   OFFSET
+lt_opt1  ds    x               Operand 1 - (formerly FC_opt1) target
+lt_opt2  ds    x               operand 2                      source
+LTGENLEN DS    HL02            SIZE OF GENERATED CODE + LITERALS (EST)
+LTseqno ds     h               Seq number/column number (used by trace)
+*
+LTREDEFN DS   0C               REDEFINITION AREA
+*
+         ds   0f
+LTF0_LEN EQU   *-LOGICTBL
+*
+LTGO_LEN EQU   *-LOGICTBL
+LTEN_LEN EQU   *-LOGICTBL
+                        SPACE 5
+***********************************************************************
+*  V A R I A B L E   N A M E                                          *
+***********************************************************************
+         ORG   LTREDEFN
+*
+LTVNFMT  DS    HL02            VARIABLE  NAME  - FORMAT
+LTVNCON  DS    HL02            VARIABLE  NAME  - CONTENT
+LTVNNDEC DS    XL01            VARIABLE  NAME  - NO.  OF  DEC  PLACES
+LTVNSIGN DS    CL01            VARIABLE  NAME  - SIGNED   INDICATOR
+LTVNNAME DS    CL48            VARIABLE  NAME
+LTVNNEXT DS    AL04            VARIABLE  NAME  - NEXT
+LTVNLITP DS    FL04            VARIABLE  NAME  - LITERAL  POOL OFFSET
+LTVNCOL# DS    HL02            TARGET   COLUMN   NUMBER
+*
+LTVNLEN  DS    HL02            VARIABLE VALUE  - LENGTH
+LTVNVAL  DS    0C              VARIABLE VALUE
+*
+LTVN_LEN EQU   *-LOGICTBL
+                        SPACE 5
+***********************************************************************
+*  V A R I A B L E   V A L U E                                        *
+***********************************************************************
+         ORG   LTREDEFN
+*
+LTVVFMT  DS    HL02            VARIABLE VALUE FORMAT
+LTVVLEN  DS    HL02            VARIABLE VALUE LENGTH
+LTVVROPR DS    CL02            RELATIONAL   OPERATOR
+LTVVVAL  DS   0C               VARIABLE VALUE
+*
+LTVV_LEN EQU   *-LOGICTBL
+                        SPACE 5
+***********************************************************************
+*  F O R M A T   1                                                    *
+***********************************************************************
+         ORG   LTREDEFN
+LTCOLNO  DS    HL02            SORT OR COLUMN   SEQUENCE NUMBER
+LTCOLID  DS    FL04            SORT OR COLUMN   ID
+LTFLDDDN DS   0CL08            FIELD   FILE     DDNAME
+LTFLDFIL DS    FL04            FIELD   FILE     ID
+*
+* note that for X operands only, this field will contain a value
+* indicating where the data is located
+*
+* 1 - sort key
+* 2 - sort key title (irrelevant really)
+* 3 - DT
+* 4 - CT
+*
+         DS    CL04            RIGHT   HALF  OF DDNAME
+LTFLDLR  DS    FL04            FIELD   LOGICAL  RECORD ID
+LTFLDPTH DS    FL04            FIELD   PATH     ID
+LTFLDID  DS    FL04            FIELD   ID
+         ds    xl8             8 byte pad to avoid overlay
+*        this padding field is here so that the LTFLDPOS field is at
+*        a different offset to the LTLUEXIT field.  LKLR entries use
+*        both mappings!!
+LTLVLPOS DS   0HL02            STRUCTURE LEVEL  NUMBER POSITION
+LTFLDPOS DS    HL02            FIELD   POSITION
+LTFLDSEQ DS    HL02            FIELD   SEQUENCE NUMBER
+LTFLDLEN DS    HL02            FIELD   LENGTH
+LTFLDFMT DS    HL02            FIELD   FORMAT
+LTFLDCON DS    HL02            FIELD   CONTENT
+LTNDEC   DS    XL01            FIELD   NO.  OF  DECIMAL  PLACES
+LTRNDFAC DS    XL01            FIELD   ROUNDING FACTOR
+LTSIGN   DS    CL01            SIGNED  INDICATOR
+LTSRTSEQ DS    CL01            SORT    SEQUENCE   (A,D)
+LTRELOPR DS    CL02            RELATIONAL OPERATOR
+LTOCCLST DS   0AL04            MULTIPLE OCCURRENCE LIST/CHAIN OF FIELDS
+LTSTRNO  DS    XL02            ROLLUP   STRUCTURE  NUMBER
+LTSTRLVL DS    XL02            ROLLUP   STRUCTURE  LEVEL    NUMBER
+LTAREAID DS    HL02            BASE     EXTRACT    RECORD   AREA ID
+LTLKUPOS DS   0HL02            LOOK-UP  KEY FIELD  POSITION
+LTDATPOS DS   0HL02            EFFECTIVE     DATE  POSITION
+LTJUSOFF DS    HL02            JUSTIFIED   COLUMN  OFFSET
+LTLUSTEP DS    XL02            Step in LU path (LKLRs)
+         DS    XL02
+LTV1LEN  DS    HL02            VALUE  1 LENGTH
+LTV2LEN  DS    HL02            VALUE  2 LENGTH
+*
+LTVALUES DS   0C               VALUE1/VALUE2  AREA
+*
+LTF1_LEN EQU   *-LOGICTBL
+                        SPACE 5
+***********************************************************************
+*  F O R M A T   2   E X T E N S I O N                                *
+***********************************************************************
+         ORG   LTVALUES
+LTCOLDDN DS   0CL08            FIELD   FILE      DDNAME
+LTCOLFIL DS    FL04            FIELD   FILE      ID
+*
+* note that for X operands only, this field will contain a value
+* indicating where the data is located
+*
+* 1 - sort key
+* 2 - sort key title (irrelevant really)
+* 3 - DT
+* 4 - CT
+*
+         DS    CL04            RIGHT   HALF  OF  DDNAME
+LTCOLLR  DS    FL04            FIELD   LOGICAL   RECORD   ID
+LTCOLPTH DS    FL04            FIELD   PATH      ID
+LTCOLFLD DS    FL04            FIELD   ID
+LTCOLPOS DS    HL02            FIELD   POSITION
+LTCOLSEQ DS    HL02            FIELD   SEQUENCE  NUMBER
+LTCOLLEN DS    HL02            FIELD   LENGTH
+LTCOLFMT DS    HL02            FIELD   FORMAT
+LTCOLCON DS    HL02            FIELD   CONTENT
+LTCOLDEC DS    XL01            FIELD   NO.  OF   DECIMAL  PLACES
+LTCOLRND DS    XL01            FIELD   ROUNDING  FACTOR
+LTCOLSGN DS    CL01            SIGNED  INDICATOR
+LTCOLJUS DS    CL01            DATA    JUSTIFICATION    (L,C,R)
+LTCOLGAP DS    HL02            INTERCOLUMN GAP   VALUE
+*
+LTAC2ADR DS    AL04            ACCUMULATOR 2 ADDRESS
+*
+LTCOLOCC DS    HL02            FIXED    OCCURRENCE COUNT
+LTOCCPOS DS    HL02            VARIABLE OCCUR  CNT POSITION
+LTOCCLEN DS    HL02            VARIABLE OCCUR  CNT LENGTH
+LTOCCFMT DS    HL02            VARIABLE OCCUR  CNT FORMAT
+LTSEGLEN DS    HL02            MULTIPLE OCCURS SEG LENGTH
+*
+LTMSKLEN DS    HL02            MASK    LENGTH
+LTCOLMSK DS   0C               EDITED  DATA    MASK
+*
+LTF2_LEN EQU   *-LOGICTBL
+                        SPACE 5
+***********************************************************************
+*  V A R I A B L E   F U N C T I O N  -  F O R M A T  1               *
+***********************************************************************
+         ORG   LTVALUES
+*
+LTV1MLEN DS    HL02            MASK    LENGTH
+LTV1VLEN DS    HL02            VALUE   LENGTH
+*
+LTV1MSK  DS   0C               EDITED  DATA     MASK
+LTV1VAL  DS   0C               VALUE-1 AREA
+*
+LTV1_LEN EQU   *-LOGICTBL
+                        SPACE 5
+***********************************************************************
+*  V A R I A B L E   F U N C T I O N  -  F O R M A T  2               *
+***********************************************************************
+         ORG   LTCOLMSK
+*
+LTV2MLEN DS    HL02            MASK    LENGTH
+LTV2VLEN DS    HL02            VALUE   LENGTH
+*
+LTV2MSK  DS   0C               EDITED  DATA     MASK
+LTV2VAL  DS   0C               VALUE-1 AREA
+*
+LTV2_LEN EQU   *-LOGICTBL
+                        EJECT
+*
+***********************************************************************
+*  L O G I C   T A B L E   H E A D E R - "HD"                         *
+***********************************************************************
+         ORG   LTREDEFN
+LTRUNDT  DS   0CL08            RUN        DATE             (CCYYMMDD)
+LTRUNNO  DS    FL04            RUN        NUMBER
+         DS    CL04            RIGHT HALF OF RUN    DATE
+LTPROCDT DS    CL08            PROCESSING DATE             (CCYYMMDD)
+LTPROCTM DS    CL08            PROCESSING TIME             (HHMMSSTT)
+LTFINPDT DS    CL06            FINANCIAL  PERIOD    DATE   (CCYYMM)
+LTMAXFIL DS    HL02            MAXIMUM    STANDARD  EXTRACT FILE NUMBER
+*
+LTHD_LEN EQU   *-LOGICTBL
+                        SPACE 5
+***********************************************************************
+*  N E W   V I E W  -  "NV"                                           *
+***********************************************************************
+         ORG   LTREDEFN
+*
+LTVIEWTP DS    XL01            VIEW      TYPE   ('D','S','M','C')
+LTSTATUS DS    XL01            VIEW      STATUS (L=LIMIT EXCEEDED )
+*                                               (7=S0C7  ABEND    )
+*                                               (B=BAD   DATA     )
+*                                               (M=BAD   DATA/MASK)
+LTUSERID DS    CL08            USER      ID
+LTLRID   DS    FL04            DRIVER    LR  ID
+LTSORTLN DS    HL02            SORT AREA LENGTH
+LTTITLLN DS    HL02            SORT TITL LENGTH
+LTDATALN DS    HL02            DATA AREA LENGTH
+LTMAXCOL DS    HL02            MAXIMUM   COLUMN  NO  - "CT"
+LTMAXOCC DS    HL02            MAXIMUM   FIXED   OCCURRENCE  VALUE
+*Tcounters_off ds al4          Offset in literal pool to
+*                              extcnt, lkpfnd and lkpnot counters
+*
+LTSUMCNT DS    FL04            SUMMARY   VIEW    SUMMARY  COUNT
+LT1000A  DS    FDL08           VDP  1000 RECORD  ADDRESS
+*
+LTNVVNAM DS    AL04            NEXT VARIABLE     NAME LOGIC TBL ROW
+LTNVTOKN DS    AL04            NEXT TOKEN READER "NV" LOGIC TBL ROW
+*
+LTNEXTNV DS    AL04            NEXT      "NV"    ROW NO/ADDRESS
+LTFRSTLU DS    AL04            FIRST     "LU"    ROW NO/ADDRESS
+LTFRSTWR DS    AL04            FIRST     "WR"    ROW NO/ADDRESS
+*
+LTVIEWRE DS    AL04            VIEW      "RE"    ROW NO/ADDRESS
+LTVIEWES DS    AL04            VIEW      "ES"    ROW NO/ADDRESS
+LTPARENT DS    AL04            PARENT    "NV"    ROW NO/ADDRESS
+LTPARMTB DS    AL04            PARAMETER TABLE   ENTRY  ADDRESS (TRACE)
+LTSUBOPT DS    AL04            COLUMN SUBTOTAL   OPTION CODES  ADDRESS
+LTNVRELO DS    FL04            VIEW ROW# RELOCATION  VALUE
+LTENDIAN DS    CL01            "LITTLE"  ENDIAN  INDICATOR
+*
+LTMINCOL DS    HL02            MINIMUM  "CT" COLUMN NUMBER
+*
+LTNV_LEN EQU   *-LOGICTBL
+                        SPACE 5
+***********************************************************************
+*  R E A D   E V E N T   R E C O R D  -  "RE"                         *
+***********************************************************************
+         ORG   LTREDEFN
+*
+LTFILTYP DS    HL02            EVENT    FILE     TYPE  (DISK,TAPE,PIPE)
+*
+LTFILEDD DS   0CL08            FILE     DDNAME
+LTFILEID DS    FL04            FILE  ID NUMBER
+         DS    CL04            RIGHT    HALF OF  DDNAME
+LTREPFcnt DS   xl04            number of PFs in this LF
+         ds    xl04            padding - so that the next_exit pointer +
+                               is at the same offset for RE, LU and WR
+*
+ltre_next_exit ds    al04      Pointer to next exit area in LT
+LTREEXIT DS    FL04            READ     EXIT     ID
+LTRENAME DS    CL08            READ     EXIT     SUBROUTINE  NAME
+LTREADDR DS    AL04            READ     EXIT     SUBROUTINE  ADDR
+LTREENTP DS    AL04            READ     EXIT     ENTRY POINT ADDR
+LTREWORK DS    AL04            READ     EXIT     PGM   WORKAREA  ANCHOR
+LTREPARM DS    CL32            READ     EXIT     START-UP    PARAMETERS
+*
+LTNEXTRE DS    AL04            NEXT     "RE" ROW  FOR  THREAD
+LTREES   DS    AL04            RELATED  "ES" FOR  THIS "RE"  ROW
+LTCLONRE DS    AL04            CLONED   "RE" ROW
+LTVDP200 DS    FDL08           RELATED  VDP "200" RECORD
+*
+LTTOKNLR DS    FL04            TOKEN    LOGICAL  RECORD  ID
+WRTKNCNT DS    FL04            WRITE    TOKEN    COUNT - CALLING "WR'S"
+*
+LTFILCNT DS    xl08            FILE     RECORDS  READ    COUNT
+*
+LTHDROPT DS    HL02            HEADER   OPTION   CODE   (N, S, V)
+LTVERNO  DS    PL08            HEADER   VERSION  NUMBER
+LTCTLCNT DS    xL08            HEADER   CONTROL  COUNT
+*
+LTEDITPR DS    CL08            DB2      EDIT   PROC   NAME
+LTOBJID  DS    HL02            DB2      OBJECT ID
+*
+LTACCMTH DS    HL02            PHYSICAL ACCESS METHOD (SEQ,VSAM, ... )
+*
+LTTRACNT DS    xl08            LAST     TRACE  DUMP   EVENT  RECORD
+*
+LTVOLSER DS    CL06            VOLUME   SERIAL NUMBER
+LTDDNAME DS    CL08            DDNAME
+LTDSNAME DS    CL44            DATA     SET    NAME
+*
+lt_pipe_wrexta ds a            addr of write extract if pipe read  @01I
+ltnxrtkn ds    al04            next token in queue for ES
+ltreltpl ds    fl04            length of literal pool for this RETK
+ltreltpl_cum    ds fl04        cum length of RETK lit pool lower down
+ltrertkn_parent ds al04        addrees of RETK parent
+ltreindx ds    fl04            index for RETK/RETX
+ltrerecl ds    fl04            lrecl for event dsn use by this RE
+LTRE_LEN EQU   *-LOGICTBL
+*
+                        SPACE 5
+***********************************************************************
+*        L O O K - U P   L O G I C A L   R E C O R D  -  "LU"         *
+***********************************************************************
+         ORG   LTREDEFN
+*
+         ds    hl02            padding - so that the next_exit pointer +
+                               is at the same offset for RE, LU and WR
+LTLUFILE DS   0CL08            LOOK-UP FILE    DDNAME
+LTLUFID  DS    FL04            LOOK-UP FILE    ID
+         DS    CL04            LOOK-UP HALF OF DDNAME
+LTLULRID DS    FL04            LOOK-UP LOGICAL RECORD ID
+LTLUPATH DS    FL04            LOOK-UP PATH    ID
+ltlu_next_exit ds    al04      Pointer to next exit area in LT
+LTLUEXIT DS    FL04            LOOK-UP EXIT   ID
+LTLUNAME DS    CL08            LOOK-UP EXIT   SUBROUTINE  NAME
+LTLUptyp DS    fl04            LOOK-UP EXIT   pgm type
+ltluptyp_LECobol   equ 1          LE COBOL
+ltluptyp_Cobol2    equ 2          COBOL 2
+ltluptyp_C         equ 3          C
+ltluptyp_CPP       equ 4          CPP
+ltluptyp_Java      equ 5          JAVA
+ltluptyp_Assembler equ 6          ASSEMBLER
+LTLUADDR DS    AL04            LOOK-UP EXIT   SUBROUTINE  ADDR
+LTLUENTP DS    AL04            LOOK-UP EXIT   ENTRY POINT ADDR
+LTLUWORK DS    AL04            LOOK-UP EXIT   PGM   WORK  AREA  ANCHOR
+LTLUPARM DS    CL32            LOOK-UP EXIT   START-UP    PARAMETERS
+LTLUWPATH DS   FL04            Lookup path ID from Workbench
+LTLUopt  DS    xl01            LOOK-UP EXIT optimizable
+LTLUopty equ   x'01'           LOOK-UP EXIT optimizable
+LTLUoptn equ   x'00'           LOOK-UP EXIT not optimizable
+LTLUflg2 DS    xl01            LOOK-UP flag 3
+LTLUflg3 DS    xl01            LOOK-UP flag 3
+LTLUflg4 DS    xl01            LOOK-UP flag 4
+*
+LTLUNEXT DS    AL04            NEXT "LU" WITHIN THIS VIEW
+*
+LTLU_LEN EQU   *-LOGICTBL
+         ASSERT (ltlu_next_exit-logictbl),EQ,(ltre_next_exit-logictbl) +
+                                make sure these offsets match
+                        SPACE 5
+***********************************************************************
+*        W R I T E   R E C O R D  -  "WR"                             *
+***********************************************************************
+         ORG   LTREDEFN
+LTWREXT# DS    HL02            EXTRACT  FILE  NUMBER
+*
+LTWRFILE DS   0CL08            FILE     DDNAME
+LTWRFID  DS    FL04            FILE  ID NUMBER
+         DS    CL04            RIGHT    HALF  OF DDNAME
+*
+LTWR200A DS    FDL08           RELATED  VDP  "200"   RECORD
+*
+ltwr_next_exit ds    al04      Pointer to next exit area in LT
+LTWREXIT DS    FL04            WRITE   EXIT   ID
+LTWRNAME DS    CL08            WRITE   EXIT   SUBROUTINE  NAME
+LTWRADDR DS    AL04            WRITE   EXIT   SUBROUTINE  ADDR
+LTWRENTP DS    AL04            WRITE   EXIT   ENTRY POINT ADDR
+LTWR_Workarea ds    al04       Write   exit   pgm work area anchor
+LTWRPARM DS    CL32            WRITE   EXIT   START-UP    PARAMETERS
+LTWRLUBO DS    FL04            TOKEN    LOOK-UP  BUFFER     OFFSET
+LTWREXTA DS    AL04            EXTRACT  FILE  CONTROL  AREA ADDRESS
+*
+LTWRDEST DS    FL04            DESTINATION    TYPE
+LTWRSUMC DS    FL04            EXTRACT SUMMARIZATION      COUNT
+*
+LTWRLMT  DS    xl08            EXTRACT RECORD COUNT - LIMIT
+*
+LTWRNEXT DS    AL04            NEXT "WR" WITHIN THIS VIEW
+*
+LTWRVIEW DS    FL04            FLAGGED VIEW  ID ((ID# * 2) + 1)
+*
+ltwrtkrc DS    FL04            Return code from WRTX exit call
+*
+ltwrre   ds    al04            this field is used as a pointer to
+*                              "RE" that allows us to work out if this
+*                              "WR" is in a RETK/RETX/ET set or not
+LTWRPGM_TYPE ds al4             write exit program type (cobol/asm etc)
+LTWRPGM_TYPE_LECOBOL  EQU  X'01'
+LTWRPGM_TYPE_COBOL2   EQU  X'02'
+LTWRPGM_TYPE_C        EQU  X'03'
+LTWRPGM_TYPE_CPP      EQU  X'04'
+LTWRPGM_TYPE_JAVA     EQU  X'05'
+LTWRPGM_TYPE_ASM      EQU  X'06'
+*
+LTWR_offset_ct  ds  fl04       Offset to first CT column
+*
+LTWR_LEN EQU   *-LOGICTBL
+         ASSERT (ltwr_next_exit-logictbl),EQ,(ltre_next_exit-logictbl) +
+                                make sure these offsets match
+                        SPACE 5
+***********************************************************************
+*  E N D - O F - S E T   -  "ES"                                      *
+***********************************************************************
+         ORG   LTREDEFN
+*
+LTESSET# DS    HL02            ASSIGNED "ES"   SET  ID NUMBER
+LTTHRDWK DS    AL04            ASSIGNED THREAD WORK AREA
+*
+LTESVNAM DS    AL04            "ES"     GLOBAL VARIABLES
+LTPIPELS DS    AL04            OUTPUT   "PIPE" LIST ADDRESS
+*
+LTNEXTES DS    AL04            NEXT     "ES"   ROW  NO/ADDRESS
+LTFRSTRE DS    AL04            FIRST    "RE"   ROW  NO/ADDRESS
+LTFRSTNV DS    AL04            FIRST    "NV"   ROW  NO/ADDRESS
+LTTOKNNV DS    AL04            FIRST    TOKEN  READER   VIEW
+LTSAMES# DS    AL04            SAME     "ES"   SET# NEXT "ES"  ROW ADDR
+LTCLONES DS    AL04            CLONED   "ES"   ROW
+*
+LTESINIT DS    AL04            "ES"    INITIALIZATION "LITP_HDR"   ADDR
+LTESCODE DS    AL04            "ES"    MACHINE   CODE BEGINNING
+*
+LTESLPSZ DS    FL04            "ES"    LITERAL   POOL SIZE
+LTESLPAD DS    FL04            "ES"    LITERAL   POOL ADDRESS
+*
+ltesrtkq ds    al04            RETK/RETX queue if any
+ltesretn ds    al04            Return address if this is an ET
+ltespr11 ds    al04            Previous r11 if this is an ET
+*
+LTLBANCH DS   0CL06            LOOK-UP  BUFFER CHAIN  ANCHOR
+         DS    AL04                   - POINTER
+         DS    HL02                   - LENGTH
+ltesflg1 ds    xl1
+ltlbanco equ   x'80'       LB chain is anchored via offset in litpool
+ltesflg2 ds    xl1
+*tesflg3 ds    xl1
+*tesflg4 ds    xl1
+*
+ltes_time ds   fd              accumulated cpu time (timeused)
+LTES_LEN EQU   *-LOGICTBL
+                        SPACE 5
+***********************************************************************
+*                                                                     *
+***********************************************************************
+         ORG   LTREDEFN
+LTCCLEN1 DS    HL02            LENGTH 1
+LTCCLEN2 DS    HL02            LENGTH 2
+LTCCVAL1 DS   0C               VALUE  1
+LTCCVAL2 DS   0C               VALUE  2
+*
+LTCC_LEN EQU   *-LOGICTBL
+                        SPACE 5
+***********************************************************************
+*                                                                     *
+***********************************************************************
+         ORG   LTREDEFN
+LTERRLEN DS    HL02            DATA ERROR FILL LENGTH
+LTERRFIL DS   0CL01            DATA ERROR FILL CHARACTERS
+*
+LTP1_LEN EQU   *-LOGICTBL
+                        SPACE 5
+***********************************************************************
+*                                                                     *
+***********************************************************************
+         ORG   LTREDEFN
+LTOVRLEN DS    HL02            OVERFLOW   FILL LENGTH
+LTOVRFIL DS   0CL01            OVERFLOW   FILL CHARACTERS
+*
+LTP2_LEN EQU   *-LOGICTBL
+         ORG

@@ -1,0 +1,563 @@
+         Macro
+&LABEL   GVBMSGGE &Case=MIXED
+.*
+.* (C) COPYRIGHT IBM CORPORATION 2021, 2022.
+.*     Copyright Contributors to the GenevaERS Project.
+.* SPDX-License-Identifier: Apache-2.0
+.*
+.**********************************************************************
+.*
+.*  Licensed under the Apache License, Version 2.0 (the "License");
+.*  you may not use this file except in compliance with the License.
+.*  You may obtain a copy of the License at
+.*
+.*     http://www.apache.org/licenses/LICENSE-2.0
+.*
+.*  Unless required by applicable law or agreed to in writing, software
+.*  distributed under the License is distributed on an "AS IS" BASIS,
+.*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+.*  or implied.
+.*  See the License for the specific language governing permissions
+.*  and limitations under the License.
+.*
+.**********************************************************************
+.*                                                                    *
+.* This macro creates the English Message Table.                      *
+.*                                                                    *
+.* Required keyword parameter:                                        *
+.*                                                                    *
+.* CASE=MIXED - Do not translate messages to upper case               *
+.* CASE=UPPER - Translate messages to upper case                      *
+.*                                                                    *
+.**********************************************************************
+.*
+         GblA  &Fold
+&Fold    SetA  0                    Default - No upper case translation
+&UppMix  SetC  (UPPER '&Case')
+         AIF   ('&UppMix' EQ 'MIXED').GenEN
+         AIF   ('&UppMix' EQ 'UPPER').GenUE
+         MNote 8,'Specified case is not valid - &Case'
+         MExit
+.GenUE   ANOp
+&Fold    SetA  1                    Translate to upper case
+&LABEL   GVBMSGDF GVB,TYPE=START
+         AGo   .ComMsg
+.GenEN   ANOp
+&LABEL   GVBMSGDF GVB,TYPE=START
+.ComMsg  ANOp
+ GVBMSGDF 000,'&&1 - Message not known ',TYPE=S
+ GVBMSGDF 001,'&&1 - IDENTIFY EP=MR95THRD macro failed. RC=&&2',TYPE=S
+ GVBMSGDF 002,'&&1 - &&2 threads started',TYPE=I
+ GVBMSGDF 003,'&&1 - ATTACH macro failed. RC=&&2. &&3',TYPE=S
+ GVBMSGDF 004,'&&1 - Source file thread abended &&2',TYPE=S
+ GVBMSGDF 005,'&&1 - Detach macro failed &&2',TYPE=S
+ GVBMSGDF 006,'&&1 - Source file header record version wrong',TYPE=U
+ GVBMSGDF 007,'&&1 - Thread &&2 finished &&3 &&4',TYPE=I
+ GVBMSGDF 008,'&&1 - Source file permanent I/O error &&2. Thread=&&3',T+
+               YPE=S
+ GVBMSGDF 009,'&&1 - Thread &&2 abended &&3, View=&&4',TYPE=S
+ GVBMSGDF 010,'&&1 - Extraction discontinued for view ID &&2 &&3 &&4', +
+               TYPE=W
+ GVBMSGDF 011,'&&1 - Unexpected end of Work Unit queue',TYPE=S
+ GVBMSGDF 012,'&&1 - Abort code returned by: &&2',TYPE=S
+*GVBMSGDF 013,'&&1 - Db2 error (see message log and/or above)',TYPE=U
+ GVBMSGDF 014,'&&1 - Db2 error (see previous messages) &&2',TYPE=U
+ GVBMSGDF 015,'&&1 - Unable to OPEN source file &&2',TYPE=U
+ GVBMSGDF 016,'&&1 - Unable to LOAD user read exit: &&2',TYPE=U
+ GVBMSGDF 017,'&&1 - Piped output file has no pipe reader &&2',TYPE=U
+ GVBMSGDF 018,'&&1 - Unable to locate piped input file &&2',TYPE=U
+ GVBMSGDF 019,'&&1 - Pipe has no parent: &&2',TYPE=U
+ GVBMSGDF 020,'&&1 - Unable to initialize COBOL environment',TYPE=S
+ GVBMSGDF 021,'&&1 - Record counts do not match &&2',TYPE=U
+ GVBMSGDF 022,'&&1 - Unable to open sort control card file: &&2',TYPE=W
+ GVBMSGDF 023,'&&1 - Branch exceeds 4K segment limit &&2',TYPE=U
+ GVBMSGDF 024,'&&1 - ',TYPE=I
+ GVBMSGDF 025,'&&1 - Initialization "ENQ" failed',TYPE=S
+ GVBMSGDF 026,'&&1 - VSAM "SHOWCB" Control Interval Size not found DD =+
+                &&2',TYPE=S
+ GVBMSGDF 027,'&&1 - "MODCB" to modify RPL ARG parameter failed. DD = &+
+               &2',TYPE=S
+ GVBMSGDF 028,'&&1 - VSAM spanned records not supported',TYPE=U
+ GVBMSGDF 029,'&&1 - VSAM "GET" failed DD=&&2, RC=&&3, Feedback code=&&+
+               4',TYPE=S
+ GVBMSGDF 030,'&&1 - VSAM data set Compressed Format not supported DD =+
+                &&2',TYPE=S
+ GVBMSGDF 031,'&&1 - Literal pool overflow &&2',TYPE=S
+ GVBMSGDF 032,'&&1 - Unable to create Geneva global name/token pair',TY+
+               PE=S
+ GVBMSGDF 033,'&&1 - Parameter syntax error, &&2',TYPE=U
+ GVBMSGDF 034,'&&1 - Incorrect logic table rows parameter',TYPE=U
+ GVBMSGDF 035,'&&1 - Incorrect default read buffers parameter',TYPE=U
+ GVBMSGDF 036,'&&1 - Incorrect default write buffers parameter',TYPE=U
+ GVBMSGDF 037,'&&1 - Incorrect S0C7 trap parameter',TYPE=U
+ GVBMSGDF 038,'&&1 - Incorrect abend if view disabled parameter',TYPE=U
+*
+ GVBMSGDF 039,'&&1 - Program parameter list is missing',TYPE=U
+ GVBMSGDF 040,'&&1 - Invalid function code',TYPE=U
+ GVBMSGDF 041,'&&1 - DSNAME or SYSOUT parameter required',TYPE=U
+ GVBMSGDF 042,'&&1 - Invalid parameter &&2',TYPE=U
+ GVBMSGDF 043,'&&1 - No parameter values specified',TYPE=U
+ GVBMSGDF 044,'&&1 - Dynamic allocation failed for &&2, S99Error=&&3, S+
+               99Info=&&4',TYPE=S
+ GVBMSGDF 045,'&&1 - The request type must be "ENQ" or "DEQ"',TYPE=U
+ GVBMSGDF 046,'&&1 - The ENQ control type must be "E" or "S"',TYPE=U
+ GVBMSGDF 047,'&&1 - The &&2 major name must be specified',TYPE=U
+ GVBMSGDF 048,'&&1 - The &&2 minor name must be specified',TYPE=U
+ GVBMSGDF 049,'&&1 - The &&2 scope/level specified is invalid',TYPE=U
+*
+ GVBMSGDF 051,'&&1 - Unable to parse environment variable &&2',TYPE=U
+ GVBMSGDF 052,'&&1 - Unable to open logic table file &&2',TYPE=U
+ GVBMSGDF 053,'&&1 - Unable to open VDP &&2',TYPE=U
+ GVBMSGDF 054,'&&1 - VDP table overflow',TYPE=U
+ GVBMSGDF 055,'&&1 - VDP is empty',TYPE=U
+ GVBMSGDF 056,'&&1 - Undefined function code in logic table &&2',TYPE=S
+ GVBMSGDF 057,'&&1 - No machine code model available &&2',             +
+               TYPE=S
+ GVBMSGDF 058,'&&1 - Undefined function doce in logic table &&2',TYPE=S
+ GVBMSGDF 059,'&&1 - Unexpected function code in logic table &&2',     +
+               TYPE=S
+ GVBMSGDF 060,'&&1 - Unable to load write exit program &&2',TYPE=U
+ GVBMSGDF 061,'&&1 - Undefined function code in logic table &&2',      +
+               TYPE=S
+ GVBMSGDF 062,'&&1 - Unable to locate accumulator name &&2',TYPE=S
+ GVBMSGDF 063,'&&1 - Value too large(>16 digits) or zero length &&2',  +
+               TYPE=U
+ GVBMSGDF 064,'&&1 - Missing accumulator data format &&2',TYPE=S
+ GVBMSGDF 065,'&&1 - Unsupported accumulator data format &&2',TYPE=S
+ GVBMSGDF 066,'&&1 - Unsupported logic table function (DIM3) &&2',     +
+               TYPE=S
+ GVBMSGDF 067,'&&1 - Unrecoverable error in user exit &&2',TYPE=U
+*GVBMSGDF 068,'&&1 - Unable to locate accumulator name &&2',TYPE=S
+ GVBMSGDF 069,'&&1 - Missing target field position &&2',TYPE=S
+ GVBMSGDF 070,'&&1 - Missing target field length &&2',TYPE=S
+ GVBMSGDF 071,'&&1 - Missing target field data format &&2',TYPE=S
+ GVBMSGDF 072,'&&1 - Target field value too large (>16 digits) &&2',   +
+               TYPE=S
+ GVBMSGDF 073,'&&1 - Missing source field position &&2',TYPE=S
+ GVBMSGDF 074,'&&1 - Missing source field length &&2',TYPE=S
+ GVBMSGDF 075,'&&1 - Missing source field data format &&2',TYPE=S
+ GVBMSGDF 076,'&&1 - Value too large (>16 digits) &&2',TYPE=S
+ GVBMSGDF 077,'&&1 - Undefined event file type &&2',TYPE=S
+*GVBMSGDF 078,'&&1 - Logic table buffer overflow &&2',TYPE=U
+ GVBMSGDF 079,'&&1 - Logic table overflow &&2',TYPE=U
+ GVBMSGDF 080,'&&1 - Empty or abbreviated logic table',TYPE=U
+ GVBMSGDF 081,'&&1 - Logic table has no threads',TYPE=U
+ GVBMSGDF 082,'&&1 - Logic table buffer overflow &&2',TYPE=U
+ GVBMSGDF 083,'&&1 - Logic table buffer overflow &&2',TYPE=U
+ GVBMSGDF 084,'&&1 - Undefined logic table function code &&2',TYPE=S
+ GVBMSGDF 085,'&&1 - Undefined logic table record format &&2',TYPE=S
+*GVBMSGDF 086,'&&1 - Logic table buffer overflow &&2',TYPE=U
+ GVBMSGDF 087,'&&1 - Missing target field position &&2',TYPE=U
+ GVBMSGDF 088,'&&1 - Missing target field length &&2',TYPE=U
+ GVBMSGDF 089,'&&1 - Missing target field data format &&2',TYPE=U
+ GVBMSGDF 090,'&&1 - Target field avlue too large (>16) &&2',TYPE=U
+ GVBMSGDF 091,'&&1 - Missing target field position &&2',TYPE=U
+ GVBMSGDF 092,'&&1 - Missing target field position &&2',TYPE=U
+ GVBMSGDF 093,'&&1 - Missing source field position &&2',TYPE=U
+ GVBMSGDF 094,'&&1 - Missing source field length &&2',TYPE=U
+ GVBMSGDF 095,'&&1 - Missing source field data format &&2',TYPE=U
+ GVBMSGDF 096,'&&1 - Value too large(>16 digits) &&2',TYPE=U
+ GVBMSGDF 097,'&&1 - Unexpected function for record type &&2',TYPE=S
+ GVBMSGDF 098,'&&1 - Undefined event file type &&2',TYPE=S
+ GVBMSGDF 099,'&&1 - Undefined function code in logic table &&2',TYPE=S
+ GVBMSGDF 100,'&&1 - Unexpected function for record type &&2',TYPE=S
+ GVBMSGDF 101,'&&1 - VDP timestamp &&2 and JLT/XLT timestamp &&3 do not+
+                match',TYPE=U
+*GVBMSGDF 102,'&&1 - Logic table buffer overflow &&2',TYPE=U
+*GVBMSGDF 103,'&&1 - Logic table overflow &&2',TYPE=U
+ GVBMSGDF 104,'&&1 - Unable to open an extract file &&2',TYPE=U
+ GVBMSGDF 105,'&&1 - Missing DCB information for an extract file &&2', +
+               TYPE=U
+ GVBMSGDF 106,'&&1 - Unable to open reference table header file',TYPE=U
+ GVBMSGDF 107,'&&1 - Unable to open reference table data file &&2',    +
+               TYPE=U
+ GVBMSGDF 108,'&&1 - Duplicate reference table header record &&2',     +
+               TYPE=U
+ GVBMSGDF 109,'&&1 - Look-up table key sequence error. Ref file ddname +
+               &&2, LR ID &&3, Key Value &&4',TYPE=U
+ GVBMSGDF 110,'&&1 - Unable to locate token look-up buffer',TYPE=S
+ GVBMSGDF 111,'&&1 - Unable to locate required look-up buffer &&2',    +
+               TYPE=S
+ GVBMSGDF 112,'&&1 - Unable to load look-up exit program &&2',TYPE=U
+ GVBMSGDF 113,'&&1 - Code segment exceeds 4K &&2',TYPE=S
+ GVBMSGDF 114,'&&1 - Extract file &&2 must be RECFM=VB',TYPE=U
+ GVBMSGDF 115,'&&1 - Lookup stack overflow &&2',TYPE=S
+ GVBMSGDF 116,'&&1 - Code buffer overflow &&2',TYPE=S
+ GVBMSGDF 117,'&&1 - Unable to create ref table dataspace',TYPE=S
+ GVBMSGDF 118,'&&1 - Error while deleting dataspace',TYPE=S
+ GVBMSGDF 119,'&&1 - Source file is not defined as a pipe or token &&2'+
+               ,TYPE=U
+ GVBMSGDF 120,'&&1 - Unable to locate look-up buffer for LF Set &&2',  +
+               TYPE=S
+ GVBMSGDF 121,'&&1 - Unable to load Db2 "editproc" &&2',TYPE=U
+ GVBMSGDF 122,'&&1 - Extract file table overflow',TYPE=S
+ GVBMSGDF 123,'&&1 - The number of reference records found in &&4 (&&3)+
+                does not match expected number (&&2).',TYPE=U
+ GVBMSGDF 124,'&&1 - Error reading reference data &&2',TYPE=S
+ GVBMSGDF 125,'&&1 - No. of digits exceeds Geneva limit &&2',TYPE=U
+ GVBMSGDF 126,'&&1 - No. of decimal places exceeds field len &&2',     +
+               TYPE=U
+ GVBMSGDF 127,'&&1 - Incorrect No. of extract file table entries',TYPE=*
+               U
+ GVBMSGDF 128,'&&1 - Logic table row#''s not consecutive &&2',TYPE=U
+ GVBMSGDF 129,'&&1 - Compare function fields do not have compatible dat+
+               e/time formats &&2',TYPE=U
+ GVBMSGDF 130,'&&1 - Multiplication overflow',TYPE=U
+ GVBMSGDF 131,'&&1 - Mutliplication overflow',TYPE=U
+ GVBMSGDF 132,'&&1 - Division overflow',TYPE=U
+ GVBMSGDF 133,'&&1 - Invalid hex string, &&2',TYPE=S
+ GVBMSGDF 134,'&&1 - Output record length exceeds DCB LRECL &&2, &&3',T+
+               YPE=U
+ GVBMSGDF 135,'&&1 - Extract-Phase Aggregation buffer limited to 20GB. +
+               Requested buffer &&2 MB',TYPE=U
+ GVBMSGDF 136,'&&1 - Logic table file &&2 RECFM incompatible',TYPE=U
+ GVBMSGDF 137,'&&1 - Reference-phase work file header (EXTRREH) contain+
+               s invalid data',TYPE=U
+ GVBMSGDF 138,'&&1 - IO_buffer_level must be between 1 and 254',TYPE=U
+ GVBMSGDF 139,'&&1 - Db2_VSAM_date_format option not valid',TYPE=U
+ GVBMSGDF 140,'&&1 - Program must be executed with GVBMR95E/R',TYPE=U
+ GVBMSGDF 141,'&&1 - I/O driver not supported, DDNAME &&2',TYPE=U
+ GVBMSGDF 142,'&&1 - The number of reference records found in &&3 is gr+
+               eater than the expected &&2.',TYPE=U
+*
+*
+*  GVBMRVS Error messages (146-148)
+*
+ GVBMSGDF 146,'&&1 - Locate error for VSAM Data component RC=&&2',TYPE=+
+               S
+ GVBMSGDF 147,'&&1 - Locate data did not contain Data component name',T+
+               YPE=S
+ GVBMSGDF 148,'&&1 - Data component allocation error see previous messa+
+               ge',TYPE=S
+*
+ GVBMSGDF 149,'&&1 - Invalid ABEND_ON_CALCULATION_OVERFLOW value',TYPE=+
+               U
+ GVBMSGDF 150,'&&1 - Invalid value for PAGE_FIX_IO_BUFFERS',TYPE=U
+ GVBMSGDF 151,'&&1 - Literal Pool size limit exceeded',TYPE=U
+ GVBMSGDF 152,'&&1 - Invalid Batch Date value length',TYPE=U
+ GVBMSGDF 153,'&&1 - Fiscal Date control record id has been specified p+
+               reviously',TYPE=U
+ GVBMSGDF 154,'&&1 - Invalid Fiscal Date value - not numeric',TYPE=U
+ GVBMSGDF 155,'&&1 - More than 1 default Fiscal Date value specified',T+
+               YPE=U
+ GVBMSGDF 156,'&&1 - Invalid default Fiscal Date value - not numeric',T+
+               YPE=U
+ GVBMSGDF 157,'&&1 - Invalid Fiscal Date control record id length',TYPE+
+               =U
+ GVBMSGDF 158,'&&1 - Invalid Fiscal Date value length',TYPE=U
+ GVBMSGDF 159,'&&1 - Invalid Fiscal Date value not VDP or a date value'+
+               ,TYPE=U
+ GVBMSGDF 160,'&&1 - Invalid Run Date value length',TYPE=U
+ GVBMSGDF 161,'&&1 - Run Date invalid. VDP or a date value required',TY+
+               PE=U
+ GVBMSGDF 162,'&&1 - Invalid Run Date value - not numeric',TYPE=U
+ GVBMSGDF 163,'&&1 - Invalid Batch Date value - not numeric',TYPE=U
+ GVBMSGDF 164,'&&1 - The number of records in REH file is &&2. The expe+
+               cted number is &&3.',TYPE=U
+ GVBMSGDF 165,'&&1 - RUNVIEWS Viewno - not numeric',TYPE=U
+ GVBMSGDF 166,'&&1 - RUNVIEWS Viewno - outside valid range',TYPE=U
+ GVBMSGDF 167,'&&1 - RUNVIEWS Viewno &&2 does not exist in this run',  +
+               TYPE=U
+ GVBMSGDF 168,'&&1 - Trace parameters specifying LTROWs and COLs are mu+
+               tually exclusive',TYPE=U
+ GVBMSGDF 169,'&&1 - Optimize_packed_output option not valid',TYPE=U
+ GVBMSGDF 170,'&&1 - Abend_on_User_Error option not valid',TYPE=U
+ GVBMSGDF 171,'&&1 - Unable to open log file &&2',TYPE=U
+ GVBMSGDF 172,'&&1 - Unable to open control report file &&2',TYPE=U
+ GVBMSGDF 173,'&&1 - Buffer statistics "ENQ" FAILED',TYPE=W
+ GVBMSGDF 174,'&&1 - RECOVER_FROM_ABEND option not valid',TYPE=U
+ GVBMSGDF 175,'&&1 - INCLUDE_REF_TABLES_IN_SYSTEM_DUMP option not valid+
+               ',TYPE=U
+ GVBMSGDF 176,'&&1 - LOG_MESSAGE_LEVEL option not valid',TYPE=U
+ GVBMSGDF 177,'&&1 - Trace Parameter syntax error, &&2',TYPE=U
+ GVBMSGDF 178,'&&1 - Constant not numeric, &&2',TYPE=U
+ GVBMSGDF 179,'&&1 - "&&2" failed. RC = &&3',TYPE=S
+ GVBMSGDF 180,'&&1 - Source file type DB2 via VSAM not available',     +
+               TYPE=U
+ GVBMSGDF 181,'&&1 - VSAM "SHOWCB" ENDRBA not found DD = &&2',TYPE=S
+ GVBMSGDF 182,'&&1 - "MODCB" to modify RPL AREALEN parameter failed. DD+
+               =&&2',TYPE=S
+ GVBMSGDF 183,'&&1 - "MODCB" to modify RPL AREA parameter failed. DD=&&+
+               2',TYPE=S
+ GVBMSGDF 184,'&&1 - VSAM data set Extended Addressability Format not s+
+               upported DD = &&2',TYPE=S
+ GVBMSGDF 185,'&&1 - Unable to OPEN VSAM source file &&2, return code &+
+               &3, reason code &&4',TYPE=U
+ GVBMSGDF 186,'&&1 - "MODCB" to modify ACB failed. DD=&&2',TYPE=S
+ GVBMSGDF 187,'&&1 - "MODCB" to modify RPL failed. DD=&&2',TYPE=S
+ GVBMSGDF 188,'&&1 - VSAM "SHOWCB" RECLEN not found. DD=&&2, RC=&&3, Re+
+               ason code=&&4',TYPE=S
+ GVBMSGDF 189,'&&1 - Unable to CLOSE VSAM source file &&2, return code +
+               &&3, reason code &&4',TYPE=U
+*
+ GVBMSGDF 190,'&&1 - Unable initialize TSO/E environement. RC=&&2, Reas+
+               on Code=&&3',TYPE=S
+ GVBMSGDF 191,'&&1 - Partial data set name required',TYPE=U
+ GVBMSGDF 192,'&&1 - Data set name with wild card requires at least one+
+                full node &&2',TYPE=U
+ GVBMSGDF 193,'&&1 - IKJEHCIR call failed, RC=&&2, CIRLOCRC =&&3',TYPE=+
+               S
+ GVBMSGDF 194,'&&1 - No data set names were located by IKJEHCIR',TYPE=U
+ GVBMSGDF 195,'&&1 - IKJEHCIR error. Data returned in user work area is+
+                an unexpected length',TYPE=S
+ GVBMSGDF 196,'&&1 - IKJEHCIR warning. Possibility of missing data set +
+               names',TYPE=W
+ GVBMSGDF 197,'&&1 - Source file type DB2 via SQL not available',      +
+               TYPE=U
+*
+*
+*
+ GVBMSGDF 200,'&&1 - Unable to retrieve Geneva global name/token pair',+
+               TYPE=S
+*
+*  Message from GVBMRDV - Db2 via VSAM
+*
+ GVBMSGDF 300,'&&1 - Unable to open Db2 base VSAM file &&2',TYPE=U
+ GVBMSGDF 301,'&&1 - Error on Db2 base VSAM SHOWCB &&2',TYPE=U
+ GVBMSGDF 302,'&&1 - Error on Db2 base VSAM MODCB &&2',TYPE=U
+ GVBMSGDF 303,'&&1 - Unable to build Db2 reference file control blocks'+
+               ,TYPE=U
+ GVBMSGDF 304,'&&1 - Unable to build Db2 reference file',TYPE=U
+ GVBMSGDF 305,'&&1 - I/O error reading Db2 reference file',TYPE=U
+ GVBMSGDF 306,'&&1 - SQL text not found in #DD table &&2',TYPE=U
+ GVBMSGDF 307,'&&1 - Db2 connect failed, reason code &&2 &&3',TYPE=U
+ GVBMSGDF 308,'&&1 - Db2 open thread failed, reason code &&2 &&3',TYPE=+
+               U
+ GVBMSGDF 309,'&&1 - SQL prepare failed, reason code &&2 &&3',TYPE=S
+ GVBMSGDF 310,'&&1 - SQL statement incorrect (no columns) &&2',TYPE=U
+ GVBMSGDF 311,'&&1 - Error while translating SQLCODE, reason code &&2',+
+               TYPE=U
+ GVBMSGDF 312,'&&1 - Db2 close thread failed, reason code &&2 &&3',TYPE+
+               =S
+ GVBMSGDF 313,'&&1 - Db2 disconnect failed, reason code &&2 &&3',TYPE=S
+ GVBMSGDF 314,'&&1 - SQL fetch failed &&2 &&3',TYPE=S
+ GVBMSGDF 315,'&&1 - Db2 expansion dictionary not found &&2. Unrecovera+
+               ble error, abending.',TYPE=S
+ GVBMSGDF 316,'&&1 - Db2 expanded record error &&2. Unrecoverable error+
+               , abending.',TYPE=S
+ GVBMSGDF 317,'&&1 - Db2 EDITPROC error, reason code &&2. Unrecoverable+
+                error, abending.',TYPE=S
+ GVBMSGDF 318,'&&1 - Db2 translated SQLCODE &&2',TYPE=I
+ GVBMSGDF 319,'&&1 - Db2 Error message text missing',TYPE=W
+*
+ GVBMSGDF 320,'&&1 - Environment variable not found &&2',TYPE=U
+ GVBMSGDF 321,'&&1 - DB2 Schema and/or Table name not available. SQL: &+
+               &2',TYPE=U
+*
+ GVBMSGDF 322,'&&1 - SQL Open cursor failed, reason code &&2',TYPE=S
+ GVBMSGDF 323,'&&1 - Begin fetching Db2 rows from ddname &&2',TYPE=I
+ GVBMSGDF 324,'&&1 - SQL statement incorrect (no columns), reference ke+
+               y &&2',TYPE=U
+*
+*   400-499 reserved for MR88
+*
+* I messages cannot go through RTNERROR
+*
+ GVBMSGDF 400,'&&1 - Missing control record in extract file',TYPE=S
+ GVBMSGDF 401,'&&1 - Header record not found when expected',TYPE=S
+ GVBMSGDF 402,'&&1 - Extract view ID number not found &&2',TYPE=S
+ GVBMSGDF 403,'&&1 - Data output file open failed &&2',TYPE=S
+ GVBMSGDF 404,'&&1 - Output file "LRECL" too small for view with DD sta+
+               tement &&2',TYPE=U
+ GVBMSGDF 405,'&&1 - DD statement missing - &&2',TYPE=U
+ GVBMSGDF 406,'&&1 - Format exit returned stop run (RC=16) &&2',TYPE=U
+ GVBMSGDF 407,'&&1 - Unable to load format exit program &&2',TYPE=U
+ GVBMSGDF 408,'&&1 - Field definition table overflow',TYPE=S
+ GVBMSGDF 409,'&&1 - GVBDL96 returned error (RC) &&',TYPE=S
+ GVBMSGDF 410,'&&1 - Sort key definition table overflow',TYPE=S
+ GVBMSGDF 411,'&&1 - Extract view number not found in VDP',TYPE=S
+ GVBMSGDF 412,'&&1 - Unable to open sort SYSIN control file',TYPE=U
+ GVBMSGDF 413,'&&1 - Column definition table overflow',TYPE=S
+ GVBMSGDF 414,'&&1 - Output record count max exceeded',TYPE=I
+ GVBMSGDF 415,'&&1 - Extract record with no view column(s) defined',TYP+
+               E=U
+ GVBMSGDF 416,'&&1 - Invalid keyword in MR88PARM file &&2',TYPE=U
+ GVBMSGDF 417,'&&1 - Invalid parameter value in MR88PARM file for &&2',+
+               TYPE=U
+ GVBMSGDF 418,'&&1 - Unable to open view definition (VDP) file',TYPE=U
+ GVBMSGDF 419,'&&1 - Column calculation table overflow',TYPE=S
+ GVBMSGDF 420,'&&1 - Unable to locate matching column definition (CALC)+
+                &&2',TYPE=U
+ GVBMSGDF 421,'&&1 - Unable to locate matching column definition (PUSHC+
+               ) &&2',TYPE=U
+ GVBMSGDF 422,'&&1 - Undefined calculation operator &&2',TYPE=U
+ GVBMSGDF 423,'&&1 - Sort key definition table overflow',TYPE=S
+ GVBMSGDF 424,'&&1 - Unable to locate matching column defn (sort key) &+
+               &2',TYPE=U
+ GVBMSGDF 425,'&&1 - View definition file (VDP) is empty',TYPE=U
+ GVBMSGDF 426,'&&1 - Unable to locate sort break title. &&2.',TYPE=U
+ GVBMSGDF 427,'&&1 - Unable to open table data header file',TYPE=U
+ GVBMSGDF 428,'&&1 - Unable to open table data file: &&2',TYPE=U
+ GVBMSGDF 429,'&&1 - Duplicate table data header record: &&2',TYPE=U
+ GVBMSGDF 430,'&&1 - Build binary search path failed &&2',TYPE=U
+ GVBMSGDF 431,'&&1 - Bad return from sort - &&2',TYPE=S
+ GVBMSGDF 432,'&&1 - Unable to start language environment &&2',TYPE=S
+ GVBMSGDF 433,'&&1 - Incorrect extract record source code parameter',TY+
+               PE=U
+ GVBMSGDF 434,'&&1 - Incorrect no headers option parameter',TYPE=U
+ GVBMSGDF 435,'&&1 - Incorrect ignore calculation overflow parameter',T+
+               YPE=U
+ GVBMSGDF 436,'&&1 - Unable to open the extract input file',TYPE=U
+ GVBMSGDF 437,'&&1 - Unable to initialize language environment &&2',TYP+
+               E=S
+ GVBMSGDF 438,'&&1 - Reference data file out of sequence &&2',TYPE=U
+ GVBMSGDF 439,'&&1 - Premature end of file reading records in header. &+
+               &2',TYPE=U
+ GVBMSGDF 440,'&&1 - Incorrect zero divide abend parameter',TYPE=U
+ GVBMSGDF 441,'&&1 - Fiscal date control record id has been specified p+
+               reviously',TYPE=U
+ GVBMSGDF 442,'&&1 - Invalid Fiscal Date value - not numeric',TYPE=U
+ GVBMSGDF 443,'&&1 - More than 1 default Fiscal Date value specified',T+
+               YPE=U
+ GVBMSGDF 444,'&&1 - Invalid default Fiscal Date value - not numeric',T+
+               YPE=U
+ GVBMSGDF 445,'&&1 - Invalid Fiscal Date control record id length',TYPE+
+               =U
+ GVBMSGDF 446,'&&1 - Invalid Fiscal Date value length',TYPE=U
+ GVBMSGDF 447,'&&1 - Invalid Run Date value length',TYPE=U
+ GVBMSGDF 448,'&&1 - Invalid Run Date value - not numeric',TYPE=U
+ GVBMSGDF 449,'&&1 - Marginal File not supported',TYPE=U
+ GVBMSGDF 450,'&&1 - Error processing SYSIN dataset for sort',TYPE=U
+ GVBMSGDF 451,'&&1 - Column overflow occurred. Check output file(s) for+
+                filler characters (&&2)',TYPE=U
+ GVBMSGDF 499,'&&1 - You will never see this message: recursive error',+
+               TYPE=U
+*
+*  ZIIP Messages
+*
+*VBMSGDF 500,'&&1 - zIIP was not used because of the presence of TRACE*
+*              =Y',TYPE=I
+ GVBMSGDF 501,'&&1 - zIIP was not used because of the presence of USE Z*
+               IIP=N',TYPE=I
+ GVBMSGDF 502,'&&1 - zIIP was not used because GVBMR95 is not authorize*
+               d',TYPE=I
+ GVBMSGDF 503,'&&1 - zIIP was not used because of the presence of DB2 s*
+               ource files accessed through SQL',TYPE=I
+*GVBMSGDF 504,'&&1 - EXIT xxxxxxxx NOT AUTHORIZED',TYPE=I
+ GVBMSGDF 505,'&&1 - zIIP will be used by default',TYPE=I
+ GVBMSGDF 506,'&&1 - zIIP will not be used - see preceding messages for*
+                details',TYPE=I
+ GVBMSGDF 507,'&&1 - Page fixing will not occur because GVBMR95 is not +
+               authorized',TYPE=I
+ GVBMSGDF 510,'&&1 - USE_ZIIP option not valid',TYPE=U
+ GVBMSGDF 511,'&&1 - Use of the zIIP feature requires an additional lic+
+               ense from IBM',TYPE=U
+*
+ GVBMSGDF 600,'&&1 - Enclave setup error, return code &&2 reason code &+
+               &3 macro name &&4',TYPE=S
+ GVBMSGDF 601,'&&1 - Thread &&2 ended - see previous messages',TYPE=I
+ GVBMSGDF 602,'&&1 - Possible failing row number &&2',TYPE=S
+ GVBMSGDF 603,'&&1 - Enclave breakdown error - return code &&2         +
+               reason code &&3 macro name &&4',TYPE=S
+ GVBMSGDF 801,'&&1 - VDP 801 record missing',TYPE=U
+ GVBMSGDF 802,'&&1 - VDP cannot be loaded into &&2 bytes (dec)',TYPE=U
+ GVBMSGDF 803,'&&1 - Error retrieving DB2 subsystem data set name list.+
+                UR31 RC=&&2.',TYPE=S
+ GVBMSGDF 804,'&&1 - Error in retrieved DB2 subsystem data set name lis+
+               t. List entry count error.',TYPE=S
+ GVBMSGDF 805,'&&1 - VDP cannot be loaded. Unexpected version &&2',TYPE+
+               =U
+ GVBMSGDF 806,'&&1 - ~LITP stats area overflow: execution continues',TY+
+               PE=I
+ GVBMSGDF 807,'&&1 - No view is present to read from token DD &&2',TYPE+
+               =S
+ GVBMSGDF 808,'&&1 - No view is present to write to token DD &&2',TYPE=+
+               S
+ GVBMSGDF 809,'&&1 - Empty or abbreviated logic table in Reference phas+
+               e',TYPE=I
+*
+ GVBMSGDF 811,'&&1 - Setting EXECUTE_IN_PARENT_THREAD to A or 1 will ca+
+               use unpredictable results when pipe files are included',+
+               TYPE=W
+*
+*  GVBXRCK messages
+*
+ GVBMSGDF 900,'&&1 - Common-Key Buffer overflow occurred writing record+
+                with DDNAME/key starting &&2/&&3',TYPE=U
+*
+ GVBMSGDF 901,'&&1 - Common-Key Extension buffer overflow occurred writ+
+               ing DDNAME/key starting &&2/&&3',TYPE=U
+*
+ GVBMSGDF 902,'&&1 - Common-Key Buffer overflow occurred writing genera+
+               ted record DDNAME/key starting &&2/&&3',TYPE=U
+*
+ GVBMSGDF 903,'&&1 - File out of sequence DDNAME/Key starting &&2/&&3',+
+               TYPE=U
+*
+ GVBMSGDF 904,'&&1 - Parameter &&2 must be numeric',TYPE=U
+*
+ GVBMSGDF 905,'&&1 - Maximum number of parameter entries &&2 exceeded.'+
+               ,TYPE=U
+*
+ GVBMSGDF 906,'&&1 - Unable to create name/token &&2, RC=&&3',TYPE=S
+*
+ GVBMSGDF 907,'&&1 - ENQ failed. RNAME &&2, &&3',TYPE=S
+*
+ GVBMSGDF 908,'&&1 - Unable to open merge report file &&2',TYPE=U
+*
+ GVBMSGDF 909,'&&1 - Unable to open merge parameter file &&2',TYPE=U
+*
+*GVBMSGDF 910,'&&1 - Unable to OPEN merge VDP file &&2',TYPE=U
+*
+ GVBMSGDF 911,'&&1 - Unable to open file &&2. UR20RC=&&3',TYPE=U
+*
+ GVBMSGDF 912,'&&1 - Dynamic allocation failed for &&2, UR35 RC=&&3',TY+
+               PE=S
+*
+ GVBMSGDF 913,'&&1 - Dynamic allocation wait/retry &&2',TYPE=W warning
+
+ GVBMSGDF 914,'&&1 - Record initialization table overflow. Record initi+
+               alization file &&2',TYPE=U
+*
+ GVBMSGDF 915,'&&1 - Matching profile timestamp not found for entity &&+
+               2 break ID &&3',TYPE=U
+*
+ GVBMSGDF 916,'&&1 - Profile ID table overflow, ID: &&2',TYPE=U
+*
+ GVBMSGDF 917,'&&1 - Record pointer table overflow, ID: &&2',TYPE=U
+*
+ GVBMSGDF 918,'&&1 - Record truncation error. Record length > initializ+
+               ation record length: &&2',TYPE=U
+*
+ GVBMSGDF 919,'&&1 - Profile ID not found: &&2/&&3/&&4',TYPE=U
+*
+ GVBMSGDF 920,'&&1 - Partition range must be numeric',TYPE=U
+*
+ GVBMSGDF 921,'&&1 - Key Position must be numeric',TYPE=U
+*
+ GVBMSGDF 922,'&&1 - Key length must be numeric',TYPE=U
+*
+ GVBMSGDF 923,'&&1 - Break length must be greater or equal to the key l+
+               ength',TYPE=U
+*
+*GVBMSGDF 924,'&&1 - Break key length must be numeric',TYPE=U
+*
+ GVBMSGDF 925,'&&1 - Unable to load user exit &&2',TYPE=U
+*
+ GVBMSGDF 926,'&&1 - Decompression specified and View not found in VDP.+
+               View number &&2',TYPE=U
+*
+ GVBMSGDF 928,'&&1 - BUFNO must be greater than 1',TYPE=U
+*
+*GVBMSGDF 929,'&&1 - Effective date position must be numeric',TYPE=U
+*
+ GVBMSGDF 930,'&&1 - Call to GENPIPE failed. DDNAME=&&2',TYPE=S
+*
+ GVBMSGDF 931,'&&1 - V type entity requires an Exit program',TYPE=U
+*
+ GVBMSGDF 932,'&&1 - Blank entity type can not follow T entity type',TY+
+               PE=U
+*
+ GVBMSGDF 933,'&&1 - PF DDNAME must end with 2 digits. See PF associate+
+               d with LF ID &&2',TYPE=U
+*
+ GVBMSGDF 934,'&&1 - PF DDNAME outside of range specified for LFs. DDNA+
+               ME &&2, LF ID &&3',TYPE=U
+*
+ GVBMSGDF 935,'&&1 - No read exit specified. Ignoring input from DDNAME+
+                &&2, LF ID &&3',TYPE=W                    warning only
+*
+ GVBMSGDF 936,'&&1 - Number of view partitions: &&2',TYPE=I info only
+*
+         GVBMSGDF GVB,TYPE=END
+         MEnd

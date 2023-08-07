@@ -1,0 +1,14 @@
+name: sam
+description: GenevaERS Z APPlication (ZAPP) file 
+version: 3.0.0
+author:
+  name: GenevaERS team
+
+propertyGroups:
+  - name: hlasm-local
+    language: hlasm
+    libraries:
+      - name: syslib
+        type: local
+        locations:
+          - "**/MAC"

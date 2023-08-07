@@ -1,0 +1,89 @@
+**********************************************************************
+*
+* (C) COPYRIGHT IBM CORPORATION 2020.
+*     Copyright Contributors to the GenevaERS Project.
+* SPDX-License-Identifier: Apache-2.0
+*
+**********************************************************************
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+*  or implied.
+*  See the License for the specific language governing permissions
+* and  limitations under the License.
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*  Date formats (or Content codes) Equates                            *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+NODATE EQU   00 - UNSPECIFIED (SOURCE DIGITS)
+YMD    equ   01 - YYMMDD
+YsMsD  equ   02 - YY/MM/DD
+CYMD   equ   03 - CCYYMMDD
+CYsMD  equ   04 - CCYY/MM/DD
+DMY    equ   05 - DDMMYY       *
+DsMsY  equ   06 - DD/MM/YY
+DMCY   equ   07 - DDMMCCYY     *
+MsDsCY equ   08 - MM/DD/CCYY
+YYDDD  equ   09 - YYDDD
+YsDDD  equ   10 - YY/DDD
+CYDDD  equ   11 - CCYYDDD Julian
+CYsDD  equ   12 - CCYY/DDD
+MMDD   equ   13 - MMDD
+MMsDD  equ   14 - MM/DD
+DDsMM  equ   15 - DD/MM
+MM     equ   16 - MM
+DD     equ   17 - DD
+DDDD   equ   18 - DDDDDDDD
+HMST   equ   19 - HHMMSSTT
+*      equ   20 - HH:MM:SS.TT
+HMS    equ   21 - HHMMSS
+*      equ   22 - HH:MM:SS
+HM     equ   23 - HHMM
+*      equ   24 - HH:MM
+CYMDT  equ   25 - CCYYMMDDHHMMSS
+SSSS   equ   26 - SSSSSSSS
+*      equ   27 - LOWERCASE
+*      equ   28 - UPPERCASE
+*      equ   29 - DBCS
+CYM    equ   30 - CCYYMM
+CCYY   equ   31 - CCYY
+YY     equ   32 - YY
+CYAP   equ   33 - MMM DD CCYY HH:MM:SS.TT AM
+POSIX  equ   34 - CCYY-MM-DD HH:MM:SS.TT
+MDY    equ   35 - MMDDYY       *
+MDCY   equ   36 - MMDDCCYY     *
+MDsCY  equ   37 - MM/DD/CCYY
+CY_DD  equ   38 - CCYY-DDD
+CY_M   equ   39 - CCYY-MM
+C_M_D  equ   40 - CCYY-MM-DD
+CYsM   equ   41 - CCYY/MM
+POS2   equ   42 - CCYY/MM/DD HH:MM:SS.TT
+D_M    equ   43 - DD-MM
+D_M_C  equ   44 - DD-MM-CCYY
+D_M_Y  equ   45 - DD-MM-YY
+M_D    equ   46 - MM-DD
+M_D_C  equ   47 - MM-DD-CCYY
+Y_DD   equ   48 - YY-DDD
+Y_M_D  equ   49 - YY-MM-DD
+USDAT  equ   50 - DD MMMMMMMMM CCYY
+EUDAT  equ   51 - MMMMMMMMM DD, CCYY
+DMOCY  equ   52 - DD-MMM-CCYY
+MMMMY  equ   53 - MMMMMMMMM CCYY
+NORMDATE equ  54 - CCYYMMDDHHMMSSTT
+*      equ   55 - CCYYMMDDHHMMSSTTNNNN
+*      equ   56 - CCYY/MM/DD HH:MM:SS.TTTTTT
+*
+CYMD_l EQU 08                 "CCYYMMDD"             length
+CYM_l  EQU 06                 "CCYYMM"               length
+CCYY_l EQU 04                 "CCYY"                 length
+NORMDATE_l equ  16            "CCYYMMDDHHMMSSTT"     length

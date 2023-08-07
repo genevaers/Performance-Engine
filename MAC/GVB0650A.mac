@@ -1,0 +1,46 @@
+**********************************************************************
+*
+* (C) COPYRIGHT IBM CORPORATION 2008, 2017.
+*     Copyright Contributors to the GenevaERS Project.
+* SPDX-License-Identifier: Apache-2.0
+*
+**********************************************************************
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+*  or implied.
+*  See the License for the specific language governing permissions
+*  and limitations under the License.
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*   GVB0650A _ VDP JOIN NAMES RECORD                                  *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+VDP0650_JOIN_RECORD           DSECT
+*
+VDP0650_REC_LEN               DS HL02
+VDP0650_RDW_FLAGS             DS XL02
+*
+VDP0650_VIEWID                DS FL04
+VDP0650_INPUT_FILE_ID         DS FL04
+VDP0650_COLUMN_ID             DS FL04
+VDP0650_RECORD_TYPE           DS HL02
+VDP0650_SEQUENCE_NBR          DS HL02
+VDP0650_RECORD_ID             DS FL04
+VDP0650_GREFCNT               DS FL04
+VDP0650_GREF_ENTRY            DS 0C
+VDP0650_GREF_FLAG             DS XL01
+VDP0650_GREF_EPHASE          EQU X'01'
+VDP0650_GREF_RPHASE          EQU X'02'
+VDP0650_GREF_JOINID           DS FL04
+VDP0650_GREF_ENTLEN           DS FL04
+VDP0650_GREF_ENTRY_LEN       EQU *-VDP0650_GREF_ENTRY
+VDP0650_GREF_PF               DS 0C

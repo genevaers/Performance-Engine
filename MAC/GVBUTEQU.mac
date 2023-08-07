@@ -1,0 +1,382 @@
+**********************************************************************
+*
+* (C) COPYRIGHT IBM CORPORATION 2004, 2022.
+*     Copyright Contributors to the GenevaERS Project.
+* SPDX-License-Identifier: Apache-2.0
+*
+**********************************************************************
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+*  or implied.
+*  See the License for the specific language governing permissions
+*  and limitations under the License.
+*
+MR95MSGS DC    0f         v(GVBUTMSG)
+*
+IDENTIFY_FAIL EQU  1  (01S) - IDENTIFY MACRO FAILED'
+NUM_THREADS   EQU  2  (02I) - 000 THREADS STARTED'
+ATTACH_FAIL   EQU  3   (03S) - ATTACH MACRO FAILED'
+*SG#04   EQU   4   (04U) - EVENT FILE THREAD ABENDED: '
+*SG#05   EQU   5   (05S) - DETACH MACRO FAILED'
+SOURCE_VERSION_ERROR EQU 6 (06U) EVENT FILE HEADER RECORD VERSION WRONG
+THREAD_FINISHED EQU   7   (07I) - THREAD 000 FINISHED'
+IO_ERROR EQU   8   (08U) - PERMANENT I/O ERROR (000)'
+THREAD_ABEND EQU  9  (09U) - THREAD 000 ABENDED XXX, VIEW=        '
+DISABLE_VIEW EQU  10 (10U) - EXTRACTION DISCONTINUED FOR VIEW ID:'
+ES_COUNT_ERROR EQU   11  (11S) - UNEXPECTED END OF "ES" QUEUE'
+EXIT_ABORT EQU   12  (12U) - ABORT CODE RETURNED BY:         '
+* G#13   EQU   13  (13U) - DB2 ERROR (SEE  MESSAGE LOG)'
+DB2_ERR  EQU   14  (14U) - DB2 ERROR (SEE  MESSAGE LOG)'
+OPEN_SOURCE_FAIL    EQU 15  (15U) UNABLE TO OPEN AN EVENT FILE:'
+LOAD_READ_EXIT_FAIL EQU 16  (16U) UNABLE TO LOAD EVENT FILE READ EXIT:'
+NO_READER_PIPE  EQU 17 (17U) PIPED OUTPUT FILE HAS NO PIPE READER
+*SG#18   EQU   18  (18U) - UNABLE TO LOCATE PIPED INPUT FILE:'
+*SG#19   EQU   19  (19U) - PIPE HAS NO PARENT:'
+COBOL_ENV_FAIL EQU 20 (20S) - UNABLE TO INITIALIZE COBOL ENVIRONMENT'
+HDR_REC_COUNT_MISMATCH EQU   21  (21U) - RECORD COUNTS DO NOT MATCH'
+OPEN_SORT_FAIL EQU  22  (22U) - UNABLE TO OPEN SORT CONTROL CARD FILE'
+*SG#23   EQU   23  (23S) - BRANCH EXCEEDS 4K SEGMENT LIMIT'
+*SG#24   EQU   24  (24I) - '
+INIT_ENQ_FAIL EQU   25  (25S) - INITIALIZATION "ENQ" FAILED'
+VSAM_CONTROL_SIZE_NOT_FOUND EQU 26 (26S) - "TESTCB" MACRO Failed'
+MODCB_ARG_FAIL EQU 27      (27S) - "MODCB" MACRO FAILED'
+VSAM_SPANNED EQU  28 (28U) - VSAM SPANNED RECORDS NOT SUPPORTED
+VSAM_GET_FAIL EQU 29 (29S) - "GET" MACRO FAILED'
+VSAM_COMPRESSED_FORMAT EQU 30 (30S) - VSAM compressed format not sup
+LITP_OVERFLOW EQU  31  (31S) - LITERAL POOL OVERFLOW'
+GLOBAL_TOKEN_FAIL EQU 32 (32S) - UNABLE TO CREATE GENEVA GLOBAL TOKEN
+PARM_ERR EQU   33  (33U) - PARAMETER SYNTAX ERROR'
+*SG#34   EQU   34  (34U) - INCORRECT LOGIC TABLE ROWS PARAMETER'
+*SG#35   EQU   35  (35U) - INCORRECT DEFAULT READ BUFFERS PARAMETER'
+*SG#36   EQU   36  (36U) - INCORRECT DEFAULT WRITE BUFFERS PARAMETER'
+*SG#37   EQU   37  (37U) - INCORRECT S0C7 TRAP PARAMETER'
+*SG#38   EQU   38  (38U) - INCORRECT ABEND IF VIEW DISABLED PARAMETER
+NO_PARM_LIST      EQU 39 Parm list missing from call to utility GVBURxx
+FUNC_CODE_INVALID EQU 40 Invalid function code calling utility GVBURxx
+DSN_MISSING       EQU 41 DSN or SYSOUT required for utility GVBURxx
+UR35_PARM_ERR     EQU 42 Error in UR35 parameter
+NO_PARMS          EQU 43 No parameters specified
+DYNALLOC_FAIL     EQU 44 Dynamic allocation error
+UR66_REQ_ERR1     EQU 45 GVBUR66 (ENQ/DEQ) request error - req type
+UR66_REQ_ERR2     EQU 46 GVBUR66 (ENQ/DEQ) request error - control type
+UR66_REQ_ERR3     EQU 47 GVBUR66 (ENQ/DEQ) request error - major name
+UR66_REQ_ERR4     EQU 48 GVBUR66 (ENQ/DEQ) request error - minor name
+UR66_REQ_ERR5     EQU 49 GVBUR66 (ENQ/DEQ) request error - scope
+*SG#50   EQU   50  (50S) - UNABLE TO INITIALIZE COBOL ENVIRONMENT'
+ENV_VAR_ERR    EQU 51 (51U) UNABLE TO PARSE ENVIRONMENT VARIABLE'
+OPEN_LTBL_FAIL EQU 52 (52U) UNABLE TO OPEN LOGIC TABLE FILE (MR95LTBL)
+OPEN_VDP_FAIL  EQU 53 (53U) UNABLE TO OPEN VDP (MR95VDP)
+*SG#54   EQU   54  (54U) - VDP TABLE OVERFLOW'
+VDP_EMPTY  EQU   55  (55U) - VDP IS EMPTY'
+BAD_FUNCTION_CODE EQU 56 (56S) UNDEFINED FUNCTION CODE IN LOGIC TABLE
+NO_MACH_MODEL   EQU 57 (57S) UNSUPPORTED LOGIC TABLE RECORD FORMAT CODE
+*SG#58   EQU   58  (58S) - UNDEFINED FUNCTION CODE IN LOGIC TABLE'
+UNEXPECTED_FUNCTION_CODE EQU 59 (59S) UNEXPECTED FUNC FOR THIS REC TYPE
+WRITE_EXIT_LOAD_ERR EQU 60 (60U) UNABLE TO LOAD WRITE EXIT PROGRAM
+*SG#61   EQU   61  (61S) - UNDEFINED FUNCTION CODE IN LOGIC TABLE'
+ACCUM_NOT_FOUND EQU 62 (62S) UNABLE TO LOCATE ACCUMULATOR NAME
+CONST_LEN_ERR   EQU 63 (63U) VALUE TOO LARGE(>16 DIGITS) OR ZERO LENGTH
+ACCUM_NO_FORMAT EQU 64 (64S) MISSING ACCUMULATOR DATA FORMAT
+ACCUM_FORMAT_UNSUPPORTED EQU 65 (65S) UNSUPPORTED ACCUM DATA FORMAT
+DIM3_UNSUPPORTED EQU 66 (66S) UNSUPPORTED LOGIC TABLE FUNCTION (DIM3)
+SEVERE_EXIT_ERR  EQU 67 (67S) - UNRECOVERABLE USER EXIT ERROR
+*SG#68   EQU   68  (68S) - UNABLE TO LOCATE ACCUMULATOR NAME'
+TARGET_FIELD_POS_MISSING EQU 69 (69U) MISSING TARGET FIELD POSITION
+TARGET_FIELD_LEN_MISSING EQU 70 (70U) MISSING TARGET FIELD LENGTH
+TARGET_FIELD_FMT_MISSING EQU 71 (71U) MISSING TARGET FIELD DATA FORMAT
+TARGET_FIELD_LEN_ERR EQU 72 (72U) TARGET FIELD VALUE TOO LARGE >16 DIG
+SOURCE_FIELD_POS_MISSING EQU 73 (73U) MISSING SOURCE FIELD POSITION
+SOURCE_FIELD_LEN_MISSING EQU 74 (74U) MISSING SOURCE FIELD LENGTH
+SOURCE_FIELD_FMT_MISSING EQU 75 (75U) MISSING SOURCE FIELD DATA FORMAT
+SOURCE_FIELD_LEN_ERR     EQU 76 (76U) VALUE TOO LARGE (>16 DIGITS)
+SOURCE_FILE_TYPE_ERR     EQU 77 (77S) UNDEFINED EVENT FILE TYPE
+*SG#78   EQU   78  (78U) - LOGIC TABLE BUFFER OVERFLOW'
+LTBL_OVERFLOW EQU 79 (79U) LOGIC TABLE OVERFLOW
+EMPTY_LOGIC_TBL EQU 80  (80U) - EMPTY OR ABBREVIATED LOGIC TABLE'
+LTBL_NO_WORK_UNITS EQU 81 (81U) LOGIC TABLE HAS NO work units
+*SG#82   EQU   82  (82U) - LOGIC TABLE BUFFER OVERFLOW'
+*SG#83   EQU   83  (83U) - LOGIC TABLE BUFFER OVERFLOW'
+*SG#84   EQU   84  (84S) - UNDEFINED LOGIC TABLE FUNCTION CODE'
+*SG#85   EQU   85  (85S) - UNDEFINED LOGIC TABLE RECORD FORMAT'
+*SG#86   EQU   86  (86U) - LOGIC TABLE BUFFER OVERFLOW'
+*SG#87   EQU   87  (87U) - MISSING TARGET FIELD POSITION'
+*SG#88   EQU   88  (88U) - MISSING TARGET FIELD LENGTH'
+*SG#89   EQU   89  (89U) - MISSING TARGET FIELD DATA FORMAT'
+*SG#90   EQU   90  (90U) - TARGET  FIELD  VALUE TOO  LARGE (>16)'
+*SG#91   EQU   91  (91U) - MISSING TARGET FIELD POSITION'
+*SG#92   EQU   92  (92U) - MISSING TARGET FIELD POSITION'
+*SG#93   EQU   93  (93U) - MISSING SOURCE FIELD POSITION'
+*SG#94   EQU   94  (94U) - MISSING SOURCE FIELD LENGTH'
+*SG#95   EQU   95  (95U) - MISSING SOURCE FIELD DATA FORMAT'
+*SG#96   EQU   96  (96U) - VALUE TOO LARGE (>16 DIGITS)'
+*SG#97   EQU   97  (97S) - UNEXPECTED FUNCTION FOR RECORD TYPE'
+*SG#98   EQU   98  (98S) - UNDEFINED EVENT FILE TYPE'
+*SG#99   EQU   99  (99S) - UNDEFINED FUNCTION CODE IN LOGIC TABLE'
+*SG#100  EQU   100 (100S) - UNEXPECTED FUNCTION FOR RECORD TYPE'
+VDP_XLT_TIMESTAMP_ERR EQU 101 VDP AND XLT TIMESTAMPS DO NOT MATCH
+*SG#102  EQU   102 (102U) - LOGIC TABLE BUFFER OVERFLOW'
+*SG#103  EQU   103 (103U) - LOGIC TABLE OVERFLOW'
+OPEN_EXTR_FAIL EQU 104 (104U) UNABLE TO OPEN AN EXTRACT FILE
+EXTR_DCB_ERR EQU 105 (105U) MISSING DCB INFORMATION FOR AN EXTRACT FILE
+OPEN_REH_FAIL EQU 106 (106U) UNABLE TO OPEN REFERENCE TABLE HEADER FILE
+OPEN_REF_FAIL EQU 107 (107U) UNABLE TO OPEN REFERENCE TABLE DATA FILE
+REH_FILE_DUPLICATE EQU 108 (108U) DUPLICATE REF TABLE HEADER RECORD
+REF_SEQ_ERR EQU  109 (109U) LOOK-UP TABLE KEY SEQUENCE ERROR
+*SG#110  EQU   110 (110S) - UNABLE TO LOCATE TOKEN LOOK-UP BUFFER'
+LKUPBUFR_NOT_FOUND EQU 111 (111U) UNABLE TO LOCATE REQUIRED LKUP BUFFER
+LKUP_EXIT_NOT_FOUND EQU 112 (112U) UNABLE TO LOAD LOOK-UP EXIT PROGRAM
+*SG#113  EQU   113 (113S) - CODE SEGMENT EXCEEDS 4K'
+EXTFILE_RECFM_ERR EQU   114 (114U) - extract file must have RECFM=VB
+LKUP_STACK_OVERFLOW EQU 115 (115S) - LOOKUP STACK OVERFLOW'
+CODE_OVERFLOW EQU  116 (116U) CODE BUFFER OVERFLOW
+*SG#117  EQU   117 (117S) - UNABLE TO CREATE REF TABLE DATASPACE'
+*SG#118  EQU   118 (118S) - ERROR WHILE DELETING DATASPACE'
+SOURCE_PIPE_ERR EQU 119 (119U) - MUST BE A PIPE/TOKEN TO READ/WRITE'
+LKUPBUFR_LF_NOT_FOUND EQU 120 UNABLE TO LOCATE LOOKUP BUF FOR ES
+EDITPROC_LOAD_FAIL EQU  121 UNABLE TO LOAD  DB2  "EDITPROC"'
+EXTFILE_TABLE_OVERFLOW EQU 122 (122S) EXTRACT FILE TABLE OVERFLOW
+REF_REC_NUM_ERR EQU 123 PREMATURE END OF RED FILE
+REF_READ_ERR EQU 124  ERROR READING REFERENCE DATA
+GENEVA_NO_DIG_EXCEEDED EQU 125  NO DIGITS EXCEEDS GENEVA LIMIT
+DECIMAL_PLACES_GT_FIELD EQU 126 (126U) NO DECIMAL PLACES EXCEEDS FIELD
+*SG#127  EQU   127 (127U) - INCORRECT NO. OF EXTRACT FILE TABLE ENTRIES
+LTBL_OUT_OF_ORDER EQU 128 (128U) LOGIC TABLE ROW#''S NOT CONSECUTIVE:
+CF_DTF_INCOMPATIBLE EQU 129 (129U) CONTENT CODES MUST MATCH ON COMPARES
+*SG#130  EQU   130 (130U) - MULTIPLICATION OVERFLOW'
+*SG#131  EQU   131 (131U) - MULTIPLICATION OVERFLOW'
+*SG#132  EQU   132 (132U) - DIVISION OVERFLOW'
+HEX_STRING_ERR EQU  133 (133U) - Invalid hex string \x
+RECORD_GT_LRECL EQU 134 (134U) - OUTPUT RECORD LENGTH EXCEEDS DCB LRECL
+EPA_LIMIT EQU   135 (135U)- Extract-Phase Agg buffer limited to 20GB
+LTBL_RECFM_BAD EQU 136 (136U) - Logic table RECFM incompatible
+REH_FILE_DATA_ERR EQU 137 (137U)Ref-phase work file hdr EXTRREH invalid
+IO_BUFFER_LEVEL_ERR EQU 138 (138U) IO_buffer_level between 1 and 254
+*SG#139  EQU   139 (139U) - DB2_VSAM_date_format option not valid
+EXEC_PGM_ERR EQU  140 (140S) - Program must be executed with GVBMR95E/R
+*
+IO_DRIVER_UNAVAILABLE EQU 141 IO driver not supported
+REF_REC_NUM_ERR2  EQU  142 (142U) - Ref file is larger than expected
+*
+LOCATE_ERROR EQU 146 (146S) Locate error for VSAM Data component
+LOCATE_NO_DATA_COMPONENT EQU 147 (147S) Locate data not contain Data
+UR35_ERROR  EQU 148 (148S) Data component allocation error
+CALC_OVERFLOW_PARM_ERR EQU 149 (149U) INCORRECT "OVERFLOWON" PARM
+PAGE_FIX_INVALID EQU 150 (150U) - INCORRECT "PAGEFIX" PARAMETER VALUE
+LITP_EXCEEDED    EQU 151 (151U) - Literal Pool size limit exceeded
+*
+*SG#152  EQU   152      -MR90 cookie processing (now in MR96) messages
+FISCALDATE_CTRL_REC_DUP    EQU 153
+FISCALDATE_NOT_NUM         EQU 154
+FISCALDATE_DEFAULT_DUP     EQU 155
+FISCALDATE_DEFAULT_NOT_NUM EQU 156
+FISCALDATE_CTRL_REC_ERR    EQU 157
+FISCALDATE_LEN_ERR         EQU 158
+FISCALDATE_VALUE_ERR       EQU 159
+RUNDATE_LEN_ERR EQU   160
+RUNDATE_INVALID EQU   161
+RUNDATE_NOT_NUM equ 162
+*SG#163  EQU   163      -MR90 cookie processing (now in MR96) messages
+REH_COUNT_ERR   EQU 164  MR95 Refernce table load error
+RUNVIEW_NOT_NUM EQU 165     Runview value not numeric
+RUNVIEW_OUT_OF_RANGE EQU 166  Runview value out of range
+RUNVIEW_NOT_EXIST EQU 167     Runview value not in view list
+*
+LTROW_COL_MUT_EX EQU 168 (168U) Trace parms LTROW COL mutually exclusiv
+*
+*SG#169  EQU   169 (169U) - Optimise_packed_output option invalid
+ABEND_USER_OPTION_ERR EQU 170 (170U) Abend_on_User_Error option invalid
+OPEN_LOG_FAIL  EQU   171 (171U) - Unable to open log file
+OPEN_RPT_FAIL  EQU   172 (172U) - Unable to open control report file
+STATS_ENQ_FAIL EQU   173 (173U) - Buffer stats "ENQ" FAILED
+RECOVER_ABEND_OPT_ERR EQU 174 (174U) RECOVER_FROM_ABEND option invalid
+*SG#175 EQU 175
+LOG_LEVEL_ERR  EQU 176 (176U) - Log_message_level option not valid
+TRACE_PARM_ERR EQU 177 (177U) - TRACE Parameter syntax error
+CONST_NON_NUM  EQU 178 (178U) - Constant non-numeric error
+PE_FAIL  EQU   179 (179U) - Pause element macro fail
+DB2_VSAM_UNAVAILABLE  EQU 180 - Source file type DB2VSAM not available
+VSAM_ENDRBA_NOT_FOUND EQU 181 - "SHOWCB" MACRO Failed'
+MODCB_AREALEN_FAIL    EQU 182 - "MODCB" MACRO FAILED'
+MODCB_AREA_FAIL       EQU 183 - "MODCB" MACRO FAILED'
+VSAM_EXTENDED_FORMAT  EQU 184 - VSAM extended addressability not sup
+OPEN_VSAM_SOURCE_FAIL EQU 185 - open vsam data set failed
+MODCB_ACB_FAIL        EQU 186 - VSAM MODCB ACB failed
+MODCB_RPL_FAIL        EQU 187 - VSAM MODCB RPL failed
+VSAM_RECLEN_NOT_FOUND EQU 188 - "SHOWCB" MACRO Failed'
+CLOSE_VSAM_SOURCE_FAIL EQU 189 - close vsam data set failed
+TSOE_INIT_FAIL  EQU  190  TSO/E env init failed
+PART_DSNAME_MISSING  EQU 191 Partial data set name required for CIR
+WILD_CARD_ERR  EQU 192 Wild card required at least one full node
+CIR_ERR        EQU 193 IKJEHCIR call failed, RC = CIRLOCRC =
+NO_DATASETS    EQU 194 NO data sets located IKJEHCIR
+CIR_OUTPUT_ERR EQU 195 IKJEHCIR error. Data length error
+POSS_DSNAMES_MISSING EQU 196 Possibility of missing DSNames
+DB2_SQL_UNAVAILABLE  EQU 197 - Source file type DB2SQL not available
+*
+GLOBAL_TOKEN_RT_FAIL EQU 200 - UNABLE TO retrieve GENEVA GLOBAL TOKEN
+*
+DB2_VSAM_OPEN_FAIL EQU   300 - Unable to open Db2 base VSAM file
+MSG#301  EQU   301 (301U) - Error on Db2 base VSAM SHOWCB
+MSG#302  EQU   302 (302U) - Error on Db2 base VSAM MODCB
+MSG#303  EQU   303 (303U) - Unable to build Db2 ref file control blocks
+MSG#304  EQU   304 (304U) - Unable to build Db2 ref file
+MSG#305  EQU   305 (305U) - I/O error reading Db2 reference file
+SQL_TEXT_NF EQU  306 - SQL text not found in #DD table
+DB2_CONNECT_FAIL EQU 307 (307U) - Db2 connect failed
+DB2_OPEN_THREAD_FAIL EQU 308 (308U) - Db2 open thread failed
+SQL_PREPARE_FAIL EQU 309 (309U) SQL prepare failed
+SQL_NO_COLUMNS EQU 310  SQL statement incorrect (no columns)
+SQL_XLATE_FAIL   EQU 311  Error while translating SQLCODE
+DB2_CLOSE_FAIL   EQU 312  Db2 close thread failed
+DB2_DISCONNECT_FAIL EQU 313 Db2 disconnect failed
+SQL_FETCH_FAIL EQU  314 SQL fetch failed
+DB2_EXP_DIC_ERR EQU  315  Db2 expansion dictionary not found.Abending
+DB2_EXP_REC_ERR EQU  316  Db2 expanded record error
+DB2_EDITPROC_ERR EQU  317 Db2 EDITPROC error. Abending
+DB2_TRANSLATED_SQLCODE EQU 318 Db2 translated SQLCODE
+DB2_MSG_TEXT_MISSING EQU 319 Db2 Error message text missing
+* 320,321 used in mrdv/mrdi
+ENV_VAR_NOT_FOUND EQU 320 - Environment variable not found
+DB2VSAM_NO_SCHEMA_TABLE equ 321 - DB2 schema/table not available
+SQL_OPEN_FAIL  EQU 322 SQL Open cursor failed
+FETCH_ROWS     EQU 323 Begin fetching rows
+SQL_NO_COLUMNS_KEY EQU 324 SQL statement incorrect (no columns)
+*
+*
+MSG#400  EQU   400 Missing control record in extract file
+MSG#401  EQU   401 Header record not found when expected
+MSG#402  EQU   402 Extract view ID number not found &&2
+MSG#403  EQU   403 Data output file open failed &&2
+MSG#404  EQU   404 Output file "LRECL" too small for view with DD state+
+                ment &&2
+MSG#405  EQU   405 DD statement missing - &&2
+MSG#406  EQU   406 Format exit returned stop run (RC=16) &&2
+MSG#407  EQU   407 Unable to load format exit program &&2
+MSG#408  EQU   408 Field definition table overflow
+MSG#409  EQU   409 GVBDL96 returned error (RC) &&
+MSG#410  EQU   410 Sort key definition table overflow
+MSG#411  EQU   411 Extract view number not found in VDP
+MSG#412  EQU   412 SYSIN dataset for sort cannot be opened
+MSG#413  EQU   413 Column definition table overflow
+MSG#414  EQU   414 Output record count max exceeded
+MSG#415  EQU   415 Extract record with no view column defined
+MSG#416  EQU   416 Invalid keyword in MR88PARM file
+MSG#417  EQU   417 Invalid parameter value in MR88PARM file
+MSG#418  EQU   418 Unable to open view definition (VDP) file
+MSG#419  EQU   419 Column calculation table overflow
+MSG#420  EQU   420 Unable to locate matching column definition (CALC)
+MSG#421  EQU   421 Unable to locate matching column definition (PUSHC)
+MSG#422  EQU   422 Undefined calculation operator
+MSG#423  EQU   423 Sort key definition table overflow
+MSG#424  EQU   424 Unable to locate matching column defn (sort key)
+MSG#425  EQU   425 View definition file (VDP) is empty
+MSG#426  EQU   426 Unable to open reference file (GVBTP90)
+MSG#427  EQU   427 Unable to open table data header file
+MSG#428  EQU   428 Unable to open table data file: &&2
+MSG#429  EQU   429 Duplicate table data header record
+MSG#430  EQU   430 Build binary search path failed
+MSG#431  EQU   431 Bad return from sort
+MSG#432  EQU   432 Unable to start language environment
+MSG#433  EQU   433 Incorrect extract record source code parameter
+MSG#434  EQU   434 Incorrect no headers option parameter
+MSG#435  EQU   435 Incorrect ignore calculation overflow parameter
+MSG#436  EQU   436 Unable to open the extract input file
+MSG#437  EQU   437 Unable to initialize language environment
+MSG#438  EQU   438 Reference data file out of sequence
+MSG#439  EQU   439 Premature end of file
+MSG#440  EQU   440 Incorrect zero divide abend parameter
+MSG#441  EQU   441 Fiscal date control record id has been specified pre+
+                viously
+MSG#442  EQU   442 Invalid Fiscal Date value - not numeric
+MSG#443  EQU   443 More than 1 default Fiscal Date value specified
+MSG#444  EQU   444 Invalid default Fiscal Date value - not numeric
+MSG#445  EQU   445 Invalid Fiscal Date control record id length
+MSG#446  EQU   446 Invalid Fiscal Date value length
+MSG#447  EQU   447 Invalid Run Date value length
+MSG#448  EQU   448 Invalid Run Date value - not numeric
+MSG#449  EQU   449 Marginal File not supported
+MSG#450  EQU   450 Error processing SYSIN dataset for sort
+MSG#451  EQU   451 Column overflow occurred. Check output file(s) for f+
+               iller characters (filler-character).
+MSG#499  EQU   499 Recursive error (E35)-- will not be printed
+*
+*
+*iip_trace equ 500  'zIIP was not used because of TRACE=Y'
+*
+*
+ziip_user  equ 501 'zIIP was not used because of USEZIIP=N'
+ziip_auth  equ 502  'zIIP not use - program not authorised'
+ziip_db2   equ 503  'zIIP not used due to DB2 SQL usage'
+*iip_exits equ 504 'LU|WR exits in use, zIIP disabled'
+ziip_yes   equ 505 'zIIP processors enabled for use'
+ziip_no    equ 506 'zIIP processors not used - see preceeding messages'
+NO_PAGE_FIX equ 507 'Page fixing will not occur because GVBMR95 is not +
+               authorized'
+ziip_parm_invalid    equ 510 'Incorrect USEZIIP paramter'
+ZIIP_FEATURE_NOT_AVAILABLE equ 511 'Use of the zIIP feature requires an+
+                additional license from IBM'
+*
+*
+ENCLAVE_CREATE_FAIL EQU   600   -   Enclave setup error
+THREAD_END  EQU  601   - Thread ending error
+FAILING_ROW EQU  602   - Failing row
+ENCLAVE_DELETE_FAIL EQU   603   -   Enclave breakdown error
+*
+MISSING_VDP0801  EQU 801 - VDP 801 record missing
+MSG#802  EQU   802   -  VDP cannot be loaded into space expected
+DSN_LIST_ERR  EQU  803  Error retrieving DB2 subsystem dsnames UR31 err
+DSN_LIST_ERR2 EQU  804  VDP cannot be loaded. Inconsistent UR31 count
+VDP_VER_ERR EQU   805   VDP cannot be loaded. Unexpected version
+LITP_STATS_OVERFLOW EQU 806 ~LITP stats area overflow: exec continues
+NO_TOKEN_READER EQU 807 ~ No view is present to read from token DD
+NO_TOKEN_WRITER EQU 808 ~ No view is present to write to token DD
+EMPTY_REF_LOGIC_TBL EQU 809 ~Empty or abbreviated logic tbl Ref phase
+*SG#810  EQU   810 ~Literal pool overflow in P1FUNRE
+PIPE_WARN EQU  811 - Setting EXECUTE_IN_PARENT_THREAD to A or 1 will ca+
+               unpredictable results when using fipe file
+CK_BUFFER_OVERFLOW EQU  900 Common key buffer overflow
+CK_BUFFER_EXT_OVERFLOW EQU 901 Common key buffer extension overflow
+CK_BUFFER_GEN_OVERFLOW EQU 902 Common key buf overflow - generated rec
+CK_OUT_OF_SEQUENCE   EQU 903  file out of sequence
+CK_PARM_NOT_NUM EQU 904 Parameter xxx must be numeric
+CK_MERGPRM_EXCEEDED  EQU 905  Max number of parameter entries exceeded
+CREATE_TOKEN_FAIL  EQU 906  Unable to create name/token
+ENQ_FAIL           EQU 907  Enq failed
+OPEN_MERGRPT_FAIL  EQU 908  Unable to open merge report file
+OPEN_MERGPRM_FAIL  EQU 909  Unable to open merge parm file
+OPEN_ENTITY_FILE_FAIL EQU 911  Unable to open entity parm
+DYNALLOC_UR35_FAIL EQU 912 Dynamic allocation (UR35) failed
+DYNALLOC_RETRY EQU 913  Dynamic allocation wait/retry
+CK_REC_INIT_TABLE_OVERFLOW EQU 914 Record initialization table overflow
+CK_PROFILE_TIMESTAMP_NF  EQU 915 Matching profile timestamp not found
+CK_PROFILE_ID_TABLE_OVERFLOW equ 916 Profile ID table overflow
+*
+CK_REC_PTR_TABLE_OVERFLOW EQU 917 Record pointer table overflow
+CK_RECORD_TRUNC  EQU 918 rec truncation error. rec len > init rec
+CK_PROFILE_ID_NF EQU 919 Profile ID not found
+CK_PART_RANGE_ERR EQU 920 Partition range must be numeric
+CK_KEY_POS_ERR EQU 921 Key Position  must be numeric
+CK_KEY_LEN_ERR EQU 922 Key length must be numeric
+CK_BREAKLEN_ERR1 EQU 923 Break len is greater than key len
+CK_BREAKLEN_ERR2 EQU 924 Break len must be numeric
+CK_LOAD_EXIT_FAIL EQU 925 Unable to load user exit
+CK_VIEW_NF   EQU 926 Decompression req and View not found in VDP
+CK_BUFNO_ERR1    EQU 927  BUFNO must be numeric
+CK_BUFNO_ERR2    EQU 928  BUFNO must be greater than 1
+* _EFDP_ERR      EQU 929  Effective date position error
+CK_GENPIPE_FAIL  EQU 930  Call to GENPIPE failed
+CK_V_ENTITY_ERR  EQU 931  V type entity has no exit
+CK_T_ENTITY_ERR  EQU 932  blank entity type follows T type
+CK_PF_DDNAME_ERR EQU 933  PF DDNAME must end with 2 digits
+CK_PF_DDNAME_ERR2 EQU 934 PF DDNAME outside of range for LFs
+CK_NO_READ_EXIT   EQU 935 No read exit. Input ignored
+CK_NUM_PARTITIONS EQU 936 Number of view paritions. Info only
+*

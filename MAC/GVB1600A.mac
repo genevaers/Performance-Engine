@@ -1,0 +1,106 @@
+**********************************************************************
+*
+* (C) COPYRIGHT IBM CORPORATION 2004, 2009.
+*     Copyright Contributors to the GenevaERS Project.
+* SPDX-License-Identifier: Apache-2.0
+*
+**********************************************************************
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+*  or implied.
+*  See the License for the specific language governing permissions
+*  and limitations under the License.
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*   GVB1600A _ VDP SUMMARY OUT FILE RECORD                            *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+VDP1600_SUM_OUT_FILE_RECORD   DSECT
+*
+VDP1600_REC_LEN                           DS HL02
+VDP1600_RDW_FLAGS                         DS XL02
+*
+VDP1600_VIEWID                            DS FL04
+VDP1600_INPUT_FILE_ID                     DS FL04
+VDP1600_COLUMN_ID                         DS FL04
+VDP1600_RECORD_TYPE                       DS HL02
+VDP1600_SEQUENCE_NBR                      DS HL02
+VDP1600_RECORD_ID                         DS FL04
+VDP1600_FILE                              DS CL48
+VDP1600_FILE_CLASS_ID                     DS FL04
+VDP1600_DSN                               DS CL256
+VDP1600_DDNAME_EXTRACT                    DS CL08
+VDP1600_DDNAME_OUTPUT                     DS CL08
+VDP1600_OUTPUT_MAX_RECORDS                DS FL04
+VDP1600_SERVER_ID                         DS FL04
+VDP1600_DBMS_SUBSYS                       DS CL48
+VDP1600_DBMS_TABLE                        DS CL48
+VDP1600_DBMS_ROW_FMT_OPT_ID               DS FL04
+VDP1600_DBMS_SQL                          DS CL1280
+VDP1600_ALLOC_DEVICE_TYPE                 DS CL48
+VDP1600_ALLOC_SPACE_UNIT                  DS FL04
+VDP1600_FILE_TYPE                         DS FL04
+VDP1600_DDNAME_INPUT                      DS CL08
+                                          DS CL32
+VDP1600_ALLOC_SPACE_PRIM_QTY              DS HL02
+VDP1600_ALLOC_SPACE_SEC_QTY               DS HL02
+VDP1600_ALLOC_READ_DISP                   DS FL04
+                                          DS CL252
+VDP1600_ALLOC_WRITE_DISP                  DS FL04
+VDP1600_DBMS_DATABASE                     DS CL48
+                                          DS CL172
+VDP1600_ALLOC_MEMBER_NAME                 DS CL08
+VDP1600_ALLOC_VOLSER_NUM                  DS CL08
+VDP1600_VOL_SEQ_NUM                       DS FL04
+VDP1600_VOL_COUNT                         DS FL04
+VDP1600_KEY_LENGTH                        DS FL04
+VDP1600_KEY_POSITION                      DS FL04
+VDP1600_ALLOC_BLKSIZE                     DS FL04
+VDP1600_RETENTION_PERIOD                  DS FL04
+VDP1600_EXPIRATION_DATE                   DS CL08
+VDP1600_POSIX_DIRECTORY                   DS CL1024
+VDP1600_POSIX_FILE_NAME                   DS CL256
+VDP1600_CODESET_ID                        DS FL04
+VDP1600_ENDIAN_ID                         DS FL04
+VDP1600_FIELD_DELIM_ID                    DS FL04
+VDP1600_RECORD_DELIM_ID                   DS FL04
+VDP1600_TEXT_DELIM_ID                     DS FL04
+VDP1600_FILE_CLASS                        DS CL44
+VDP1600_ACCESS_METHOD_ID                  DS FL04
+VDP1600_MINIMUM_LENGTH                    DS HL02
+VDP1600_MAXIMUM_LENGTH                    DS HL02
+VDP1600_ALLOC_DSORG                       DS FL04
+VDP1600_ALLOC_VSAMORG                     DS FL04
+VDP1600_ALLOC_RECFM                       DS FL04
+                                          DS CL04
+VDP1600_ALLOC_LRECL                       DS HL02
+VDP1600_EXTRACT_FILE_NUMBER               DS HL02
+VDP1600_ALLOC_OPTCODE_ID                  DS CL08
+VDP1600_ALLOC_SYSOUT                      DS CL48
+VDP1600_ALLOC_SYSOUT_COPIES               DS FL04
+VDP1600_ALLOC_SYSOUT_LIMIT                DS FL04
+VDP1600_ALLOC_SYSOUT_HOLD                 DS CL01
+VDP1600_ALLOC_RELEASE_UNUSED              DS CL01
+                                          DS HL02
+VDP1600_ALLOC_MODEL_DSCB                  DS CL48
+                                          DS CL156
+VDP1600_CONTROL_RECTYPE_ID                DS FL04
+VDP1600_VERS_NBR_START_POS                DS FL04
+VDP1600_VERS_NBR_LENGTH                   DS FL04
+VDP1600_VERS_NBR_FLD_FMT_ID               DS FL04
+VDP1600_REC_COUNT_START_POS               DS FL04
+VDP1600_REC_COUNT_LENGTH                  DS FL04
+VDP1600_REC_COUNt_FLD_FMT_ID              DS FL04
+VDP1600_DYNAMIC_ALLOC_IND                 DS CL01
+VDP1600_PROC_IN_PARA_IND                  DS CL01
+VDP1600_FILE_NAME_IS_ROOT_IND             DS CL01
+VDP1600_INCLUDE_NULLS_IND                 DS CL01
