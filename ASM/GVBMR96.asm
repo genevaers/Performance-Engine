@@ -2898,6 +2898,7 @@ LKPXADDR DC    V(LKPXLEIN)        LOOK-UP EXIT COMMON  LANG   INTERFACE
 MR95NVA  DC    V(MR95NV)          "NV"    MODEL  CODE  TEMPLATE
 IEAN4CR  DC    V(IEAN4CR)         64 bit token create routine
 SRCHADDV DC    V(SRCHADDT)        SEARCH ROUTINE ADDRESS TABLE
+HASHADDV DC    V(AddHASHV)        Address of HASH Vcon in MR95
 *
 ***********************************************************************
 *   PARAMETERS FOR CALLING GVBUTHDR                                   *
@@ -2946,6 +2947,7 @@ EXECEYEB DC    CL8'EXECDATA'      "EXEC"  STATEMENT    DATA EYEBALL
 PARMEYEB DC    CL8'PARMTABL'      "MR95"  PARAMETER   TABLE EYEBALL
 ENVVEYEB DC    CL8'ENVVTABL'      "MR95"  ENVIRON VAR TABLE EYEBALL
 CTRLEYEB DC    CL8'CTRLRDCB'      CONTROL REPORT        DCB EYEBALL
+HASHEYEB DC    CL8'HASHRDCB'      HASH table stats report DCB EYEBALL
 INITEYEB DC    CL8'INITAREA'      INITIALIZATION  VARIABLES EYEBALL
 DSPEYEB  DC    CL8'DSPTABLE'      DATA    SPACE       TABLE EYEBALL
 VDPEYEB  DC    CL8'VDPTABLE'      VIEW    DEFN   PARAMETERS EYEBALL
@@ -3193,6 +3195,10 @@ STDPARMS DC    FL4'004'         LOGIC TABLE VERSION NUMBER  EXECVERS
          DC    C'Y'             Verify VDP/XLT tm  EXEC_check_timestamp
          DC    C'x'             Spare
          DC    CL8'STANDARD'    LOG message level
+         DC    C'N'             reference hash table opt  EXEC_HASHPACK
+         DC    C'N'             display hash table stats  EXEC_DISPHASH
+         DC    CL2'3'           HASH table multiplier     EXEC_HASHMULT
+         DC    XL4'3'          HASH table multiplier bin EXEC_HASHMULTB
 *
 STDPARML EQU   *-STDPARMS
          ASSERT stdparml,eq,execdlen     these two MUST match
@@ -3359,6 +3365,11 @@ CTRLFILE DCB   DSORG=PS,DDNAME=EXTRRPT,MACRF=(PM),DCBE=CTRLDCBE,       X
                RECFM=VB,LRECL=164
 CTRLDCBE DCBE  RMODE31=BUFF
 CTRLDCBL EQU   *-CTRLFILE
+*
+HASHFILE DCB   DSORG=PS,DDNAME=Hnnnnnnn,MACRF=(PM),DCBE=HASHDCBE,      X
+               RECFM=VB,LRECL=164
+HASHDCBE DCBE  RMODE31=BUFF
+HASHDCBL EQU   *-HASHFILE
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
@@ -4591,6 +4602,71 @@ fiscexit        ds  0H
                 OC   EXEC_check_timestamp,SPACES Upper case
                 if CLI,EXEC_check_timestamp,ne,C'Y',and,               +
                CLI,EXEC_check_timestamp,ne,c'N'
+                  lghi R14,PARM_ERR
+                  BRU PARMERR
+                endif
+*
+                DROP R14
+*
+              case 30
+***********************************************************************
+*               HASH_PACK PACK the reference key before CKSM          *
+***********************************************************************
+                llgt R14,EXECDADR
+                USING EXECDATA,R14
+                MVC  EXEC_HASHPACK,0(R4)
+                OC   EXEC_HASHPACK,SPACES Upper case
+                if CLI,EXEC_HASHPACK,ne,C'Y',and,                      +
+               CLI,EXEC_HASHPACK,ne,C'N'
+                  lghi R14,PARM_ERR
+                  BRU PARMERR
+                endif
+*
+                DROP R14
+*
+              case 31
+***********************************************************************
+*               HASH_MULT mult factor for hash table 1-10             *
+***********************************************************************
+                lghi R14,PARM_ERR
+                LA   R0,L'EXEC_HASHMULT-1
+                sgr  R0,R15         COMPUTE RIGHT JUSTIFY LENGTH
+                BRM  PARMERR        ERROR IF  TOO LONG
+
+                llgt R14,EXECDADR
+                USING EXECDATA,R14
+                MVC  EXEC_HASHMULT,ZEROES
+                LA   R14,EXEC_HASHMULT
+                agr  R14,R0
+                EX   R15,PARMMVC
+*
+                larl R15,TRTTBLU    LOAD NUMERIC CLASS TEST TBL ADDR
+                llgt R14,EXECDADR
+                if TRT,exec_HASHMULT,0(R15),z NUMERIC ???
+                  pack dblwork,exec_HASHMULT Pack the number
+                  cvb r0,dblwork    convert to Binary
+                  st  r0,EXEC_HASHMULTB  and save
+                  If CHI,R0,GT,10,or, limited to 1-10                  +
+               CHI,R0,lt,1
+                    lghi R14,PARM_ERR NO - INDICATE ERROR
+                    j PARMERR
+                  endif
+                else
+                  lghi R14,PARM_ERR NO  - INDICATE  ERROR
+                  j PARMERR
+                endif
+                DROP R14
+*
+              case 32
+***********************************************************************
+*               DISPLAY_HASH display details for ref table hash values*
+***********************************************************************
+                llgt R14,EXECDADR
+                USING EXECDATA,R14
+                MVC  EXEC_DISPHASH,0(R4)
+                OC   EXEC_DISPHASH,SPACES Upper case
+                if CLI,EXEC_DISPHASH,ne,C'Y',and,                      +
+               CLI,EXEC_DISPHASH,ne,C'N'
                   lghi R14,PARM_ERR
                   BRU PARMERR
                 endif
@@ -11440,6 +11516,31 @@ code     loctr ,
              sth  r15,prntrdwh
              rptit ,                       write to report
 *
+            case 30  HASH_PACK  - hidden parm (display if debug on)
+
+             if CLC,EXEC_LOGLVL,EQ,LOG_DEBUG DEBUG level logging?
+               mvc prntline+l'parmkwrd+3(l'exec_hashpack),exec_hashpack
+               la r15,l'parmkwrd+3+l'exec_hashpack+l'prntrdw
+               sth r15,prntrdwh
+               rptit ,                     write to report
+             endif
+*
+            case 31  HASH_MULT  - hidden parm (display if debug on)
+             if CLC,EXEC_LOGLVL,EQ,LOG_DEBUG DEBUG level logging?
+               mvc prntline+l'parmkwrd+3(l'EXEC_HASHMULT),EXEC_HASHMULT
+               la r15,l'parmkwrd+3+l'EXEC_HASHMULT+l'prntrdw
+               sth r15,prntrdwh
+               rptit ,                     write to report
+             endif
+*
+            case 32  DISPLAY_HASH - hidden parm (display if debug on)
+             if CLC,EXEC_LOGLVL,EQ,LOG_DEBUG DEBUG level logging?
+               mvc prntline+l'parmkwrd+3(l'exec_disphash),exec_disphash
+               la r15,l'parmkwrd+3+l'exec_disphash+l'prntrdw
+               sth r15,prntrdwh
+               rptit ,                     write to report
+             endif
+*
             endcase
             AHI R4,parmkwrd_l
          enddo                   End of looping through Parmkwrd_table
@@ -11712,6 +11813,16 @@ openokay   ds    0h
              ic    r0,open_errid       Load the error indicator to r0
              j     openerr             and split
            endif
+* Save this until version 5: see RTC23117
+*  If the extract file if going to a format phase job then
+*  it must be RECFM=VB
+*          IF    TM,EXTFLAG,extfmtph,o Is this going to a format phase?
+*            IF TM,dcbRECFM,dcbrecv+dcbrecbr,no rec format must be VB
+*              LGHI  R14,EXTFILE_RECFM_ERR
+*              MVC   ERRDATA(8),EXTDDNAM
+*              J  RTNERROR
+*            endif
+*          endif
 *
            MVC   EXTRECFM,DCBRECFM
            MVC   EXTLRECL,DCBLRECL
@@ -12400,41 +12511,45 @@ FILLHDR  ds     0h
          get   (2)
          sysstate amode64=YES
          sam64
-         mvc   tblheadr(tbhdrlen),0(r1) Save record in table
+         mvc   tblheadr(TBHRECL),0(r1) Save record in table
+         xc    TBREFMEM,TBREFMEM       clear other TBLheadr work fields
+         xc    TBHPRIME,TBHPRIME
 *
          aghi  r7,1               increment count
          aghi  r6,tbhdrlen        next free entry in hdr rec table
          cgf   r7,grefcnt         More records than expected
          jnh   Fillhdr            N:
-Fillhdr_err ds 0h                 Y:
 *
-*        R7 has the number of GREF files
-*        GREFCNT has the count of GREF files in REH
+Fillhdr_err ds 0h                 Y:
+* ERROR reading the reference header files - count error
+* rtc21222 R7 has the number of GREF files
+*          GREFCNT has the count of GREF files in REH
+         lay   r14,workarea1
+         using workarea1,r14
          cvd   r7,workarea
-         mvc   dblwork2(l'nummask3),nummask3
-         ed    DBLWORK2(l'nummask3),WORKAREA+6
-*         
+         mvc   workarea1(l'nummask3),nummask3
+         ed    workarea1(l'nummask3),workarea+6
+         drop  r14
          LA    R1,l'nummask3
          ST    R1,MSGS2LEN             set length
-         la    R14,DBLWORK2
          St    R14,MSGS2PTR            save the address of the data
 *
+         lay r14,workarea2
+         using workarea2,r14
          lgf   r7,grefcnt
          cvd   r7,workarea
-         mvc   DBLWORK(l'nummask3),nummask3
-         ed    DBLWORK(l'nummask3),WORKAREA+6
-* 
+         mvc   workarea2(l'nummask3),nummask3
+         ed    workarea2(l'nummask3),workarea+6
+         drop r14
          LA    R1,l'nummask3
          ST    R1,MSGS3LEN             set length
-         LA    R14,DBLWORK
          ST    r14,MSGS3PTR            save the address of the data
          XC    MSGS4PTR,MSGS4PTR
 *
-* This error indicates a mismatch of the count in VDP0650
-* and the REH
-*
          lghi  r14,REH_COUNT_ERR  no  - indicate  error
          j     rtnerror
+*
+* Finished reading the reference header files into memory
 *
 Filleof  ds    0h
          sam64
@@ -12450,14 +12565,36 @@ Filleof  ds    0h
 ***********************************************************************
          sgr   r4,r4              zero total memory counter
          llgt  r6,rehtbla         Get table of "REH" records
+* loop through all the ref header records adding up memory needed.
+*
+* NOTE:
+* If we are going to use a HASH table we will need memory for the
+* hash table index too.
+* For now we will assume we are using a hash table unless effective
+* dates are used.
+*
          do from=(r7)
 
-           if ltgf,r1,tbreccnt,p    load record count, test for +ve
-             lgh r3,tbreclen       load record length
-             aghi r3,lkprefln      add  prefix length
-             mlgr r2,r1             compute  table size
-             stg r3,tbrefmem       save here for later
-             agr r4,r3             add to total
+           if ltgf,r1,tbreccnt,p  load record count, test for +ve
+             lgh  r3,tbreclen     load record length
+             aghi r3,lkprefln     add  prefix length
+             mlgr r2,r1           compute  table size
+             stg  r3,tbrefmem     save here for later
+             agr r4,r3            add to total
+
+             if cli,TBEFFDAT,eq,x'00' Effective dates used?
+*
+* Calculate the number of hash table slots that will be used
+*  (Calculate the nearest prime greater than number of records)
+*
+*              Pass R1 with reference record count to FindPrime
+               JAS R9,FINDPRIME
+               stg R1,TBHPRIME    PRIME for hash table returned
+*
+               sllg R1,R1,3       space for 1 doubleword  per rec
+               agr  r4,r1         add to total
+             endif
+
            endif
 
            aghi r6,tbhdrlen       point at next entry
@@ -12465,7 +12602,7 @@ Filleof  ds    0h
 
 *        If we need any memory we will allocate all of it now
 
-         ltgr   r4,r4              any memory needed?
+         ltgr   r4,r4             any memory needed?
          jnp   Fillreh_pre
 
 *20254   stg   r4,Refpools        Save size we need
@@ -12524,21 +12661,22 @@ FILLRED  DS    0H
 FILLHDR4 MVI   TBREDVER,C'4'      INDICATE   "V4" RED
 *
          if TM,WORKFLAG1,MSGLVL_DEBUG,o debug messages
-           mvhhi prntrdwh,l'tracref
-           larl R1,TRACREF
-           MVC PRNTLINE+00(L'TRACREF),0(R1)
+*          C'Reference file xxxxxxxx LR xxxxxxxx Records xxxxxxxxx
+           LAY R1,tracref
+           MVC prntrdw(l'tracref),0(r1)
            L   R0,TBFILEID
            CVD R0,DBLWORK
            OI  DBLWORK+L'DBLWORK-1,X'0F'
-           UNPK PRNTLINE+13(8),DBLWORK
+           UNPK prntline+15(8),DBLWORK
+*
            L   R0,TBRECID
            CVD R0,DBLWORK
            OI  DBLWORK+L'DBLWORK-1,X'0F'
-           UNPK PRNTLINE+25(8),DBLWORK
+           UNPK PRNTLINE+27(8),DBLWORK
            L   R0,TBRECCNT
            CVD R0,DBLWORK
            OI  DBLWORK+L'DBLWORK-1,X'0F'
-           UNPK PRNTLINE+39(9),DBLWORK
+           UNPK PRNTLINE+44(9),DBLWORK
            logit
          endif
 *
@@ -12619,11 +12757,11 @@ FILLALLO lghi  R3,LBPREFLN+LKPREFLN+L'LBLRID  PREFIX+POINTERS+KEY LRID
          BCTR  R15,0              DECREMENT FOR "EX" INSTRUCTION
          STH   R15,LBKEYLEN
 *
+         MVC   LBHPRIME,TBHPRIME  Copy in case hash table used
 ***********************************************************************
 *  ADJUST LOOK-UP KEY OFFSET DEPENDING ON "RED" VERSION               *
 ***********************************************************************
          LH    R15,TBKEYOFF       LOAD  KEY OFFSET
-*
          STH   R15,LBKEYOFF
 *
          CLI   TBADJPOS,C'N'      ADJUST STARTING POSITIONS   ???
@@ -12770,8 +12908,20 @@ FILLEPTE DS    0H
 *
 ***********************************************************************
 *  MAKE SURE REFERENCE DATA KEYS ARE IN ASCENDING SEQUENCE            *
+*  Note:this is not required for Hash table searches                  *
 ***********************************************************************
-FILL_ASC llgt  R14,UR20RECA       LOAD  RECORD  ADDRESS
+FILL_ASC ds    0h
+         llgt  R14,UR20RECA       LOAD  RECORD  ADDRESS
+* Is a binary tree to be used ?
+* Yes - keys must be in ascending sequence
+* no  - skip to FILLCOPY
+* Must use binary tree if effective dates are bing used...
+         MVI   LBINDEX,LBHASH     Assume we are going to use HASH table
+*
+         TM    LBFLAGS,LBEFFDAT+LBEFFEND Effective dates used?
+         BZ    FILLCOPY                  No, then can use HASH table
+*
+         MVI   LBINDEX,LBBINARY
 *
 FILLSKHL ds    0h
          LGH   R15,LBKEYLEN
@@ -12789,7 +12939,7 @@ FILLSAVE EX    R15,FILLKYSV       SAVE  CURRENT LOOK-UP  KEY
 ***********************************************************************
 *  COPY REFERENCE DATA RECORD INTO MEMORY                             *
 ***********************************************************************
-*
+FILLCOPY DS    0H
          XC    LKLOWENT,LKLOWENT  ZERO BINARY SEARCH PATHS
          XC    LKHIENT,LKHIENT
 *
@@ -12813,8 +12963,8 @@ FILLSAVE EX    R15,FILLKYSV       SAVE  CURRENT LOOK-UP  KEY
          bassm R14,R15            GET  THE  NEXT  RECORD
 *
          CHI   R15,8              END OF RED DATA ?
-         JE    BLDPATH            YES, all good to carry on
-*                            and BUILD BINARY SEARCH PATHS
+         JE    FILLALL            YES, all good to carry on
+*                 and BUILD BINARY SEARCH PATHS if required
 *
 *        set count to high to indicate greater than REH value
          LHi   R14,-1
@@ -12826,6 +12976,27 @@ FILLSAVE EX    R15,FILLKYSV       SAVE  CURRENT LOOK-UP  KEY
          lghi  R14,REF_READ_ERR   Some other read error
          MVC   ERRDATA+00(8),UR20DDN
          J     RTNERROR
+*
+FILLALL  DS    0H 
+         CLI   LBINDEX,LBBINARY   Is a binary tree to be used?
+         JE    BLDPATH            BUILD BINARY SEARCH PATHS
+         CLI   LBINDEX,LBHASH     Is a HASH table to be used?
+         JE    BLDHASH            BUILD HASH table index
+*
+Bldexit_v4 ds  0h
+         XC    REFADDR,REFADDR    RESET REFERENCE REC  ADDRESS
+*
+         LGHI  R0,4               CLOSE THE TABLE DATA FILE
+         STH   R0,UR20FC
+         LAY   R0,UR20PARM        CALL "GVBUR20"
+         STY   R0,GENPARM1
+         LAY   R1,GENPARM1
+         llgf  R15,GVBUR20A
+         bassm R14,R15            ISSUE THE CLOSE
+*
+         aghi  r6,tbhdrlen        Next entry in REH table
+         jct   r10,Fillreh_loop   Advance to the next header entry
+*        j     filldone
 *
 ***********************************************************************
 *  CLOSE REFERENCE DATA HEADER AND DATA FILES                         *
@@ -13027,25 +13198,391 @@ BLD050   LGR   R4,R1              TOP SUBSCRIPT = CURR SUBSCRIPT - 1
 BLDEXIT  ds    0h
 *
          lmg   r6,r7,dblwork2
+         J     Bldexit_V4
+         drop  r13
 *
-Bldexit_v4 ds  0h
-         XC    REFADDR,REFADDR    RESET REFERENCE REC  ADDRESS
+***********************************************************************
+*           BUILD HASH table index                                    *
+*                                                                     *
+*  On entry:                                                          *
+*                                                                     *
+*        R5  - LOOK-UP BUFFER ADDRESS                                 *
+*        R13 - Thread work area                                       *
+*                                                                     *
+*  Register usage:                                                    *
+*                                                                     *
+*        R2  - Hash slot calculation                                  *
+*        R3  - Hash slot calculation                                  *
+*        R4  - Collision count HWM                                    *
+*        R5  - LOOK-UP BUFFER ADDRESS                                 *
+*        R6  - Pointer to current reference record in ref table       *
+*        R7  -                                                        *
+*        R8  - EXECDATA (EXTRPARM values)                             *
+*        R9  - Record count for this reference table                  *
+*        R10 - Subroutine return address                              *
+*        R11 -                                                        *
+*        R12 - static base                                            *
+*        R14 - Address of key                                         *
+*        R15 - Length of key                                          *
+*                                                                     *
+***********************************************************************
+BLDHASH  ds    0h
+         USING THRDAREA,R13
+         using savf4sa,savesub3
+* save registers in bottom level save area as it calls no other subrout
+         stmg  R14,R12,SAVF4SAG64RS14     SAVE REGISTERS
 *
-         LGHI  R0,4               CLOSE THE TABLE DATA FILE
-         STH   R0,UR20FC
-         LAY   R0,UR20PARM        CALL "GVBUR20"
-         STY   R0,GENPARM1
-         LAY   R1,GENPARM1
-         llgf  R15,GVBUR20A
-         bassm R14,R15            ISSUE THE CLOSE
+* report on hash values?
 *
-         aghi  r6,tbhdrlen        Next entry in REH table
-         jct   r10,Fillreh_loop   Advance to the next header entry
-         j     filldone
+         llgt  R8,EXECDADR
+         USING EXECDATA,R8
+         if cli,exec_disphash,eq,c'Y'
+*          open special report file
+           bas r10,Open_hash_report
+         endif
 *
-         DROP  R5
-         DROP  R13
-                        EJECT
+         lg    r2,refpoolc      Get start of current free area in pool
+         STG   r2,LBHASHBEG
+         XC    LBCOLLISION,LBCOLLISION
+*
+         LG    R1,LBHPRIME        Get size of hash table
+         SLLG  R1,R1,3            MULTIPLY BY 8  (DOUBLEWORDS)
+*
+         agr   r1,r2              calculate end of index
+         STG   r1,LBHASHEND
+         STG   r1,refpoolc        next available address in pool
+*
+* loop through the reference data computing slot addresses
+*
+         SR    R4,R4              COLLISION HWM
+         LG    R6,LBTBLBEG        Start of data table for this REFR
+         USING LKUPTBL,R6         Entry header mapping
+         LGF   R9,LBRECCNT        Number of ref records for this file
+         do from=(r9)
+*
+           lgh   r15,LBKEYLEN     key length
+           la  r14,LKUPDATA       load reference record address
+** key always at start of data ???
+*          lgh r0,LBKEYOFF        ...add key offset
+*          agr r14,R0             ...address key
+*
+           if cli,EXEC_HASHPACK,eq,c'Y' Packing before checksum?
+*  if numeric, then pack - to see if we get less collisions
+*
+             sgr r1,r1             zero work registers
+             lay r3,pgmwork        address work area to hold packed key
+             la r15,16(,r15)
+             srlg r2,r15,4
+             j  testpack1
+testpack0    pack 0(9,R3),0(16,R14) pack first 16 bytes
+             LA R14,16(,R14)      ADVANCE source
+             LA R3,9(,R3)         ADVANCE target
+             LA r1,9(,r1)         keep track of packed key length
+testpack1    BRCT R2,testpack0
+             nill r15,x'ff0f'
+             exrl r15,testpack
+             LA r1,9(,r1)         keep track of packed key length
+
+             MVI LBHASHT,C'P'     Save HASH type include PACK
+
+             lay r14,pgmwork      address of packed data
+             lgr r15,r1           length of packed data
+           else
+             MVI LBHASHT,C' '     clear HASH type field
+             AHI R15,1            Add 1 to length (length is -1 for EX)
+           endif
+*
+           sgr r3,r3              zero work registers
+           sgr r2,r2
+*
+hashloop   cksm r3,r14            Compute Checksum
+           jnz hashloop
+*
+           lgr r1,r3              remember hash result for report
+           d   r2,LBHPRIME+4      remainder in R2 is the hash value
+*
+           if cli,exec_disphash,eq,c'Y' logging full report?
+*            log hash statistics R1=HASH result,R2=Mod result (slot no)
+             bas r10,write_hash_report
+           endif
+*
+           sllg R2,r2,3           CONVERT SUBSCRIPT  TO SLOT ADDRESS
+           AG  R2,LBHASHBEG
+           LGR R3,R2
+*
+           if ltg,R2,0(,R3),z     Is this slot empty?
+             STG R6,0(,R3)        Save addr of ref record in hash table
+             XC LKSNEXT,LKSNEXT   NO SYNONYMS (NEXT)
+             XC LKSCOUNT,LKSCOUNT NO SYNONYMS (COUNTER)
+           else   ,               Slot not empty - collision - chain
+*            count total collisions
+             ASI LBCOLLISION,1
+             LGR R7,R2            save pointer to first entry
+syncount     USING LKUPTBL,R7
+syn          USING LKUPTBL,R1
+             do until=(ltg,r2,syn.LKSNEXT,z) loop to end of syn chain
+               LGR r1,r2
+             enddo
+             STG r6,syn.LKSNEXT
+             AGSI syncount.LKSCOUNT,1
+             IF CG,R4,LT,syncount.LKSCOUNT
+              AGFI R4,1
+             ENDIF
+           endif
+           drop syn,syncount
+
+*          point to next REF rec
+           LGH  R7,LBRECLEN        LOAD TABLE ENTRY  LENGTH
+           AGHI R7,LKPREFLN
+           AGR  r6,r7
+*
+         enddo
+*
+         if cli,exec_disphash,eq,c'Y'  logging full report?
+*          close special report file
+           bas r10,close_hash_report
+         endif
+*
+* LOG the number of collisions
+         LAY   R1,traccol
+         MVC   prntrdw(l'traccol),0(r1)
+         L     R0,LBFILEID
+         CVD   R0,DBLWORK
+         OI    DBLWORK+L'DBLWORK-1,X'0F'
+         UNPK  prntrdw+4+15(8),DBLWORK
+*
+         L     R0,LBCOLLISION
+         CVD   R0,DBLWORK
+         OI    DBLWORK+L'DBLWORK-1,X'0F'
+         MVC   WORKAREA(12),FULLMASK12
+         ED    WORKAREA(12),DBLWORK+2
+         MVC   prntrdw+4+51(12),WORKAREA
+*
+         L     R0,LBHPRIME+4
+         CVD   R0,DBLWORK
+         OI    DBLWORK+L'DBLWORK-1,X'0F'
+         MVC   WORKAREA(12),FULLMASK12
+         ED    WORKAREA(12),DBLWORK+2
+         MVC   prntrdw+4+70(12),WORKAREA
+*
+         CVD   R4,DBLWORK      collision HWM of longest chain
+         OI    DBLWORK+L'DBLWORK-1,X'0F'
+         MVC   WORKAREA(12),FULLMASK12
+         ED    WORKAREA(12),DBLWORK+2
+         MVC   prntrdw+4+89(12),WORKAREA
+*
+         logit debug=Y
+*
+* restore registers
+         lmg  R14,R0,SAVF4SAG64RS14
+         lmg  R2,R12,SAVF4SAG64RS2
+         J     Bldexit_v4
+         ds   0d
+testpack pack 0(9,r3),0(0,r14)
+*
+         DROP  R8   EXECPARMS
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+* Open Report file for reference table Hash statistics                *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+Open_hash_report ds  0h
+
+         STORAGE OBTAIN,LENGTH=HASHDCBL+l'hasheyeb,  Get memory for DCB+
+               LOC=BELOW                 make sure it is belowfor DCB
+*        Storage returns a valid 64-bit address
+         lgr   r2,r1                     copy for later
+         ahi   R2,l'hasheyeb
+         MVC   0(l'hasheyeb,R1),HASHEYEB COPY   EYEBALL
+         ST    R2,HASHDCBA        SAVE   DCB  ADDRESS
+*
+         larl  R14,hashfile              COPY MODEL   DCB
+         MVC   0(HASHDCBL,R2),0(R14)
+         using ihadcb,r2
+         LA    R0,HASHDCBE-HASHFILE(,R2) SET  DCBE    ADDRESS IN  DCB
+         ST    R0,DCBDCBE
+*
+         L     R0,LBFILEID
+         CVD   R0,DBLWORK
+         OI    DBLWORK+L'DBLWORK-1,X'0F'
+         unpk  dcbddnam+1(7),dblwork     build ddname from LRID
+*
+         MVC   WKREENT(8),OPENPARM       OPEN  PARAMETER LIST
+         sysstate amode64=NO
+         sam31
+         OPEN  ((R2),(OUTPUT)),MODE=31,MF=(E,WKREENT) CONTROL RPT FILE
+         sam64
+         sysstate amode64=YES
+         if tm,dcboflgs,dcbofopn,z    SUCCESSFULLY OPENED  ??
+          WTO   'GVBMR95 - UNABLE TO OPEN HASH STATISTICS FILE'
+         endif
+*
+         BR    R10
+*
+         drop  r2
+
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+* Write Report file for reference table Hash statistics               *
+*                                                                     *
+*  On entry:                                                          *
+*                                                                     *
+*        R1  - HASH result                                            *
+*        R2  - Mod result (slot no)                                   *
+*        R5  - LOOK-UP BUFFER ADDRESS                                 *
+*        R6  - Pointer to current reference record in ref table       *
+*        R13 - Thread work area                                       *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+write_hash_report ds 0h
+*
+         stmg  r1,r2,dblwork2
+*
+         lay   r3,prntrdw
+         xc    prntrdwl,prntrdwl
+         lhi   r15,hashrecl+4
+         sth   r15,prntrdwh
+         using hashREC,prntline
+*
+         L     R0,LBFILEID
+         CVD   R0,DBLWORK
+         OI    DBLWORK+L'DBLWORK-1,X'0F'
+         UNPK  hashLRID,DBLWORK
+*
+         lgh   R15,LBKEYLEN       key length
+         la    R14,LKUPDATA       load reference record address
+         MVC   hashKEY,spaces
+         exrl  r15,mvckey
+*
+         ST    R1,hashHASH
+         ST    R2,hashSLOT
+*
+* check the stats file is open - otherwise just skip
+         llgt  R2,HASHDCBA
+         using ihadcb,r2
+         if      (cij,r2,ne,0),and,        not zero?                   +
+               (tm,dcboflgs,dcbofopn,o)    and dcb is open
+*
+           sam31
+           sysstate amode64=NO
+           put (r2),(r3)
+           sam64
+           sysstate amode64=YES
+*
+         endif
+*
+         lmg   r1,r2,dblwork2
+         BR    R10
+*
+MVCKEY   MVC   hashKEY(0),0(r14)
+         DROP  R5   lkupbufr
+*
+static   loctr
+HASHREC  DSECT ,
+hashLRID ds cl8
+hashKEY  ds cl100 (100 for now could be longer)
+hashHASH ds cl4  (after pack(if doing it) and checksum)
+hashSLOT ds cl4  (Mod of the hash)
+hashRECL equ *-HASHREC
+code     loctr
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+* Close Report file for reference table Hash statistics               *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+Close_hash_report ds  0h
+         lay   R2,HASHDCBA
+         using ihadcb,r2
+         if      (cij,r2,ne,0),and,        not zero?                   +
+               (tm,dcboflgs,dcbofopn,o)    and dcb is open
+           MVC WKREENT(8),OPENPARM
+           sam31
+           sysstate amode64=NO
+           CLOSE ((R2)),MODE=31,MF=(E,WKREENT)
+           sysstate amode64=YES
+           sam64
+         endif
+
+         BR    R10
+
+         DROP  r2,R13
+
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+* FINDPRIME                                                           *
+*                                                                     *
+* Find the nearest prime number greater than number of elements       *
+* R1 Contains number of elements                                      *
+*    Returns the nearest prime in R1                                  *
+*                                                                     *
+* Enhancement - check the prime is "not too close to a power of 2"    *
+*               (see Programming notes for CHECKSUM in the POP).      *
+*             - Set a minimum size hash table                         *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+         USING THRDAREA,R13
+         using savf4sa,savesub3
+FindPrime DS  0H
+* save registers in bottom level save area as it calls no other routine
+         stmg  R14,R12,SAVF4SAG64RS14     SAVE REGISTERS
+         SGR   R0,R0
+         llgt  R15,EXECDADR
+         USING EXECDATA,R15
+         M     R0,EXEC_HASHMULTB
+         drop  r15
+*        mghi  r1,3      try * 3
+*        sllg  r1,r1,2   number * 4
+*        SGR   R0,R0
+*        LHI   R4,3      divided by 3
+*        DR    R0,R4
+*
+         if CHI,R1,lt,1024
+           LHI   r1,1024 Make hash table min of 1024 entries
+         endif
+         oill  r1,1      Make the number odd
+*
+         SGR  R0,R0
+         LGR  R2,R0
+         LGR  R3,R1      Save the number
+* R2 and R3 contain number of elements (+1 perhaps)
+*
+*   THIS LOOPS THROUGH INCREASING ODD NUMBERS TESTING IF IT'S PRIME
+*
+         do inf
+* calulate the largest factor to test - square root of number
+           LGR  R5,R3
+           cdgr FP1,r5
+           SQDR FP2,FP1
+           cgdr R5,0,FP2    R5 contains largest factor to test
+* IsAPrime DS  0H
+           LHI R4,3         Start testing for factors from 3
+*
+*          THIS LOOPS,TESTING POTENTIAL FACTORS
+*
+           do inf
+             LGR r0,R2
+             LGR R1,R3
+             DR  R0,R4
+             if ltr,r0,r0,z Any remainder?
+               doexit (z)   no - not a prime
+             endif
+             CGR R4,R5      test all up to square root?
+             JH  primefound yes - prime found
+             ahi r4,2       no  - try next factor
+           enddo
+*
+           AGFI R3,2        Try next odd number
+         enddo
+*
+primefound ds 0h
+         lgr r1,r3
+*
+* restore registers
+         lmg  R14,R0,SAVF4SAG64RS14
+         lmg  R2,R12,SAVF4SAG64RS2
+         BR   R9
+
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
 * P A S S   O N E   T H R O U G H   T H E   L O G I C   T A B L E     *
@@ -13061,6 +13598,7 @@ Bldexit_v4 ds  0h
          USING THRDAREA,R13
          using savf4sa,savesubr
          using genenv,env_area
+         USING INITVAR,R8
 *
 pass1    stg   R14,PASS1SAV       SAVE RETURN ADDRESS
 *
@@ -15183,7 +15721,7 @@ P1LRID   L     R0,LTFLDLR         LOAD   LOGICAL RECORD ID
          J     P1BASESR
 *
 P1SRCHRT EQU   *
-* Get the search key length
+* Get the address of the LKUPBUFR
          if TM,ltflag1,ltlkup_offset,nz  Is this an offset or address?
           LGF  R9,LTLBADDR        offset, get 32 bits
           LGR  r15,r5             get litpool 64 bit address <-r5
@@ -15192,7 +15730,12 @@ P1SRCHRT EQU   *
          else
           LLGT R9,LTLBADDR        31 bit address of LKUPBUFR
          endif
-         LH    R0,LBKEYLEN-LKUPBUFR(,R9) this is key len -1
+* Are we using HASH table ?
+         using LKUPBUFR,R9
+         CLI   LBINDEX,LBHASH     Is a HASH table to be used?
+         JE    P1HASH
+* Get the search key length
+         LH    R0,LBKEYLEN        this is key len -1
          sll   r0,2               make into offset in addr table
          LLGT  r9,SrchAddV        Address of search routine addr tab
          AGR   r0,r9              Address of reqd search routine
@@ -15204,6 +15747,18 @@ P1SRCHRT EQU   *
          SRL   R0,12
          STC   R0,2(,R1)          STORE  HIGH   ORDER 2 NIBBLES
          J     P1RELONX
+P1HASH   ds    0h
+* Address hash table search routine
+         LLGT  r0,HASHADDV        address of LU hash table VCON
+         LLGT  r15,=v(gvbmr95)    address of MR95
+         SGR   r0,r15             make it an offset in MR95
+         STH   R0,0(,R1)          STORE  LOW    ORDER 3 NIBBLES
+         NI    0(R1),X'0F'        clear left nibble
+         OI    0(R1),X'C0'        set register
+         SRL   R0,12
+         STC   R0,2(,R1)          STORE  HIGH   ORDER 2 NIBBLES
+         J     P1RELONX
+         drop  r9
 *
 P1KEYLEN llgt  R9,LTLBADDR        LOAD   VALUE LENGTH
          LH    R15,LBKEYLEN-LKUPBUFR(,R9)
@@ -18069,6 +18624,10 @@ PARMKWRD_table dc 0h
          DC    CL35'USE_ZIIP                           ',H'12'
          DC    CL35'VERIFY_CREATION_TIMESTAMP          ',H'29'
          DC    CL35'ZIIP_THREAD_LIMIT                  ',H'13'
+*
+         DC    CL35'HASH_PACK                          ',H'30'
+         DC    CL35'HASH_MULT                          ',H'31'
+         DC    CL35'DISPLAY_HASH                       ',H'32'
          DC    XL4'FFFFFFFF'
 *
 * Trace parameter keywords
@@ -18331,8 +18890,19 @@ tracp1d  dc    0cl(tracp1de-tracp1ds)
 tracp1ds dc    al2(tracp1de-tracp1ds),al2(0)
          DC    C'Machine  code generation Pass-1 finished'
 tracp1de equ   *
+*
+traccol  dc    0cl(traccole-traccols)
+traccols dc    al2(traccole-traccols),al2(0)
+         DC    C'Reference file xxxxxxxx Hash table collision count nnn+
+               nnnnnNNNN Prime=xxxxxxxxxxxx chain=xxxxxxxxxxxx'
+traccole equ   *
+*
+tracref  dc    0cl(tracrefe-tracrefs)
+tracrefs dc    al2(tracrefe-tracrefs),al2(0)
+         DC    C'Reference file xxxxxxxx LR xxxxxxxx Records xxxxxxxxx'
+tracrefe equ   *
          ds    0h
-TRACREF  DC    CL60'        FILE:NNNNNNNN LR:         RECS=NNNNNNNNN'
+*RACREF  DC    CL60'        FILE:NNNNNNNN LR:         RECS=NNNNNNNNN'
 TRAC64B  DC    CL60'        64 BIT GETMAIN MEGABYTES:       NNNNNNNN'
 TRACRE   DC    CL60'        GENERATING CODE FOR: XXXX NNNNNNNNN'
 TRACEXT  DC    CL60'        DDN: XXXXXXXX BUFR NNNNNNNN  BUFNO: NNNN'

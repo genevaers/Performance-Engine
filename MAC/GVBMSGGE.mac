@@ -69,7 +69,7 @@
  GVBMSGDF 019,'&&1 - Pipe has no parent: &&2',TYPE=U
  GVBMSGDF 020,'&&1 - Unable to initialize COBOL environment',TYPE=S
  GVBMSGDF 021,'&&1 - Record counts do not match &&2',TYPE=U
- GVBMSGDF 022,'&&1 - Unable to open sort control card file: &&2',TYPE=W
+ GVBMSGDF 022,'&&1 - Unable to open sort control card file: &&2',TYPE=U
  GVBMSGDF 023,'&&1 - Branch exceeds 4K segment limit &&2',TYPE=U
  GVBMSGDF 024,'&&1 - ',TYPE=I
  GVBMSGDF 025,'&&1 - Initialization "ENQ" failed',TYPE=S

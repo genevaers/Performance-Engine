@@ -128,10 +128,26 @@ LBEFFEND EQU   X'01'           ....0000 0001  END      DATES  PRESENT
 LBV3RED  EQU   X'80'           ....1000 0000  REF DATA FROM V3 FMT  RED
 LBADJPOS EQU   X'40'           ....0100 0000  ADJ STRT POS (V4REH+V3RED
 LBWRTX   EQU   X'20'           ....0010 0000  TOKEN WRITTEN BY EXIT
-LBexitopt EQU  X'10'           ....0001 0000  LU exit is optimizable
+LBEXITOPT EQU  X'10'           ....0001 0000  LU exit is optimizable
+*
 *
 LBLSTCNT DS    xl08            LAST CALL EVENT RECORD NUMBER (now bin)
 *
+* info for in memory lookup table
+*
+LBINDEX  DS    CL1             Reference data index type
+LBBINARY EQU   C'B'            Ref data index Bin tree
+LBHASH   EQU   C'H'            Ref data index hash table
+LBHASHT  DS    CL1             hash type
+LBPACK   EQU   C'P'            Ref data key PACK before hash
+LBHPRIME DS    FD
+LBHASHBEG DS   FD              start of hash table index
+LBHASHEND DS   FD              End of hash table index
+LBCOLLISION DS  F               Number of hash table collisions
+*
+* info used by lookup exits
+*
+         ORG   LBINDEX
 LBSTRTUP DS    CL32            STARTUP  PARAMETERS
 *
 *        This LBPARML definition needs to be kept in sync with
@@ -171,9 +187,13 @@ LBPREFLN EQU   *-LKUPBUFR      RECORD  BUFFER AREA PREFIX LENGTH
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *
 LKUPTBL  DSECT                 LOOK-UP TABLE  ENTRY DEFINITION
-*
+* Field names for Binary search tree
 LKLOWENT DS    FDL08           LOW  VALUE ROW ADDRESS
 LKHIENT  DS    FDL08           HIGH VALUE ROW ADDRESS
+* Fields names for HASH table indexing
+         org   LKUPTBL
+LKSCOUNT DS    FDL08           Number in this syn chain (collisions)
+LKSNEXT  DS    FDL08           Next in synonym chain
 LKUPDATA DS   0CL01
 *
 LKPREFLN EQU   *-LKUPTBL       LOOK-UP TABLE  ENTRY PREFIX LENGTH
@@ -200,12 +220,11 @@ TBREDVER DS    CL01            "RED"   VERSION  (SET BY MR96)
 TBEFFDAT DS    XL01            EFFECTIVE DATE OPTION CODE
 TBADJPOS DS    XL01            ADJUST  STARTING POSITIONS (N/Y)
 TBTXTFLG DS    XL01            TEXT DATA FLAG
-TBBELOWT DS    FL04            BELOW   THRESHOLD RECORD  COUNT (V3)
-TBV3FILE DS    FL04            V4 FILEID IN  V3  REH
-TBV3LRID DS    FL04            V4 LRID   IN  V3  REH
-TBrefmem ds    fd              Memory needed for all refernce data
+TBHRECL  equ   *-TBLHEADR         length of record data needed
+TBREFMEM ds    fdL8            Memory needed for all refernce data
+TBHPRIME DS    FDL8            PRIME number used for hash table size
 *
-TBHDRLEN EQU   *-TBLHEADR      TABLE   HEADER LENGTH
+TBHDRLEN EQU   *-TBLHEADR         TABLE HEADER LENGTH
                         EJECT
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *

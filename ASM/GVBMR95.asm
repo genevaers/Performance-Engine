@@ -79,7 +79,7 @@
 *            - CURRENT   RECORD  BUFFER     LENGTH                    *
 *            - CURRENT   CODE    SEGMENT    STARTING  ADDRESS         *
 *                                                                     *
-*        R2  - GENERATED CODE    BASE       REGISTER                  *
+*        R2  - Literal  pool                                          *
 *            - DCB       ADDRESS                                      *
 *                                                                     *
 *        R1  - PARAMETER LIST ADDRESS                                 *
@@ -515,6 +515,7 @@ Init_call_MR96 ds 0h
          ENTRY LKPXLEIN
          ENTRY MR95NV
          ENTRY MR95EN
+         ENTRY HASHLKUP
 *
 code     loctr ,
 gvbmr95s ds    0h
@@ -4452,13 +4453,14 @@ WRTXRSET XR    R0,R0              RESET FLAG BACK TO NO ONE  WAITING
          CS    R1,R0,EXTINUSE
          JNE   WRTXPOST           RETRY UNLOCK IF CHANGED IN MEANTIME
                         SPACE 3
-wrtx05   ds    0h                                                  pgc2
-         l     r14,dblwork        Get possible RECORD_GT_LRECL     pgc2
-         chi   r14,RECORD_GT_LRECL Was there an LRECL error?       pgc2
-         jne   wrtx07             n: then carry on                 pgc2
-         xc    dblwork(4),dblwork clear msg                        pgc2
-         j     errmsg#            quit                             pgc2
-wrtx07   ds    0h                                                  pgc2
+wrtx05   ds    0h                                                  
+         l     r14,dblwork        Get possible RECORD_GT_LRECL     
+         chi   r14,RECORD_GT_LRECL Was there an LRECL error?       
+         jne   wrtx07             n: then carry on                 
+         xc    dblwork(4),dblwork clear msg          
+         LHI   R15,8               
+         j     errmsg#            quit                             
+wrtx07   ds    0h                                                  
          llgt  R7,GPEXTRA         RESTORE ORIGINAL EXTRACT RECORD ADDR
          CLC   RETNCODE,F4        WRITE SUBROUTINE SPECIFIED "RECALL"
          JNE   WRTXXIT            NO  - RETURN
@@ -4630,51 +4632,74 @@ sa_map   using savf4sa,thrdarea
          endif
 *
 WRTDNEW  do inf
-           llgt R4,EXTRECAD        LOAD  TARGET ADDRESS FOR NEW RECORD
-           lgr R0,R4              COPY  TARGET ADDRESS
 *
-           if TM,EXTRECFM,X'80',o FIXED  OR  UNDEFINED ???
-             lgh R15,EXTLRECL     Yes - use fixed length
+* Calculate size of data to copy to buffer block
+* 
+           if lt,r1,ltwraddr,nz  user exit defined ???
+             lgh R15,0(,R7)      LOAD  LENGTH FROM    RDW
+             aghi R15,-4
            else
-             aghi R0,4
-             if lt,r1,ltwraddr,nz  user exit defined ???
-               lgh R15,0(,R7)      LOAD  LENGTH FROM    RDW
-               aghi R15,-4
-             else
-               if  clc,ltfunc,eq,wr_in   write input file
-                 llgt R1,LTlogNV     LOAD logic table "NV" ROW ADDRESS
-                 if TM,LTFLAG2-LOGICTBL(R1),LTRTOKEN,z
-                   lgf R15,GPRECLEN ASSUME NO EXIT
-                 else ,
-                   llgt R1,LTVIEWRE-LOGICTBL(,R1)
-                   lgf r1,ltreindx-logictbl(,r1) .Get index for RETK
-                   mghi r1,8        .Length of each litp entry
-                   aghi r1,litphdrl  . plus the header
-                   agf r1,lp_base_litp . plus start of base litp
-                   llgt r1,4-524288(,r1) . Get lookup buffer address
-*??WRTX            if TM,LBFLAGS+1-LKUPBUFR(R1),LBWRTX,z
+             if  clc,ltfunc,eq,wr_in   write input file
+               llgt R1,LTlogNV     LOAD logic table "NV" ROW ADDRESS
+               if TM,LTFLAG2-LOGICTBL(R1),LTRTOKEN,z
+                 lgf R15,GPRECLEN ASSUME NO EXIT
+               else ,
+                 llgt R1,LTVIEWRE-LOGICTBL(,R1)
+                 lgf r1,ltreindx-logictbl(,r1) .Get index for RETK
+                 mghi r1,8        .Length of each litp entry
+                 aghi r1,litphdrl  . plus the header
+                 agf r1,lp_base_litp . plus start of base litp
+                 llgt r1,4-524288(,r1) . Get lookup buffer address
+*??WRTX          if TM,LBFLAGS+1-LKUPBUFR(R1),LBWRTX,z
 *
-                     lgh R15,LBRECLEN-LKUPBUFR(,R1)
-                     if cgij,r15,le,0   not positive length
-                       lgf r15,GPRECLEN use the event record length
-                       sth r15,lbreclen-lkupbufr(,r1)
-                     endif
-*??WRTX            else
-*??WRTX              LA R1,0(,R6) EVENT  RECORD ADDRESS
-*??WRTX              aghi R1,-4
-*??WRTX              lgh R15,0(,R1) EVENT RECORD LENGTH
-*??WRTX              aghi R15,-4
-*??WRTX            endif
-                 endif
-               else
-                 llgt R1,LTlognv                logic table NV address
-                 lgh R15,LTDATALN-LOGICTBL(,R1) Get DATA area length
+                   lgh R15,LBRECLEN-LKUPBUFR(,R1)
+                   if cgij,r15,le,0   not positive length
+                     lgf r15,GPRECLEN use the event record length
+                     sth r15,lbreclen-lkupbufr(,r1)
+                   endif
+*??WRTX          else
+*??WRTX            LA R1,0(,R6) EVENT  RECORD ADDRESS
+*??WRTX            aghi R1,-4
+*??WRTX            lgh R15,0(,R1) EVENT RECORD LENGTH
+*??WRTX            aghi R15,-4
+*??WRTX          endif
                endif
+             else
+               llgt R1,LTlognv                logic table NV address
+               lgh R15,LTDATALN-LOGICTBL(,R1) Get DATA area length
              endif
            endif
+*
+* Check the data will fit in the LRECL (R15=data length)
+*
+           if TM,EXTRECFM,X'80',z If not fixed or U, add 4
+             aghi R15,4 
+           endif
+*           
+           if cgh,R15,gt,EXTLRECL
+*
+             lghi R14,RECORD_GT_LRECL INDICATE RECORD TOO LARGE
+             MVC ERRDATA(8),EXTDDNAM copy ddname
+             LAY  R0,ERRDATA         PICKUP  PARAMETER address
+             cvd  r15,dblwork        record length
+             OI   DBLWORK+L'DBLWORK-1,X'0F'
+             UNPK ERRDATA+10(6),DBLWORK
+             XC    MSGS2PTR,MSGS2PTR  No additional parms
+             st  r14,dblwork        Save msgid to use as flag later
+             j   wrtddeq            Before stopping this make sure   
+*                                 we release the next on queue     
+           endif
+*           
+           llgt R4,EXTRECAD       LOAD  TARGET ADDRESS FOR NEW RECORD
+           lgr R0,R4              COPY  TARGET ADDRESS
+*
+* If Fixed or undefined we will use the LRECL as the copy length
+           if TM,EXTRECFM,X'80',o FIXED  OR  UNDEFINED ?
+             lgh R15,EXTLRECL     Yes - use fixed length
+           endif
+*           
            agr R0,R15           COMPUTE TRIAL END-OF-BUFFER  ADDRESS
            doexit (cgf,R0,le,EXTEOBAD) If record fits, exit loop now
-*
 *
 ***********************************************************************
 *  SWITCH TO "TCB" MODE IF ZIIP ENABLED                               *
@@ -4763,8 +4788,7 @@ WRTDNOWT   llgt R15,16(,R1)        LOAD  BUFFER ADDRESS FROM DECB
          agsi  thrd_extrrec_cnt,bin1    for thread total later
 *
          lgr  R0,R15              assume fixed
-         if TM,EXTRECFM,X'80',z   not FIXED  OR   UNDEFINED  ???
-           aghi R0,4
+         if TM,EXTRECFM,X'80',z   not FIXED  OR   UNDEFINED  ?
            STH R0,0(,R4)
            STHH R12,2(,R4)
            aghi R4,4
@@ -4775,20 +4799,6 @@ WRTDNOWT   llgt R15,16(,R1)        LOAD  BUFFER ADDRESS FROM DECB
          ag    r0,extbytec           Increment extract byte count
          stg   r0,extbytec             and save it
          stg   r1,thrd_extrbyte_cnt  and save thread byte count
-*
-         if cgh,R15,gt,EXTLRECL
-*
-           lghi R14,RECORD_GT_LRECL INDICATE RECORD TOO LARGE
-           MVC ERRDATA(8),EXTDDNAM copy ddname
-           LAY  R0,ERRDATA         PICKUP  PARAMETER address
-           cvd  r15,dblwork        record length
-           OI   DBLWORK+L'DBLWORK-1,X'0F'
-           UNPK ERRDATA+10(6),DBLWORK
-           XC    MSGS2PTR,MSGS2PTR  No additional parms
-           st  r14,dblwork        Save msgid to use as flag later  pgc2
-           j   wrtddeq            Before stopping this make sure   pgc2
-*                                 we release the next on queue     pgc2
-         endif
 *
 WRTDMV   CLC   LTFUNC,WR_IN       COPY  INPUT ???
          JNE   WRTDMVXT           NO  - USE   EXTRACT   AREA
@@ -4931,15 +4941,16 @@ WRTDRSET XR    R0,R0              RESET FLAG BACK TO NO  ONE WAITING
          CS    R1,R0,EXTINUSE
          JNE   WRTDPOST           RETRY UNLOCK IF CHANGED IN MEANTIME
                         SPACE 3
-wrtd05   ds    0h                                                  pgc2
-         l     r14,dblwork        get possible RECORD_GT_LRECL pgc2
-         chi   r14,RECORD_GT_LRECL was there an lrecl error?    pgc2
-         jne   wrtd07             n: then carry on                 pgc2
+wrtd05   ds    0h                                                  
+         l     r14,dblwork        get possible RECORD_GT_LRECL 
+         chi   r14,RECORD_GT_LRECL was there an lrecl error?   
+         jne   wrtd07             n: then carry on                 
 *        clijne r14,RECORD_GT_LRECL,wrtd07
-*pgcxc   xc    dblwork(4),dblwork clear msg                        pgc2
-         stfh  R12,dblwork        clear msg                        pgc2
-         j     errmsg#            quit                             pgc2
-wrtd07   ds    0h                                                  pgc2
+*        xc    dblwork(4),dblwork clear msg                        
+         stfh  R12,dblwork        clear msg                        
+         LHI   R15,8      
+         j     errmsg#            quit                             
+wrtd07   ds    0h                                                  
          llgt  R7,GPEXTRA         RESTORE ORIGINAL EXTRACT RECORD ADDR
          CLC   RETNCODE,F4        WRITE SUBROUTINE SPECIFIED "RECALL"
          JNE   WRTDXIT            NO  - RETURN
@@ -5034,6 +5045,8 @@ GVBDL96a DC    V(GVBDL96x)        "GVBDL96" DATA    FORMAT  CONVERSIONS
 GVBUR35  DC    V(GVBUR35)         "GVBUR35" DYNAMIC ALLOCATION
 GVBDAYS  DC    V(GVBDAYS)         "GVBDAYS" COMPUTE DAYS BETWEEN
 GVBSRCHR DC    V(GVBSRCHR)        Perform lookup -- predefined CLC's
+         entry ADDHASHV
+ADDHASHV DC    V(HASHLKUP)        Address of HASH table look up routine
 *
 IEA4APE  DC    V(IEA4APE)         PAUSE ELEMENT - ALLOCATE
 IEA4PSE  DC    V(IEA4PSE)         PAUSE ELEMENT - PAUSE
@@ -10892,13 +10905,14 @@ WRTSRSET XR    R0,R0              RESET FLAG BACK TO NO  ONE WAITING
          CS    R1,R0,EXTINUSE
          JNE   WRTSPOST           RETRY UNLOCK IF CHANGED IN MEANTIME
                         SPACE 3
-wrts05   ds    0h                                                  pgc2
-         l     r14,dblwork        Get possible RECORD_GT_LRECL pgc2
-         chi   r14,RECORD_GT_LRECL Was there an LRECL error?       pgc2
-         jne   wrts07             n: then carry on                 pgc2
-         xc    dblwork(4),dblwork clear msg                        pgc2
-         j     errmsg#            quit                             pgc2
-wrts07   ds    0h                                                  pgc2
+wrts05   ds    0h                                                  
+         l     r14,dblwork        Get possible RECORD_GT_LRECL 
+         chi   r14,RECORD_GT_LRECL Was there an LRECL error?       
+         jne   wrts07             n: then carry on                 
+         xc    dblwork(4),dblwork clear msg                        
+         LHI   R15,8      
+         j     errmsg#            quit                             
+wrts07   ds    0h                                                  
          llgt  R7,GPEXTRA         RESTORE ORIGINAL EXTRACT RECORD ADDR
          CLC   RETNCODE,F4        WRITE SUBROUTINE SPECIFIED "RECALL"
          JNE   WRTSXIT            NO  - CHECK CACHE RETURN CODE
@@ -11780,13 +11794,14 @@ WRTHRSET XR    R0,R0              RESET FLAG BACK TO NO  ONE WAITING
          CS    R1,R0,EXTINUSE
          JNE   WRTHPOST           RETRY UNLOCK IF CHANGED IN MEANTIME
 *
-wrthrtn  ds    0h                                                  pgc2
+wrthrtn  ds    0h                                                  
          l     r14,dblwork        Get possible RECORD_GT_LRECL
-         chi   r14,RECORD_GT_LRECL Was there an LRECL error?       pgc2
-         jne   wrth07             n: then carry on                 pgc2
-         xc    dblwork(4),dblwork clear msg                        pgc2
-         j     errmsg#            quit                             pgc2
-wrth07   ds    0h                                                  pgc2
+         chi   r14,RECORD_GT_LRECL Was there an LRECL error?       
+         jne   wrth07             n: then carry on                 
+         xc    dblwork(4),dblwork clear msg                        
+         LHI   R15,8      
+         j     errmsg#            quit                             
+wrth07   ds    0h                                                  
          lg    R14,WRTHDR_R14     Get return address
          BR    R14
 *
@@ -14154,7 +14169,7 @@ CLOSFILE ds    0h                 LOAD  TEMPORARY BASE REGISTER
 *
 sub_sav  using savf4sa,savesubr
          stg   R14,sub_sav.SAVF4SAG64RS14 SAVE  RETURN    ADDRESS
-*
+
          llgt  R6,GPEXTRA
          USING EXTREC,R6
 
@@ -14213,7 +14228,6 @@ CLOSENXT llgt  R3,THRDNEXT        LOOP THROUGH ALL THREADS
                         SPACE 3
          using (thrdarea,thrdend),r13 Tell assembler to map the area
          USING MSGLIST,MSG_AREA
-         using genenv,env_area         
          using saver,savesubr
 *
 CLOSLEND ds    0h                 ANY MORE LOOK-UP BUFFERS   ???
@@ -14602,31 +14616,21 @@ CLOSX180   LH  R15,EXTMINLN       LOAD MINIMUM RECORD   LENGTH
 
            sysstate amode64=NO
            sam31
-*
+
            OPEN ((R2),(OUTPUT)),MODE=31,MF=(E,WKREENT)
-           if tm,dcboflgs,dcbofopn,z      open failed?
-             sam64                      , issue warning msg   
+           if tm,dcboflgs,dcbofopn,z          open failed?
+             sam64
              sysstate amode64=YES
-             GVBMSG LOG,MSGNO=OPEN_SORT_FAIL,SUBNO=2,GENENV=GENENV,    +
-               SUB1=(PGMNAME,L'PGMNAME),                               +
-               SUB2=(ERRDATA,8),                                       +
-               MF=(E,MSG_AREA)
-* set warning return code
-               LHI R15,4        warning return code
-               if cl,r15,gt,overall_return_code   greatest RC so far?
-                 st r15,overall_return_code       save for end
-               endif
+             lghi R14,OPEN_SORT_FAIL ASSUME OPEN FAILED
+             J    ERRMSG#          NO  - ISSUE ERROR MESSAGE
+           endif
+           sysstate amode64=NO
 *
-           else 
-            sysstate amode64=NO
+           LR R1,R2               WRITE SORT CONTROL RECORD (DUMMY)
+           LA R0,SORTCTRL
+           put (1),(0)
 *
-            LR R1,R2               WRITE SORT CONTROL RECORD (DUMMY)
-            LA R0,SORTCTRL
-            put (1),(0)
-*
-            CLOSE ((R2),FREE),MODE=31,MF=(E,WKREENT)
-*
-           endif 
+           CLOSE ((R2),FREE),MODE=31,MF=(E,WKREENT)
 *
            STORAGE RELEASE,       Release the DCB storage              +
                LENGTH=sortfilel,                                       +
@@ -16214,6 +16218,106 @@ MDLLUSMR DC    AL1(CSLBAOFF),AL1(MDLLUSM+2-MDLLUSM)   LOOK-UP  BUFR
          DC    AL1(CSFALSEM),AL1(MDLLUSMF+2-MDLLUSM)  FALSE  BRANCH
          DC    AL1(CSTRUEO),AL1(MDLLUSMT+2-MDLLUSM)   TRUE   BRANCH
          DC   2XL1'FF'
+*
+***********************************************************************
+*        LOOK-UP  -  Using Hash Table                                 *
+***********************************************************************
+HASHLKUP DS    0D
+         USING LKUPBUFR,R5
+*
+         lgh   R15,LBKEYLEN       LOAD  KEY  LENGTH (-1)
+*        lgr   R3,r15             save this length for later
+*
+         ltg   R14,LBLSTFND       CHECK IF THIS KEY SAME AS LAST ???
+         JNP   HASHINIT
+*
+         exrl  R15,HASHSAME
+         be    l'mc_jump(,r10)    RETURN  TO  FOUND ADDRESS
+*
+HASHINIT DS    0h
+         la    r14,LKUPKEY+4      load reference record address
+*
+*  if numeric, then pack - to see if we get less collisions
+*
+         if cli,lbHASHT,EQ,C'P'
+           sgr  r1,r1              zero work registers
+           lay  r3,pgmwork         address work area to hold packed key
+           la   r15,16(,r15)
+           srlg r0,r15,4
+           j    testpack1
+testpack0  pack 0(9,R3),0(16,R14) pack first 16 bytes
+           LA   R14,16(,R14)      ADVANCE source
+           LA   R3,9(,R3)         ADVANCE target
+           LA   r1,9(,r1)         keep track of packed key length
+testpack1  BRCT R0,testpack0
+           nill r15,x'ff0f'
+           exrl r15,testpack
+           LA   r1,9(,r1)         keep track of packed key length
+
+           lay r14,pgmwork        address of packed data
+           lgr r15,r1             length of packed data
+         else
+           AHI R15,1            Add 1 to length (length is -1 for EX)
+         endif
+*
+         sgr   r1,r1                zero work registers
+         sgr   r0,r0
+*
+hashlp   cksm  r1,r14              Compute Checksum
+         jnz   hashlp
+*
+         d     r0,LBHPRIME+4
+*
+         sllg  R1,r0,3             CONVERT SUBSCRIPT  TO SLOT ADDRESS
+         AG    R1,LBHASHBEG
+*        LGR   R3,R0
+*
+         lgh   R3,LBKEYLEN       LOAD  KEY  LENGTH (-1)
+         USING LKUPTBL,R4
+         if ltg,R4,0(,R1),z        Is this slot empty?
+           J  HASHNOT              Not found
+         else     ,
+* entry found - check the key matches
+           do until=(ltg,r4,LKSNEXT,z) loop to end of syn chain
+             LA    R14,LKUPDATA
+             exrl  R3,HASHSAME     Matching key? (length saved earlier)
+             je    HASHFND         Yes, found
+*            LGR r1,r4
+*            if ltg,r4,LKSNEXT,z   Is there a 'next' synonym?
+*            endif
+           enddo
+*          if drop out here then no match found
+         endif
+*
+* Not found
+*
+HASHNOT  ds    0h
+         agsi  lbnotcnt,bin1       INCREMENT   COUNT
+*
+         lghi  R0,-1              SET TABLE ENTRY ADDRESS  TO HIGH VAL
+         STG   R0,LBLSTFND        SAVE ADDRESS (-1)
+*
+         if ltgf,r14,LBPARENT,p   LOAD PARENT JOIN LOOK-UP BUFFER ADDR
+           STG R0,LBLSTFND-LKUPBUFR(,R14)  store if positive
+         endif
+         BR    R10                RETURN TO NOT FOUND ADDRESS
+*
+* Found
+*
+HASHFND  DS    0h
+*        LA    R14,LKUPDATA       LOAD ADDRESS  OF DATA
+         stg   R14,LBLSTFND       SAVE ADDRESS  IN BUFFER PREFIX
+*
+         agsi  lbfndcnt,bin1      INCREMENT   COUNT
+         b     l'mc_jump(,r10)    RETURN  TO  FOUND ADDRESS
+*
+         DS    0d
+testpack pack 0(9,r3),0(0,r14)
+         DS    0d
+HASHSAME CLC   LKUPKEY+4(0),0(R14)
+*
+         DROP  R5
+*
 *
 ***********************************************************************
 *        LOOK-UP  -  CALL EXIT PROGRAM                                *

@@ -218,6 +218,7 @@ CEEWADDR DS    A                  COMMON   LANGUAGE  INTERFACE WORKAREA
 CTRLDCBA DS    A                  CONTROL REPORT DCB ADDRESS
 Logfdcba DS    A                  Log file  DCB ADDRESS
 TRACDCBA DS    A                  "MR95"  TRACE  DCB ADDRESS
+HASHDCBA DS    A                  HASH stats report DCB(s)
 *
 JFCBEXIT DS    A
 *

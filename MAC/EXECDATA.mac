@@ -69,6 +69,11 @@ EXEC_Dump_Ref DS CL1           Include RefPools in dump Y/N - Default Y
 EXEC_check_timestamp DS CL1    Check VDP & JLT/XLT timestamps match Y/N
             DS CL1             spare
 EXEC_LOGLVL ds  CL8            EXTRLOG/REFRLOG message level
+*
+EXEC_HASHPACK DS CL1           Pack key before CHECKSUM in HASH
+EXEC_DISPHASH DS CL1           Display HASH stats
+EXEC_HASHMULT ds CL2           HASH table size multiplier
+EXEC_HASHMULTB ds CL4          HASH table size multiplier in binary
 *                               STANDARD or DEBUG
 *
 EXECDLEN EQU   *-EXECDATA      PARAMETER DATA  LENGTH
