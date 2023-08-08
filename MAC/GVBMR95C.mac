@@ -223,6 +223,12 @@ TBTXTFLG DS    XL01            TEXT DATA FLAG
 TBHRECL  equ   *-TBLHEADR         length of record data needed
 TBREFMEM ds    fdL8            Memory needed for all refernce data
 TBHPRIME DS    FDL8            PRIME number used for hash table size
+TBHMULT  DS    XL04            Hash table multiplying factor
+TBINDEX  DS    CL1             Reference data index type
+TBBINARY EQU   C'B'              Ref data index Bin tree
+TBHASH   EQU   C'H'              Ref data index hash table
+TBHASHT  DS    CL1             hash type
+*PACK   EQU   C'P'              Ref data key PACK before hash
 *
 TBHDRLEN EQU   *-TBLHEADR         TABLE HEADER LENGTH
                         EJECT
@@ -964,7 +970,19 @@ First_2000  ds  d       1st VDP type 2000 record
 Curr_2000   ds  d       current VDP type 2000 record
 First_2300  ds  d       1st VDP type 2300 record
 Curr_2300   ds  d       current VDP type 2300 record
+*
+HASH_LU_LIST ds A       First in list of hash table LUs
+HASH_LU_CURR ds A       Current in list of hash table LUs
                         EJECT
+* HASH LU list entry 
+HASH_LU_ENT DSECT
+HASH_NEXT  DS  A        NEXT in chain
+HASH_LF    DS  F        LFid 
+HASH_LR    DS  F        LRid 
+HASH_MULT  DS  F        mult factor for hash table, 1-10 
+HASH_PACK  DS  C        PACK the reference key before CKSM, Y/N 
+           DS  xl3
+HASH_LU_LEN EQU *-HASH_LU_ENT
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
 *        Exit data area                                               *
