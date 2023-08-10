@@ -1,4 +1,4 @@
-GVBURZTM TITLE 'SAFR - zIIP CPU time formatter'
+GVBURZTM TITLE 'CPU time formatter'
 **********************************************************************
 *
 * (C) COPYRIGHT IBM CORPORATION 2008, 2021.
@@ -24,9 +24,9 @@ GVBURZTM TITLE 'SAFR - zIIP CPU time formatter'
 *                                                                     *
 * MODULE NAME: GVBURZTM                                               *
 *                                                                     *
-* DESCRIPTIVE NAME: zIIP time reporter                                *
+* DESCRIPTIVE NAME: CPU time reporter                                 *
 *                                                                     *
-* FUNCTION: Formats and prints the CPU times for zIIP enabled programs*
+* FUNCTION: Formats and prints the CPU times for enclaves             *
 *                                                                     *
 * NOTES:                                                              *
 *                                                                     *
