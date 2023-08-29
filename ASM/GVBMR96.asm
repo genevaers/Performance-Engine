@@ -2866,6 +2866,8 @@ vwofmt_df   dc    cl20'Delimited Fields'
 vwofmt_hr   dc    cl20'Hardcopy Report'
 vwofmt_na   dc    cl20'<Not available>'
 *
+HASH_MULT_DEFAULT dc f'3'
+*
 open_errid ds  c
 ZEROES   DC    CL8'00000000'
 ZEROES13 DC    CL13'0000000000000'
@@ -2970,6 +2972,8 @@ reheyem  DC    CL8'REHTABLM'      Mirror "REH" table  EYEBALL
 *
 LOG_STANDARD DC  CL8'STANDARD'    log message level
 LOG_DEBUG    DC  CL8'DEBUG   '    log message level
+PACK     DC CL6'PACK  '
+NOPACK   DC CL6'NOPACK' 
 *
 Br11     llgt  r11,nvnxview-nvconst(,r11) Get address of the start of
          br    r11                the code for the next view
@@ -3865,6 +3869,9 @@ code     loctr
 *
 PARMLOAD stmg  R14,R12,SAVF4SAG64RS14  SAVE   REGISTERS
 *
+         XC    HASH_LU_LIST,HASH_LU_LIST
+         LA    R1,HASH_LU_LIST
+         ST    R1,HASH_LU_CURR
 ***********************************************************************
 * OPEN PARAMETER FILE                                                 *
 ***********************************************************************
@@ -4672,6 +4679,129 @@ fiscexit        ds  0H
                 endif
 *
                 DROP R14
+              case 33
+***********************************************************************
+*               HASH_TABLE_LU define which ref tables use hash tables
+*               HASH_TABLE_LU = (LF,LR, mult, PACK/NOPACK)  
+***********************************************************************
+                st  r1,Parm_end       Save end of parm addr
+                jas  r14,GetHASHEnt   create a LU HASH PARM entry
+                lgr  r3,r1            address entry
+                using HASH_LU_ENT,R3 
+* parse this parm string for sub parms
+* R1 -> start, R5 -> end of parm string
+                lgr r1,r4             start of parm
+                llgt r5,Parm_end     
+** first parm is  LF                
+                jas  r14,Parse_sub_parm   
+* Here R4 points to start of sub-value    
+                if CLI,0(r4),eq,C'*'     all LFs?
+                  LHI r0,-1
+                  st r0,HASH_LF
+                else             
+                  bctr r15,0   
+*
+                  larl R14,TRTTBLU    
+                  if exrl,r15,recidtrt,z     Check this is numeric
+                    EX R15,PARMPACK
+                    cvb r0,dblwork
+                    st r0,HASH_LF
+                  else
+                    lghi R14,PARM_ERR NO  - INDICATE  ERROR
+                    j PARMERR
+                  endif
+                endif
+*
+** second parm is LR
+*      skip any spaces (R1 points to end of sub-value)
+                DO while=(cgr,r1,lt,r5)
+                  doexit (cli,0(r1),ne,c' ')  advance past spaces
+                  aghi R1,1               move along one character
+                ENDDO
+                doexit (cgr,r1,ge,r5)   all blanks, go read next record
+*      skip comma                
+                cli  0(r1),c','          Should be a comma
+                bne  parmerr             If not, error
+                la  r1,1(,r1)            start of parm
+*                
+                jas  r14,Parse_sub_parm    
+                if CLI,0(r4),eq,C'*'     all LRs?
+                  LHI r0,-1
+                  st r0,HASH_LR
+                else             
+                  bctr r15,0 
+*
+                  larl R14,TRTTBLU    
+                  if exrl,r15,recidtrt,z     Check this is numeric
+                    EX R15,PARMPACK
+                    cvb r0,dblwork
+                    st r0,HASH_LR
+                  else
+                    lghi R14,PARM_ERR NO  - INDICATE  ERROR
+                    j PARMERR
+                  endif
+                endif 
+** third parm is multiplier
+*      skip any spaces (R1 points to end of sub-value)
+                DO while=(cgr,r1,lt,r5)
+                  doexit (cli,0(r1),ne,c' ')  advance past spaces
+                  aghi R1,1               move along one character
+                ENDDO
+                doexit (cgr,r1,ge,r5)   all blanks, go read next record
+*      skip comma                
+                cli  0(r1),c','          Should be a comma
+                bne  parmerr             If not, error
+                la  r1,1(,r1)            start of parm
+*
+                jas  r14,Parse_sub_parm  (r4 -> start of sub-parm)
+                if ltr,r15,r15,nz       if empty parm leave as default
+                  bctr r15,0         
+*
+                  larl R14,TRTTBLU    
+                  if exrl,r15,recidtrt,z     Check this is numeric
+                    EX R15,PARMPACK
+                    cvb r0,dblwork
+                    st r0,HASH_MULT
+                    If CHI,R0,GT,10,or, limited to 1-10                +
+               CHI,R0,lt,1
+                      lghi R14,PARM_ERR NO - INDICATE ERROR
+                      j PARMERR
+                    endif
+                  else
+                    lghi R14,PARM_ERR NO  - INDICATE  ERROR
+                    j PARMERR
+                  endif
+                endif 
+*
+* fourth parm is PACK/NOPACK
+*      skip any spaces (R1 points to end of sub-value)
+                DO while=(cgr,r1,lt,r5)
+                  doexit (cli,0(r1),ne,c' ')  advance past spaces
+                  aghi R1,1               move along one character
+                ENDDO
+                doexit (cgr,r1,ge,r5)   all blanks, go read next record
+*      skip comma                
+                cli  0(r1),c','          Should be a comma
+                bne  parmerr             If not, error
+                la  r1,1(,r1)            start of parm
+*
+                jas  r14,Parse_sub_parm    
+                if ltr,r15,r15,nz       if empty parm leave as default         
+*
+                  LA R14,WORKAREA
+                  MVC WORKAREA(6),SPACES
+                  bctr r15,0   
+                  EX R15,PARMMVC
+                  OC   WORKAREA(6),SPACES Upper case
+                  if CLC,WORKAREA(6),ne,PACK,and,                      +
+               CLC,WORKAREA(6),ne,NOPACK 
+                    lghi R14,PARM_ERR
+                    BRU PARMERR
+                  endif
+                  mvc  HASH_PACK,WORKAREA
+                endif 
+*                                                                
+                DROP R3 
 *
             endcase
           else ,
@@ -5281,17 +5411,39 @@ Parse_parm ds 0h
             aghi  r1,1               skip end quote
 *
           else
-            lgr  r4,r1              Save start of parameter value
+*
+*   Is it enclosed in brackets?
+*
+            if cli,0(r1),eq,c'('
+              aghi  r1,1              skip bracket
+              lgr  r4,r1              Save start of parameter value
+*
+*        Locate end bracket
+*
+              do   while=(cgr,r1,lt,r5) have we hit the end yet?
+                doexit cli,0(r1),eq,c')'
+                aghi R1,1
+              enddo
+*
+              lgr  R15,R1 
+              sgr  R15,R4              Calculate the length
+*
+              aghi  r1,1               skip end bracket
+*
+            else
+*
+              lgr  r4,r1              Save start of parameter value
 *
 *   Locate end of parm value
 *
-            do   while=(cgr,r1,lt,r5) have we hit the end yet?
-              doexit (cli,0(r1),eq,c','),or,(cli,0(r1),eq,c' ')
-              aghi R1,1
-            enddo
+              do   while=(cgr,r1,lt,r5) have we hit the end yet?
+                doexit (cli,0(r1),eq,c','),or,(cli,0(r1),eq,c' ')
+                aghi R1,1
+              enddo
 *
-            lgr  R15,R1
-            sgr  R15,R4              Calculate the length
+              lgr  R15,R1
+              sgr  R15,R4              Calculate the length
+            endif   
           endif
 *
 Parse_p_ret ds 0h
@@ -5299,7 +5451,42 @@ Parse_p_ret ds 0h
 *         r15 = length/0 , r4 -> start , r1 -> end
 *
           br   r14
-
+***********************************************************************
+* Parse the parameter file - look for sub parameters in value string  *
+*
+* Input  R1-> start of string, R5->End of string                      *
+* Output R4-> start of value, R1->End of value, R15=length value      *
+*
+* R14 - return address
+***********************************************************************
+Parse_sub_parm ds 0h
+*
+         xgr r15,r15           zero length (no parm found)
+*
+*   Locate start of parameter value
+*
+         DO while=(cgr,r1,lt,r5)   skip blanks
+           doexit (cli,0(r1),ne,c' ')
+           aghi R1,1               move along one character
+         ENDDO
+*
+         lgr  r4,r1              Save start of parameter value
+*
+*   Locate end of parm value
+*
+         do   while=(cgr,r1,lt,r5) have we hit the end yet?
+           doexit (cli,0(r1),eq,c','),or,(cli,0(r1),eq,c' '),or,       +
+               (cli,0(r1),eq,c')')
+           aghi R1,1
+         enddo
+*
+         lgr  R15,R1
+         sgr  R15,R4              Calculate the length
+*
+*         r15 = length/0 , r4 -> start , r1 -> end
+*
+          br   r14
+*
 ***********************************************************************
 * Get an entry for the trace parameter table/chain                    *
 *    and initialize it
@@ -5333,7 +5520,34 @@ cp        USING PARMTBL,R3        current in chain
           br   r14
           drop np
           drop cp
-
+***********************************************************************
+* Get an entry for the Lookup hash table parms                        *
+*    and initialize it
+* Input  HASH_LU_CURR -> Current Entry
+* Output R1 -> New Entry
+* R14 - return address
+***********************************************************************
+GetHASHEnt ds 0h
+*
+          lghi R0,HASH_LU_LEN      LOAD PARAMETER TABLE ENTRY SIZE
+          aghi R0,8                ADD  EYEBALL   LEN
+          GETMAIN RU,LV=(0),LOC=(ANY) GET PARAMETER TABLE ENTRY
+          MVC 0(8,R1),HASHEYEB     COPY EYEBALL
+          LA  R1,8(,R1)            Address past Eyecatcher
+nh        USING HASH_LU_ENT,R1    new in chain
+*
+          XC  nh.HASH_LU_ENT(HASH_LU_LEN),nh.HASH_LU_ENT   ZERO AREA
+          MVC nh.HASH_MULT,HASH_MULT_DEFAULT
+          MVI nh.HASH_PACK,C'N'
+*
+          L  R15,HASH_LU_CURR
+ch        USING HASH_LU_ENT,R15    current in chain
+          ST R1,ch.HASH_NEXT       CHAIN TO old entry
+          ST R1,HASH_LU_CURR
+*
+          br   r14
+          drop nh
+          drop ch
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
 *   E D I T   P A R A M E T E R S                                     *
@@ -11518,20 +11732,20 @@ code     loctr ,
 *
             case 30  HASH_PACK  - hidden parm (display if debug on)
 
-             if CLC,EXEC_LOGLVL,EQ,LOG_DEBUG DEBUG level logging?
-               mvc prntline+l'parmkwrd+3(l'exec_hashpack),exec_hashpack
-               la r15,l'parmkwrd+3+l'exec_hashpack+l'prntrdw
-               sth r15,prntrdwh
-               rptit ,                     write to report
-             endif
+*            if CLC,EXEC_LOGLVL,EQ,LOG_DEBUG DEBUG level logging?
+*              mvc prntline+l'parmkwrd+3(l'exec_hashpack),exec_hashpack
+*              la r15,l'parmkwrd+3+l'exec_hashpack+l'prntrdw
+*              sth r15,prntrdwh
+*              rptit ,                     write to report
+*            endif
 *
             case 31  HASH_MULT  - hidden parm (display if debug on)
-             if CLC,EXEC_LOGLVL,EQ,LOG_DEBUG DEBUG level logging?
-               mvc prntline+l'parmkwrd+3(l'EXEC_HASHMULT),EXEC_HASHMULT
-               la r15,l'parmkwrd+3+l'EXEC_HASHMULT+l'prntrdw
-               sth r15,prntrdwh
-               rptit ,                     write to report
-             endif
+*            if CLC,EXEC_LOGLVL,EQ,LOG_DEBUG DEBUG level logging?
+*              mvc prntline+l'parmkwrd+3(l'EXEC_HASHMULT),EXEC_HASHMULT
+*              la r15,l'parmkwrd+3+l'EXEC_HASHMULT+l'prntrdw
+*              sth r15,prntrdwh
+*              rptit ,                     write to report
+*            endif
 *
             case 32  DISPLAY_HASH - hidden parm (display if debug on)
              if CLC,EXEC_LOGLVL,EQ,LOG_DEBUG DEBUG level logging?
@@ -11540,6 +11754,15 @@ code     loctr ,
                sth r15,prntrdwh
                rptit ,                     write to report
              endif
+
+            case 33  HASH_TABLE_LU - hidden parm (display if debug on)
+             if CLC,EXEC_LOGLVL,EQ,LOG_DEBUG DEBUG level logging?
+               mvc prntline+l'parmkwrd+3(l'exec_disphash),exec_disphash
+               la r15,l'parmkwrd+3+l'exec_disphash+l'prntrdw
+               sth r15,prntrdwh
+*               rptit ,                     write to report
+             endif
+
 *
             endcase
             AHI R4,parmkwrd_l
@@ -12514,6 +12737,8 @@ FILLHDR  ds     0h
          mvc   tblheadr(TBHRECL),0(r1) Save record in table
          xc    TBREFMEM,TBREFMEM       clear other TBLheadr work fields
          xc    TBHPRIME,TBHPRIME
+         MVI   TBINDEX,TBBINARY     set default LU table type
+         MVI   TBHASHT,C'N'       default for hash table lu NOPACK
 *
          aghi  r7,1               increment count
          aghi  r6,tbhdrlen        next free entry in hdr rec table
@@ -12584,15 +12809,24 @@ Filleof  ds    0h
 
              if cli,TBEFFDAT,eq,x'00' Effective dates used?
 *
+               JAS R9,HASHPARM    check to see if parm set
+               if ltr,r1,r1,nz
+                 using HASH_LU_ENT,R1
+                 mvc TBHMULT,HASH_MULT
+                 mvc TBHASHT,HASH_PACK
+                 mvi TBINDEX,TBHASH 
+                 DROP R1
 * Calculate the number of hash table slots that will be used
 *  (Calculate the nearest prime greater than number of records)
 *
 *              Pass R1 with reference record count to FindPrime
-               JAS R9,FINDPRIME
-               stg R1,TBHPRIME    PRIME for hash table returned
+                 ltgf r1,tbreccnt
+                 JAS R9,FINDPRIME
+                 stg R1,TBHPRIME    PRIME for hash table returned
 *
-               sllg R1,R1,3       space for 1 doubleword  per rec
-               agr  r4,r1         add to total
+                 sllg R1,R1,3       space for 1 doubleword  per rec
+                 agr  r4,r1         add to total
+               endif   
              endif
 
            endif
@@ -12757,7 +12991,7 @@ FILLALLO lghi  R3,LBPREFLN+LKPREFLN+L'LBLRID  PREFIX+POINTERS+KEY LRID
          BCTR  R15,0              DECREMENT FOR "EX" INSTRUCTION
          STH   R15,LBKEYLEN
 *
-         MVC   LBHPRIME,TBHPRIME  Copy in case hash table used
+*         MVC   LBHPRIME,TBHPRIME  Copy in case hash table used
 ***********************************************************************
 *  ADJUST LOOK-UP KEY OFFSET DEPENDING ON "RED" VERSION               *
 ***********************************************************************
@@ -12916,12 +13150,18 @@ FILL_ASC ds    0h
 * Yes - keys must be in ascending sequence
 * no  - skip to FILLCOPY
 * Must use binary tree if effective dates are bing used...
-         MVI   LBINDEX,LBHASH     Assume we are going to use HASH table
+*        MVI   LBINDEX,LBHASH     Assume we are going to use HASH table
 *
-         TM    LBFLAGS,LBEFFDAT+LBEFFEND Effective dates used?
-         BZ    FILLCOPY                  No, then can use HASH table
+*         TM    LBFLAGS,LBEFFDAT+LBEFFEND Effective dates used?
+*         BZ    FILLCOPY                  No, then can use HASH table
 *
-         MVI   LBINDEX,LBBINARY
+*         MVI   LBINDEX,LBBINARY
+         MVC   LBINDEX,TBINDEX
+         MVC   LBHASHT,TBHASHT
+         MVC   LBHPRIME,TBHPRIME
+*         
+         CLI   LBINDEX,LBHASH
+         BE    FILLCOPY  
 *
 FILLSKHL ds    0h
          LGH   R15,LBKEYLEN
@@ -13266,7 +13506,7 @@ BLDHASH  ds    0h
 *          lgh r0,LBKEYOFF        ...add key offset
 *          agr r14,R0             ...address key
 *
-           if cli,EXEC_HASHPACK,eq,c'Y' Packing before checksum?
+           if cli,LBHASHT,eq,c'P' Packing before checksum?
 *  if numeric, then pack - to see if we get less collisions
 *
              sgr r1,r1             zero work registers
@@ -13283,12 +13523,12 @@ testpack1    BRCT R2,testpack0
              exrl r15,testpack
              LA r1,9(,r1)         keep track of packed key length
 
-             MVI LBHASHT,C'P'     Save HASH type include PACK
+*             MVI LBHASHT,C'P'     Save HASH type include PACK
 
              lay r14,pgmwork      address of packed data
              lgr r15,r1           length of packed data
            else
-             MVI LBHASHT,C' '     clear HASH type field
+*             MVI LBHASHT,C' '     clear HASH type field
              AHI R15,1            Add 1 to length (length is -1 for EX)
            endif
 *
@@ -13447,6 +13687,11 @@ write_hash_report ds 0h
          L     R0,LBFILEID
          CVD   R0,DBLWORK
          OI    DBLWORK+L'DBLWORK-1,X'0F'
+         UNPK  hashLFID,DBLWORK
+*
+         L     R0,LBLRID
+         CVD   R0,DBLWORK
+         OI    DBLWORK+L'DBLWORK-1,X'0F'
          UNPK  hashLRID,DBLWORK
 *
          lgh   R15,LBKEYLEN       key length
@@ -13479,6 +13724,7 @@ MVCKEY   MVC   hashKEY(0),0(r14)
 *
 static   loctr
 HASHREC  DSECT ,
+HASHLFID ds CL8
 hashLRID ds cl8
 hashKEY  ds cl100 (100 for now could be longer)
 hashHASH ds cl4  (after pack(if doing it) and checksum)
@@ -13508,6 +13754,67 @@ Close_hash_report ds  0h
 
          DROP  r2,R13
 
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+* Check to see if HASH table LU parms set                             *
+* R6 -> Reference table headers                                       *
+* Return R1 --> HASH_LU_LIST entry that matches, or 0
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+         Using Tblheadr,r6
+         USING THRDAREA,R13
+*         using savf4sa,savesub3
+HASHPARM DS  0H
+* save registers in bottom level save area as it calls no other routine
+*         stmg  R14,R12,SAVF4SAG64RS14     SAVE REGISTERS
+*
+         xgr   r1,r1
+         USING INITVAR,R8
+         LLGT  R3,HASH_LU_LIST
+         USING HASH_LU_ENT,r3
+* check for wild cards
+         DO while=(ltr,r3,r3,nz)   
+*          if  LF and LR = -1
+           if clc,HASH_LF,eq,=f'-1',and,clc,HASH_LR,eq,=f'-1' 
+*           quit and return pointer to entry
+             lgr r1,r3
+             doexit (e)
+           endif
+           llgt R3,HASH_NEXT
+         ENDDO     
+* check for wild cards of either LF or LR
+         LLGT  R3,HASH_LU_LIST
+         DO while=(ltr,r3,r3,nz)   
+*          if  LF and LR = -1
+           if (clc,HASH_LF,eq,=f'-1'),and,(clc,HASH_LR,eq,TBRECID)
+*            quit and return pointer to entry
+             lgr r1,r3
+             doexit (e)
+           elseif (clc,HASH_LF,eq,TBFILEID),and,(clc,HASH_LR,eq,=f'-1')
+*           quit and return pointer to entry
+             lgr r1,r3
+             doexit (e)
+           endif
+           llgt R3,HASH_NEXT
+         ENDDO                         
+* check for specific parms (these take precedence)         
+         LLGT  R3,HASH_LU_LIST        
+         DO while=(ltr,r3,r3,nz)   
+*          if matching LF and LR         
+           if clc,HASH_LF,eq,TBFILEID,and,clc,HASH_LR,eq,TBRECID 
+*           quit and return pointer to entry
+             lgr r1,r3
+             doexit (e)
+           endif
+           llgt R3,HASH_NEXT
+         ENDDO       
+*
+         DROP  R3 
+         DROP  R6
+         drop  r8
+*
+* restore registers (return r1)
+*         lmg  R14,R0,SAVF4SAG64RS14
+*         lmg  R2,R12,SAVF4SAG64RS2
+         BR   R9
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
 * FINDPRIME                                                           *
@@ -18628,6 +18935,7 @@ PARMKWRD_table dc 0h
          DC    CL35'HASH_PACK                          ',H'30'
          DC    CL35'HASH_MULT                          ',H'31'
          DC    CL35'DISPLAY_HASH                       ',H'32'
+         DC    CL35'HASH_TABLE_LU                      ',H'33'
          DC    XL4'FFFFFFFF'
 *
 * Trace parameter keywords
