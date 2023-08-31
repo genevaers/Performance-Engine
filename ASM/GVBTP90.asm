@@ -1,7 +1,7 @@
          TITLE 'GVBTP90 - BATCH VSAM/QSAM I/O HANDLER'
 **********************************************************************
 *
-* (C) COPYRIGHT IBM CORPORATION 2005, 2021.
+* (C) COPYRIGHT IBM CORPORATION 2005, 2023.
 *     Copyright Contributors to the GenevaERS Project.
 * SPDX-License-Identifier: Apache-2.0
 *
@@ -38,6 +38,7 @@
 *            UP - UPDATE THE PREVIOUS RECORD READ                     *
 *            DL - DELETE THE PREVIOUS RECORD READ                     *
 *            IN - INFORMATION ABOUT THE FILE                          *
+*            RI - RELEASE HELD RECORD (VSAM)                          *
 *                                                                     *
 *  RETURN CODES:                                                      *
 *                                                                     *
@@ -118,7 +119,7 @@ PADDNAME DS    CL08            FILE    DDNAME
 PAFUNC   DS    CL02            FUNCTION CODE
 PAFTYPE  DS    CL01            FILE TYPE (V  = VSAM,  S = SEQUENTIAL)
 PAFMODE  DS    CL02            FILE MODE (I  = INPUT, O = OUTPUT    )
-*                                        (IO = BOTH                 )
+*                                        (IO = BOTH, EX = EXTEND    )
 PARTNC   DS    CL01            RETURN CODE
 PAVSAMRC DS    HL02            VSAM   RETURN CODE
 PARECLEN DS    HL02            RECORD LENGTH
@@ -173,6 +174,7 @@ WORKRENT DS    XL08            RE-ENTRANT  MACRO  PARAMETER LIST AREA
 *
 WORKEXIT DS    A               OPEN  EXIT  LIST
 WORKJFCB DS    CL176
+WORKSVA  DS    18F
 *
 WORKLEN  EQU   (*-WORKAREA)    LENGTH OF DYNAMIC STORAGE
                         EJECT
@@ -237,7 +239,8 @@ GVBTP90  CSECT
          J     CODE
 TP90EYE  GVBEYE GVBTP90
 *
-CODE     STM   R14,R12,RSA14(R13) SAVE CALLER'S  REGISTERS
+CODE     DS    0H
+         STM   R14,R12,RSA14(R13) SAVE CALLER'S  REGISTERS
 *
          LR    R10,R15            SET  PROGRAM   BASE REGISTER
          USING GVBTP90,R10,R11
@@ -403,6 +406,8 @@ VSAM     LA    R2,FCDCBACB+ACBLEN       LOAD ADDRESS OF "RPL"
          BRE   VSCLOSE            YES - BRANCH
          CLC   PAFUNC,IN          VSAM  INFO   ???
          BRE   VSINFO             YES - BRANCH
+         CLC   PAFUNC,RI          VSAM- RELEASE???
+         BRE   VSRLSE             YES - BRANCH
          B     RTNERRB            NO  - ERROR (UNSUPPORTED FUNCTION)
 *
 QSAM     CLC   PAFUNC,WR          QSAM  WRITE  ???
@@ -451,6 +456,8 @@ VSOP10   CLI   FCSTATUS,C' '      ALREADY OPEN ???
          CLC   FCFMODE,O          OUTPUT ONLY  FILE ???
          BRE   VSOP14             YES -  USE OUTPUT MODE
          CLC   FCFMODE,IO         DUAL   MODE  FILE ???
+         BRE   VSOP14             YES -  USE OUTPUT MODE
+         CLC   FCFMODE,EX         ADD record empty file ???
          BRNE  RTNERRB            NO  -  BAD PARAMETER
 *
 VSOP14   MODCB ACB=(R3),DDNAME=(*,FCDDNAME),MACRF=(OUT,DSN),           +
@@ -778,7 +785,10 @@ VSBRW20  MVC   PAVSAMRC+1(1),RPLFDB3    RETURN VSAM FEEDBACK CODE
 VSWRITE  CLI   FCFMODE,C'O'       CORRECT FILE MODE ???
          BRE   VSWRT10            YES - CONTINUE
          CLC   FCFMODE,IO         CORRECT FILE MODE ???
-         BRNE  RTNERRL            NO  - RETURN (LOGIC ERROR)
+         BRE   VSWRT10            YES - CONTINUE
+         CLC   FCFMODE,EX         CORRECT FILE MODE ???
+         BRE   VSWRT12            YES - CONTINUE
+         J     RTNERRL            NO  - RETURN (LOGIC ERROR)
 *
 VSWRT10  EQU   *
          CLI   PARESDS,C'D'       ESDS update in place ?
@@ -794,6 +804,17 @@ VSWRT10  EQU   *
                AREA=(R6),AREALEN=(R4),RECLEN=(R4),                     +
                OPTCD=(KEY,DIR,ARD,SYN,FWD,NUP,MVE),                    +
                MF=(G,VSAMGLST)
+         J     VSWRT13
+*
+VSWRT12  EQU   *
+         LH    R4,PARECLEN        LOAD RECORD  LENGTH
+*
+         MODCB RPL=(R2),                                               +
+               AREA=(R6),AREALEN=(R4),RECLEN=(R4),                     +
+               OPTCD=(SEQ,NUP),                                        +
+               MF=(G,VSAMGLST)
+*
+VSWRT13  EQU   *
          LTR   R15,R15            SUCCESSFUL ???
          BRNZ  VSWRT20            NO  - INDICATE I/O ERROR
 *
@@ -917,6 +938,21 @@ VSCL20   MVC   PAVSAMRC+1(1),RPLFDB3    RETURN VSAM FEEDBACK CODE
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
+*        V S A M   R E L E A S E   R E C O R D                        *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+VSRLSE   DS    0H                 ISSUE RELEASE
+         ENDREQ RPL=(R2)
+*
+         LTR   R15,R15            SUCCESSFULLY  RELEASED ???
+         BRZ   RETURN             YES - RETURN
+*
+VSRL20   MVC   PAVSAMRC+1(1),RPLFDB3    RETURN VSAM FEEDBACK CODE
+         B     RTNERRE                  INDICATE I/O ERROR
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
 *        V S A M   E N D   O F   F I L E   R O U T I N E              *
 *                                                                     *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -964,7 +1000,9 @@ QSOP10   CLI   FCSTATUS,C' '      ALREADY OPEN ???
          CLC   FCFMODE,I          INPUT FILE ???
          BRE   QSOP20             YES - BRANCH
          CLC   FCFMODE,O          OUTPUT FILE ???
-         BRNE  RTNERRB            NO  - BAD PARAMETER
+         JE    QSOP15             Yes - output file
+         CLC   FCFMODE,EX         OUTPUT EXTEND FILE ???
+         JNE   RTNERRB            NO  - BAD PARAMETER
 *
 ***********************************************************************
 *  OPEN FILE FOR OUTPUT                                               *
@@ -1014,7 +1052,13 @@ QSOP17   TM    JFCRECFM,X'C0'     "RECFM"  SPECIFIED  ???
 *
          DROP  R14
 *
-QSOP18   OPEN  ((R3),OUTPUT),MODE=31,MF=(E,OPNLST2)
+QSOP18   EQU   *
+         CLC   PAFMODE,EX         OUTPUT EXTEND FILE ???
+         JE    QSOP19             Yes - go
+         OPEN  ((R3),OUTPUT),MODE=31,MF=(E,OPNLST2)
+         B     QSOP25
+QSOP19   EQU   *
+         OPEN  ((R3),EXTEND),MODE=31,MF=(E,OPNLST2)
          B     QSOP25
 *
 ***********************************************************************
@@ -1090,8 +1134,11 @@ QR_MVC   MVC   0(0,R15),0(R14)          * E X E C U T E D *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *
 QSWRITE  CLC   FCFMODE,O          CORRECT FILE  MODE   ???
-         BRNE  RTNERRL            NO  - RETURN (LOGIC  ERROR)
-*
+         JE    QSWRT01            == Output
+         CLC   FCFMODE,EX         CORRECT FILE  MODE   ???
+         JNE   RTNERRL            == Extend
+*                                 Else logic error
+QSWRT01  EQU   *
          LH    R4,PARECLEN        LOAD  ACTUAL  RECORD LENGTH
          ST    R4,FCRECLEN        SAVE  RECORD  LENGTH
 *
@@ -1328,9 +1375,12 @@ WR       DC    CL2'WR'
 UP       DC    CL2'UP'
 DL       DC    CL2'DL'
 IN       DC    CL2'IN'
+RI       DC    CL2'RI'
+*
 I        DC    CL2'I '
 O        DC    CL2'O '
 IO       DC    CL2'IO'
+EX       DC    CL2'EX'
 X0810    DC    XL2'0810'
 *
 SPACES   DC    CL08' '
