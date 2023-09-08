@@ -7123,21 +7123,43 @@ cfee_date_model     dc v(cfeedate)
 cfxa_date_model     dc v(cfxadate)
 code             loctr
                endif
+*            This handles the selection signalled by fcsub_long -
+*            model for field length > 256
+*
+               lh r0,ltcollen       length greater than 256  ?
+               if chi,r0,ge,256,and,cli,fcltsub,eq,fcsub_long
+                 llgt r0,ltfuntbl   load current function entry
+                 aghi r0,fcentlen*2 move it along two entries
+                 st r0,ltfuntbl and save it back
+               endif
+
              else
 *
 *
 *            these tests here are to select the default model should
 *            various conditions be met
 *
-*            this if is handling the selection signalled by fcsuble
+*            This handles the selection signalled by fcsub_long -
+*            model for field length > 256
+*
+               lh r0,ltcollen       column greater than 256  ?
+               if chi,r0,ge,256,and,cli,fcltsub,eq,fcsub_long
+                 llgt r0,ltfuntbl   load current function entry
+                 aghi r0,fcentlen*2 move it along two entries
+                 st r0,ltfuntbl and save it back
+               else
+*
+*            This handles the selection signalled by fcsuble -
+*            model for target length <= source length.
 *            (these entries have been moved to follow the normal ones
 *             and fcsuble has been set in the first one as a safety)
 *
-               lh r0,ltfldlen       same   field  lengths  ???
-               if ch,r0,ge,ltcollen,and,cli,fcltsub+1,eq,fcsuble
-                 llgt r0,ltfuntbl load current function entry
-                 aghi r0,fcentlen move it along to next entry
-                 st r0,ltfuntbl and save it back
+                 lh r0,ltfldlen     same   field  lengths  ???
+                 if ch,r0,ge,ltcollen,and,cli,fcltsub+1,eq,fcsuble
+                   llgt r0,ltfuntbl load current function entry
+                   aghi r0,fcentlen move it along to next entry
+                   st r0,ltfuntbl and save it back
+                 endif
                endif
 *
 *            this if is handling the selection signalled by fcsubdec
@@ -7208,6 +7230,25 @@ code             loctr
 *
              endif
            endif
+
+
+***********************************************************************
+*    format 1 (one set of field attributes)                           *
+***********************************************************************
+           if cli,fc_rtyp,eq,fc_rtyp04    format 4 record type ?
+*
+*            This handles the selection signalled by fcsub_long -
+*            model for field length > 256
+*
+               lh r0,ltfldlen       field greater than 256  ?
+               if chi,r0,ge,256,and,cli,fcltsub,eq,fcsub_long
+                 llgt r0,ltfuntbl   load current function entry
+                 aghi r0,fcentlen   move it along one entry
+                 st r0,ltfuntbl and save it back
+               endif
+
+           endif
+
            if  oc,ltfuntbl,ltfuntbl,z  is the function code zero ?
 ***********************************************************************
 *            no model code definition                                 *
@@ -8241,11 +8282,11 @@ LTBLF1W    LA  R1,DL96LIST
            LTR R15,R15
            JZ  LTBLF1Z
 *
-           CHI R15,2              TRUNCATION ???
+           CHI R15,EMTRUNC        TRUNCATION ???
            JE  LTBLF1Z
 *
            lghi R14,DECIMAL_PLACES_GT_FIELD ERROR MESSAGE NUMBER
-           cghi R15,13
+           cghi R15,EMSRCDEC
            JE  STDERROR
            lghi R14,GENEVA_NO_DIG_EXCEEDED ERROR MESSAGE NUMBER
            J   STDERROR           PRINT ERROR MESSAGE - STOP
@@ -8674,9 +8715,9 @@ conv_const do ,                               convert constant
    llgf        R15,GVBDL96A
    BASsm R14,R15
 *
-   if LTR,R15,R15,P,and,chi,r15,ne,2
+   if LTR,R15,R15,P,and,chi,r15,ne,EMTRUNC
 *
-     if chi,r15,eq,13
+     if chi,r15,eq,EMSRCDEC
        LgHI R14,DECIMAL_PLACES_GT_FIELD LOAD  ERROR MESSAGE  NUMBER
      else
        LgHI R14,GENEVA_NO_DIG_EXCEEDED LOAD  ERROR MESSAGE  NUMBER
@@ -9836,10 +9877,10 @@ code             loctr
                  llgf R15,GVBDL96A
                  BASsm R14,R15
 *
-                 if LTR,R15,R15,nz,and,chi,r15,ne,2 (2 is truncation)
+                 if LTR,R15,R15,nz,and,chi,r15,ne,EMTRUNC
 *
                    LgHI R14,DECIMAL_PLACES_GT_FIELD Err msg Num
-                   if CHI,R15,ne,13
+                   if CHI,R15,ne,EMSRCDEC
                      LgHI R14,GENEVA_NO_DIG_EXCEEDED Err Msg Num
                    endif
                    J STDERROR     PRINT ERROR MESSAGE - STOP
@@ -9876,10 +9917,10 @@ code             loctr
                  llgf R15,GVBDL96A
                  BASsm R14,R15
 *
-                 if LTR,R15,R15,nz,and,chi,r15,ne,2 (2 is truncation)
+                 if LTR,R15,R15,nz,and,chi,r15,ne,EMTRUNC
 *
                    LgHI R14,DECIMAL_PLACES_GT_FIELD Err msg Num
-                   if CHI,R15,ne,13
+                   if CHI,R15,ne,EMSRCDEC
                      LgHI R14,GENEVA_NO_DIG_EXCEEDED Err Msg Num
                    endif
                    J STDERROR     PRINT ERROR MESSAGE - STOP
@@ -15592,6 +15633,10 @@ P1RELOTB DC    A(0)
          J     p1SRCHRT      68 - Lookup search routine address
          J     p1cmpdt1      69 - Adjust compare for CFxC with date
          J     p1cmpdt2      70 - Adjust compare for CFCx with date
+         J     p1TGTLNE      71 - Target length long (>256)
+         J     p1SRCLNE      72 - Source length long (>256)
+         J     p1LOOPCT      73 - Loop counter - long field ops (>256)
+         J     p1SRCRM       74 - Source remainder for long fields
          ASSERT (csmaxval*4),EQ,(p1srcln-(p1relotb+l'p1relotb))
 **** DO NOT move the p1SRCLN label - ASSERT above is reliant onit
 P1SRCLN  LH    R15,LTFLDLEN       LOAD   SOURCE FIELD LENGTH (-1)
@@ -16606,6 +16651,28 @@ P1cmpdt2 equ   *
              Mvc 0(6,r1),P1cmpCLC4   No CCYY    so change the CLC
            endif
          endif
+         J     P1RELONX
+*
+P1TGTLNE EQU   *    Target length long (>256)
+         LH    R15,LTCOLLEN       LOAD Target FIELD LENGTH (-1)
+         AHI   R15,1
+         STH   R15,0(,R1)
+         J     P1RELONX
+*
+P1SRCLNE EQU   *    Source length long (>256)
+         LH    R15,LTFLDLEN       LOAD SOURCE FIELD LENGTH (-1)
+         AHI   R15,1
+         STH   R15,0(,R1)
+         J     P1RELONX
+*
+P1LOOPCT EQU   *    Loop counter for ops with long fields (>256)
+         LH    R15,LTFLDLEN       LOAD SOURCE FIELD LENGTH (-1)
+         SRLG  R15,R15,8
+         STH   R15,0(,R1)
+         J     P1RELONX
+*
+P1SRCRM  EQU   *    Source length remainder - long fields (>256)
+         MVC   0(1,r1),LTFLDLEN+1
          J     P1RELONX
 *
 static   loctr

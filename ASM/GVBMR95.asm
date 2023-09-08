@@ -3869,10 +3869,22 @@ call96tr_a ST R1,DL96TGTA   SAVE TARGET  ADDRESS
              MVC SAOUTSGN,LTsign  COPY  EDITED   SIGN  IND
              MVC SAOUTJUS,LTCOLJUS COPY JUSTIFICATION CODE
 *
+*
+*        Initialise target area to spaces
+*
              LH R15,LTfldLEN      LOAD  EDITED  COLUMN   WIDTH
-             EXrl R15,BLNKTGT     INITIALIZE TARGET AREA TO SPACES
-             AHI R15,1            RESTORE TRUE  COLUMN  LENGTH
-             STH R15,DL96LEN      PASS  EDITED  SIZE TO "GVBDL96"
+*
+             SRLG R0,R15,8
+             AHI  R0,1
+             BRU CALL96tr_M1
+CALL96tr_M0  MVC 0(256,R1),SPACES PROPAGATE 256 BYTES
+             LA R1,256(,R1)         ADVANCE target
+CALL96tr_M1  BRCT R0,CALL96tr_M0
+             EXrl R15,BLNKTGT        INITIALIZE TARGET AREA TO SPACES
+*
+             LH R15,LTfldLEN  LOAD EDITED COLUMN WIDTH again
+             AHI R15,1        RESTORE TRUE  COLUMN  LENGTH
+             STH R15,DL96LEN  PASS SIZE TO "GVBDL96"
            endif
 *
 *
@@ -3957,10 +3969,21 @@ CALL96F5 LH    R15,LTCOLCON       LOAD  OUTPUT CONTENT CODE
          MVC   SAOUTSGN,LTCOLSGN  COPY  EDITED   SIGN  IND
          MVC   SAOUTJUS,LTCOLJUS  COPY  JUSTIFICATION CODE
 *
+*        Initialise target area to spaces
+*
          LH    R15,LTCOLLEN       LOAD  EDITED  COLUMN   WIDTH
+*
+         SRLG  R0,R15,8
+         ahi   R0,1
+         BRU   CALL96_M1
+CALL96_M0 MVC  0(256,R1),SPACES   PROPAGATE 256 BYTES
+         LA    R1,256(,R1)        ADVANCE target
+CALL96_M1 BRCT R0,CALL96_M0
          EXrl  R15,BLNKTGT        INITIALIZE TARGET AREA TO SPACES
+*
+         LH    R15,LTCOLLEN       LOAD  EDITED  COLUMN   WIDTH
          AHI   R15,1              RESTORE TRUE  COLUMN  LENGTH
-         STH   R15,DL96LEN        PASS  EDITED  SIZE TO "GVBDL96"
+         STH   R15,DL96LEN        PASS SIZE TO "GVBDL96"
 *
          J     CALL96pg
 *
@@ -5078,8 +5101,11 @@ ENQSTAT  DC    CL8'BUFSTATS'          MINOR  ENQ  NODE for buffer stats
 tracname DC    CL8'MR95TRAC'          MINOR  ENQ  NODE for trace file
 LOGNAME  DC    CL8'MR95LOG '          MINOR  ENQ  NODE for log file
 VIEW     DC    C'VIEW DEF'
-BAD      DC    C'Bad data'
-MSK      DC    C'Overflow'
+* error types from GVBDL96
+BAD      DC    C'Bad data' data will be filler characters
+MSK      DC    C'Overflow' data truncated
+CONF     DC    C'Config  ' config error eg column size too big for nums
+*
 FNDLABEL DC    C'F:'
 NOTLABEL DC    C'NF:'
 INLABEL  DC    C' IN: '           INPUT  RECORD  LABEL
@@ -5871,7 +5897,7 @@ CALL96PG llgf  R15,GVBDL96a       LOAD "GVBDL96"  ADDRESS
 *
          cije  R15,0,call96ok     SUCCESSFUL ???
 *
-         CLI   SAFMTERR,X'02'     FIELD  OVERFLOW (TRUNCATION) ???
+         CLI   SAFMTERR,EMTRUNC   FIELD  OVERFLOW (TRUNCATION) ???
          JNE   CALL96B            NO  -  CHECK  OTHER  ERRORS
 *
          CLI   SAVALFMT+1,FC_ALNUM SOURCE  DATA TYPE ALPHANUMERIC ???
@@ -5916,7 +5942,8 @@ CALL96O  LA    R0,M               INDICATE MASK/OVERFLOW ERROR
 ***********************************************************************
 *  BAD NUMERIC DATA                                                   *
 ***********************************************************************
-CALL96B  LA    R0,B               INDICATE BAD   DATA ERROR
+CALL96B  DS    0H
+         LA    R0,B               INDICATE BAD   DATA ERROR
 
 Get_fill_char  ds 0h
          llgt  R14,ltlognv        LOAD "NV" ROW ADDRESS  IN LOGIC TABLE
@@ -5953,9 +5980,13 @@ CALL96E  llgt  R14,DL96TGTA       LOAD  TARGET ADDRESS
 CALL96M  MVC   ERRDATA(L'INTERMSG),intermsg  COPY  BAD   DATA  TEMPLATE
 *
          MVC   ERRDATA+INTTYPE-INTERMSG(l'bad),BAD ASSUME BAD   DATA
-         CLI   LTSTATUS-LOGICTBL(R14),C'B'         BAD   DATA    ???
-         JE    *+10                                YES - CONTINUE
-         MVC   ERRDATA+INTTYPE-INTERMSG(l'msk),MSK NO  - MASK ERROR
+         if CLI,LTSTATUS-LOGICTBL(R14),eq,C'B'     BAD   DATA    ???
+           if CLI,SAFMTERR,eq,EMOUTNUM       col too big for numeric?
+            MVC   ERRDATA+INTTYPE-INTERMSG(l'conf),CONF View config err
+           endif
+         else                                      YES - CONTINUE
+           MVC   ERRDATA+INTTYPE-INTERMSG(l'msk),MSK NO  - MASK ERROR
+         endif
 *                                            note: overflows are masked
          lg    r1,GPRECCNT
          cvdg  r1,dblwork
@@ -7629,11 +7660,16 @@ cfxx_edit_alnum  equ cf_ee_01
 CF_EE_01 DC    CL4'CFEE',AL1(FC_RTYP05)                COMPARE
          DC    AL2(MDLCF01L),AL2(MDLCF01P)           DIFF LENGTH
          DC    AL4(MDLCF01),AL4(MDLCF01R)
-         DC    AL2(0),AL2(0),AL2(0)
+         DC    AL1(FCSUB_LONG),AL1(0),AL2(0),AL2(0)
 *
          DC    CL4'CFEE',AL1(FC_RTYP05)                COMPARE
          DC    AL2(MDLCF01L),AL2(MDLCF01P)           DIFF LENGTH
          DC    AL4(MDLCF01),AL4(MDLCF01R)
+         DC    AL2(0),AL2(0),AL2(0)
+*   length > 256
+         DC    CL4'CFEE',AL1(FC_RTYP05)                COMPARE
+         DC    AL2(MDLCFL1L),AL2(MDLCFL1P)           DIFF LENGTH
+         DC    AL4(MDLCFL1),AL4(MDLCFL1R)
          DC    AL2(0),AL2(0),AL2(0)
 *
 cfxx_sortp_num   DC CL4'CFEE',AL1(FC_RTYP05)            COMPARE
@@ -8432,11 +8468,24 @@ CF_AA_04 DC    CL4'CFAA',AL1(FC_RTYP10)                COMPARE
 CS_E_01  DC    CL4'CSE ',AL1(FC_RTYP04)                CLASS - SPACES
          DC    AL2(MDLCF60L),AL2(MDLCF60P)
          DC    AL4(MDLCF60),AL4(MDLCF60R)
+         DC    AL1(FCSUB_LONG),AL1(0),AL2(0),AL2(0)
+*
+         DC    CL4'CSE ',AL1(FC_RTYP04)         TEST SPACES LEN > 256
+         DC    AL2(MDLCS60L),AL2(MDLCS60P)
+         DC    AL4(MDLCS60),AL4(MDLCS60R)
          DC    AL2(0),AL2(0),AL2(0)
 *
+***********************************************************************
+*        CLASS TEST  -  IS NUMERIC                                    *
+***********************************************************************
 CN_E_01  DC    CL4'CNE ',AL1(FC_RTYP04)                CLASS - NUMERIC
          DC    AL2(MDLCF61L),AL2(MDLCF61P)
          DC    AL4(MDLCF61),AL4(MDLCF61R)
+         DC    AL1(FCSUB_LONG),AL1(0),AL2(0),AL2(0)
+*
+         DC    CL4'CNE ',AL1(FC_RTYP04)           CLASS - NUMERIC >256
+         DC    AL2(MDLCF65L),AL2(MDLCF65P)
+         DC    AL4(MDLCF65),AL4(MDLCF65R)
          DC    AL2(0),AL2(0),AL2(0)
 *
 CN_E_02  DC    CL4'CNE ',AL1(FC_RTYP04)                CLASS - NUMERIC
@@ -8467,7 +8516,12 @@ CN_E_03  DC    CL4'CNE ',AL1(FC_RTYP04)                CLASS - NUMERIC
 CX_E_01  DC    CL4'CXE ',AL1(FC_RTYP04)                CLASS - LOWVAL
          DC    AL2(MDLCF63L),AL2(MDLCF63P)
          DC    AL4(MDLCF63),AL4(MDLCF63R)
-         DC    AL2(0),AL2(0),AL2(0)
+         DC    AL1(FCSUB_LONG),AL1(0),AL2(0),AL2(0)
+*
+         DC    CL4'CXE ',AL1(FC_RTYP04)                CLASS - LOWVAL
+         DC    AL2(MDLCX63L),AL2(MDLCX63P)
+         DC    AL4(MDLCX63),AL4(MDLCX63R)
+         DC    AL1(FCSUB_LONG),AL1(0),AL2(0),AL2(0)
 *
                          EJECT
 ***********************************************************************
@@ -9023,26 +9077,32 @@ DT_E_01  DC    CL4'DTE ',AL1(FC_RTYP05)                "DT" COLUMN
          DC    AL4(MDLDT00),AL4(MDLDT00R)
          DC    AL2(0),AL2(0),AL2(0)
 *
-DT_E_02  DC    CL4'DTE ',AL1(FC_RTYP05)                "DT" COLUMN
+DT_E_02  DC    0H   alphanumeric
+         DC    CL4'DTE ',AL1(FC_RTYP05)                "DT" COLUMN
          DC    AL2(MDLDT03L),AL2(MDLDT03P)             DIFF  LENGTH
          DC    AL4(MDLDT03),AL4(MDLDT03R)
-         DC    AL2(FCSUBLE),AL2(0),AL2(0)
+         DC    AL1(FCSUB_LONG),AL1(FCSUBLE),AL2(0),AL2(0)
 *
          DC    CL4'DTE ',AL1(FC_RTYP05)                "DT" COLUMN
-         DC    AL2(MDLDT02L),AL2(MDLDT02P)             DIFF  LENGTH
+         DC    AL2(MDLDT02L),AL2(MDLDT02P)             same  LENGTH
          DC    AL4(MDLDT02),AL4(MDLDT02R)
          DC    AL2(0),AL2(0),AL2(0)
 *
+         DC    CL4'DTE ',AL1(FC_RTYP05)                "DT" COLUMN
+         DC    AL2(MDLDTl3L),AL2(MDLDTl3P)             LENGTH > 256
+         DC    AL4(MDLdtl3),AL4(MDLDTl3R)
+         DC    AL2(0),AL2(0),AL2(0)
+*                                 Move packed to packed signed target
 DT_E_03  DC    CL4'DTE ',AL1(FC_RTYP05)                "DT" COLUMN
          DC    AL2(MDLDT04L),AL2(MDLDT04P)
          DC    AL4(MDLDT04),AL4(MDLDT04R)
-         DC    AL2(FCSUBCOM),AL2(0),AL2(0)         source/target match
+         DC    AL2(FCSUBCOM),AL2(0),AL2(0)        source/target match
 *
          DC    CL4'DTE ',AL1(FC_RTYP05)                "DT" COLUMN
          DC    AL2(MDLDT02L),AL2(MDLDT02P)
          DC    AL4(MDLDT02),AL4(MDLDT02R)
          DC    AL2(0),AL2(0),AL2(0)
-*
+*                                 Move packed to packed unsigned target
 DT_E_04  DC    CL4'DTE ',AL1(FC_RTYP05)                "DT" COLUMN
          DC    AL2(MDLDT05L),AL2(MDLDT05P)
          DC    AL4(MDLDT05),AL4(MDLDT05R)
@@ -14034,7 +14094,7 @@ DATEDL96 llgf  R15,GVBDL96a       LOAD "GVBDL96"  ADDRESS
          ltr   r15,r15
          bzr   r9
 *
-         CLI   SAFMTERR,x'02'     FIELD  OVERFLOW (TRUNCATION) ???
+         CLI   SAFMTERR,EMTRUNC   FIELD  OVERFLOW (TRUNCATION) ???
          BRE   CALL96O
          LA    R0,B               Indicate bad data
          BRU   CALL96B
@@ -19229,7 +19289,7 @@ MDLCF00R DC    AL1(CSSRCloF),AL1(MDLCF00+02-MDLCF00)  SOURCE OFFSET
 *        COMPARE FIELDS           (CHARACTER - DIFF LENGTH)           *
 ***********************************************************************
 MDLCF01  LAY   R14,0(0,0)         LOAD  SOURCE address
-MDLCF01_la LAY R15,0(,R2)         CONSTANT ADDRESS
+MDLCF01_la LAY R15,0(,R2)         Target field address
 MDLCF01C CLC   0(0,r14),0(R15)    COMPARE TWO  FIELDS
 MDLCF01F jlu   *+l'*              BRANCH  TO   FALSE  IF NOT TRUE
 MDLCF01T jlu   *+l'*              BRANCH  TO   TRUE  (OPTIONAL)
@@ -19243,6 +19303,63 @@ MDLCF01R DC    AL1(CSSRCLN),AL1(MDLCF01C+01-MDLCF01)  FIELD  1  LEN
          DC    AL1(CSRELOPR),AL1(MDLCF01F+1-MDLCF01)  RELATIONAL CC
          DC    AL1(CSFALSEO),AL1(MDLCF01F+2-MDLCF01)  FALSE  BRANCH
          DC    AL1(CSTRUEO),AL1(MDLCF01T+2-MDLCF01)   TRUE   BRANCH
+         DC   2XL1'FF'
+***********************************************************************
+*        COMPARE FIELDS           (alpha length > 256)                *
+***********************************************************************
+MDLCFL1  LAY   R14,0(0,0)         get source address
+MDLCFL1_la LAY R15,0(,R2)         Target field address
+MDLCFL1G LHI   R10,1              Loop counter
+MDLCFL1_loop DS 0H
+         CLC   0(256,R14),0(R15)  COMPARE
+         jle   MDLCFL1_e          Continue loop if equal
+MDLCFL1F jlu   *+l'*              BRANCH TO FALSE IF INVALID
+MDLCFL1T jlu   *+l'*              BRANCH TO TRUE IF INVALID
+MDLCFL1_e DS   0H
+         LA    R14,256(,R14)      ADVANCE source
+         LA    R15,256(,R15)      ADVANCE TARGET
+         BRCT  R10,MDLCFL1_loop
+
+MDLCFL1C CLC   0(0,R14),0(R15)    FINAL  compare
+MDLCFL1FF jlu  *+l'*              BRANCH  TO   FALSE IF INVALID
+MDLCFL1TT jlu  *+l'*              BRANCH  TO   TRUE  (OPTIONAL)
+MDLCFL1L EQU   *-MDLCFL1
+*
+MDLCFL1P EQU   0                  LITERAL POOL USAGE (EXCL FIELD LEN)
+*
+MDLCFL1R DC    AL1(CSSRClof),AL1(MDLCFL1+02-MDLCFL1)  FIELD  1  OFF
+         DC    AL1(CSTGTloF),AL1(MDLCFL1_la+02-MDLCFL1)  FIELD  2  OFF
+         DC    AL1(CSLOOPC),AL1(MDLCFL1G+02-MDLCFL1)  loop counter
+         DC    AL1(CSRELOPR),AL1(MDLCFL1F+1-MDLCFL1)  RELATIONAL CC
+         DC    AL1(CSFALSEM),AL1(MDLCFL1F+2-MDLCFL1)  FALSE  BRANCH
+         DC    AL1(CSTRUEM),AL1(MDLCFL1T+2-MDLCFL1)   TRUE   BRANCH
+         DC    AL1(CSSRCRM),AL1(MDLCFL1C+01-MDLCFL1)  FIELD remainder
+         DC    AL1(CSRELOPR),AL1(MDLCFL1FF+1-MDLCFL1) RELATIONAL CC
+         DC    AL1(CSFALSEO),AL1(MDLCFL1FF+2-MDLCFL1) FALSE  BRANCH
+         DC    AL1(CSTRUEO),AL1(MDLCFL1TT+2-MDLCFL1)  TRUE   BRANCH
+         DC   2XL1'FF'
+                        SPACE 3
+***********************************************************************
+*        COMPARE FIELDS           (alpha length > 256)                *
+***********************************************************************
+MDLCFl2  LAY   R14,0(0,0)         LOAD  SOURCE address
+MDLCFl2_la LAY R0,0(,R2)          target field address
+MDLCFl2C LHI   R15,0              field length
+MDLCFl2D LHI   R1,0               field length
+         CLCL  R14,R0             COMPARE TWO  FIELDS
+MDLCFl2F jlu   *+l'*              BRANCH  TO   FALSE  IF NOT TRUE
+MDLCFl2T jlu   *+l'*              BRANCH  TO   TRUE  (OPTIONAL)
+MDLCFl2L EQU   *-MDLCFl2
+*
+MDLCFl2P EQU   0                  LITERAL POOL USAGE (EXCL FIELD LEN)
+*
+MDLCFL2R DC    AL1(CSSRCloF),AL1(MDLCFl2+02-MDLCFl2)  FIELD  1  OFF
+         DC    AL1(CSTGTloF),AL1(MDLCFl2_la+02-MDLCFl2)  FIELD  2  OFF
+         DC    AL1(CSSRCLN),AL1(MDLCFl2C+01-MDLCFl2)  FIELD  1  LEN
+         DC    AL1(CSSRCLN),AL1(MDLCFl2D+01-MDLCFl2)  FIELD  2  LEN
+         DC    AL1(CSRELOPR),AL1(MDLCFl2F+1-MDLCFl2)  RELATIONAL CC
+         DC    AL1(CSFALSEO),AL1(MDLCFl2F+2-MDLCFl2)  FALSE  BRANCH
+         DC    AL1(CSTRUEO),AL1(MDLCFl2T+2-MDLCFl2)   TRUE   BRANCH
          DC   2XL1'FF'
                         SPACE 3
 ***********************************************************************
@@ -23521,6 +23638,32 @@ MDLCF60R DC    AL1(CSSRCLN),AL1(MDLCF60c+01-MDLCF60)   FIELD  1  LEN
          DC   2XL1'FF'
                         SPACE 3
 ***********************************************************************
+*        CLASS TEST - SPACES      (CHARACTER,LENGTH > 256)            *
+***********************************************************************
+MDLCS60  LAY   R15,0(0,0)         get address
+MDLCS60G LHI   R10,1              Loop counter
+MDLCS60_loop DS 0H
+         CLC   0(256,R15),SPACES  COMPARE
+MDLCS60F jlNE  *+l'*              BRANCH  TO   FALSE IF INVALID
+         LA    R15,256(,R15)      ADVANCE  TARGET
+         BRCT  R10,MDLCS60_loop
+
+MDLCS60C CLC   0(0,R15),SPACES    FINAL  comapre
+MDLCS60FF jlNE *+l'*              BRANCH  TO   FALSE IF INVALID
+MDLCS60T jlu   *+l'*              BRANCH  TO   TRUE  (OPTIONAL)
+MDLCS60L EQU   *-MDLCS60
+*
+MDLCS60P EQU   0                  LITERAL POOL USAGE (EXCL FIELD LEN)
+*
+MDLCS60R DC    AL1(CSSRClof),AL1(MDLCS60+02-MDLCS60)  FIELD  1  OFF
+         DC    AL1(CSLOOPC),AL1(MDLCS60G+02-MDLCS60)  loop counter
+         DC    AL1(CSFALSEM),AL1(MDLCS60F+2-MDLCS60)  FALSE  BRANCH
+         DC    AL1(CSSRCRM),AL1(MDLCS60C+01-MDLCS60)  FIELD remainder
+         DC    AL1(CSFALSEO),AL1(MDLCS60FF+2-MDLCS60) FALSE  BRANCH
+         DC    AL1(CSTRUEO),AL1(MDLCS60T+2-MDLCS60)   TRUE   BRANCH
+         DC   2XL1'FF'
+                        SPACE 3
+***********************************************************************
 *        CLASS TEST - NUMERIC     (CHARACTER)                         *
 ***********************************************************************
 MDLCF61  llgt  R14,0(0,R2)        LOAD    TRANSLATE  TABLE ADDRESS
@@ -23544,6 +23687,42 @@ MDLCF61R DC    AL1(CSTRTTBL),AL1(MDLCF61+02-MDLCF61) "TRT"  TABLE
          DC    AL1(CSFALSEM),AL1(MDLCF61D+2-MDLCF61)  FALSE  BRANCH
          DC    AL1(CSFALSEO),AL1(MDLCF61F+2-MDLCF61)  FALSE  BRANCH
          DC    AL1(CSTRUEO),AL1(MDLCF61T+2-MDLCF61)   TRUE   BRANCH
+         DC   2XL1'FF'
+                        SPACE 3
+***********************************************************************
+*        CLASS TEST - NUMERIC     (CHARACTER)  > 256                  *
+***********************************************************************
+MDLCF65  llgt  R14,0(0,R2)        LOAD    TRANSLATE  TABLE ADDRESS
+         lgr   R0,R2              SAVE GENERATED CODE BASE REGISTER
+         xgr   R2,R2              CLEAR FUNCTION CODE REGISTER
+MDLcf65_la LAY R15,0(0,0)         get address
+MDLcf65G LHI   R10,1              Loop counter
+MDLcf65_loop DS  0H
+         TRT   0(256,R15),0(R14)  SCAN    STRING FOR INVALID BYTES
+         JNZ   MDLcf65_q
+         LA    R15,256(,R15)      ADVANCE  TARGET
+         BRCT  R10,MDLcf65_loop
+*
+MDLCF65C TRT   0(0,R15),0(R14)    SCAN    STRING FOR INVALID BYTES
+*
+MDLcf65_q DS   0H
+         lgr   R1,R2              SAVE  FUNCTION CODE
+         lgr   R2,R0              RESTORE BASE REGISTER
+MDLCF65D jlL   *+l'*              BRANCH  TO   FALSE IF INVALID
+         CHI   R1,4               VALID   SIGN BYTE  IN LAST POSITION
+MDLCF65F jlH   *+l'*              BRANCH  TO   FALSE IF INVALID
+MDLCF65T jlu   *+l'*              BRANCH  TO   TRUE  (OPTIONAL)
+MDLCF65L EQU   *-MDLCF65
+*
+MDLCF65P EQU   4                  LITERAL POOL USAGE (EXCL FIELD LEN)
+*
+MDLCF65R DC    AL1(CSTRTTBL),AL1(MDLCF65+02-MDLCF65) "TRT"  TABLE
+         DC    AL1(CSSRClof),AL1(MDLcf65_lA+02-MDLcf65) FIELD  1  OFF
+         DC    AL1(CSLOOPC),AL1(MDLcf65G+02-MDLcf65) loop counter
+         DC    AL1(CSSRCRM),AL1(MDLCF65C+01-MDLCF65)  FIELD remainder
+         DC    AL1(CSFALSEM),AL1(MDLCF65D+2-MDLCF65)  FALSE  BRANCH
+         DC    AL1(CSFALSEO),AL1(MDLCF65F+2-MDLCF65)  FALSE  BRANCH
+         DC    AL1(CSTRUEO),AL1(MDLCF65T+2-MDLCF65)   TRUE   BRANCH
          DC   2XL1'FF'
                         SPACE 3
 ***********************************************************************
@@ -23587,6 +23766,30 @@ MDLCF63R DC    AL1(CSSRCLN),AL1(MDLCF63C+01-MDLCF63)   FIELD  1  LEN
          DC    AL1(CSSRClof),AL1(MDLcf63+02-MDLcf63) FIELD  1  OFF
          DC    AL1(CSFALSEO),AL1(MDLCF63F+2-MDLCF63)  FALSE  BRANCH
          DC    AL1(CSTRUEO),AL1(MDLCF63T+2-MDLCF63)   TRUE   BRANCH
+         DC   2XL1'FF'
+***********************************************************************
+*        CLASS TEST - NULLS - field length > 256                      *
+***********************************************************************
+MDLcx63  LAY   R15,0(0,0)         get address
+MDLCx63G LHI   R10,1              Loop counter
+MDLCx63_loop DS 0H
+         OC    0(256,r15),0(r15)  COMPARE
+MDLCx63F jlNE  *+l'*              BRANCH  TO   FALSE IF INVALID
+         LA    R15,256(,R15)      ADVANCE  TARGET
+         BRCT  R10,MDLCx63_loop
+MDLCx63C OC    0(0,R15),0(R15)    FINAL  compare
+MDLCx63FF jlNE *+l'*              BRANCH  TO   FALSE IF INVALID
+MDLCx63T jlu   *+l'*              BRANCH  TO   TRUE  (OPTIONAL)
+MDLCx63L EQU   *-MDLCx63
+*
+MDLCx63P EQU   0                  LITERAL POOL USAGE (EXCL FIELD LEN)
+*
+MDLCx63R DC    AL1(CSSRClof),AL1(MDLcx63+02-MDLcx63)  FIELD  1  OFF
+         DC    AL1(CSLOOPC),AL1(MDLCx63G+02-MDLCx63)  loop counter
+         DC    AL1(CSFALSEO),AL1(MDLCx63F+2-MDLCx63)  FALSE  BRANCH
+         DC    AL1(CSSRCRM),AL1(MDLCx63C+01-MDLCx63)  FIELD remainder
+         DC    AL1(CSFALSEO),AL1(MDLCx63FF+2-MDLCx63)  FALSE  BRANCH
+         DC    AL1(CSTRUEO),AL1(MDLCx63T+2-MDLCx63)   TRUE   BRANCH
          DC   2XL1'FF'
                         SPACE 3
 
@@ -23906,6 +24109,26 @@ MDLDT03R DC    AL1(CSTGTLN),AL1(MDLDT03m+01-MDLDT03)   TARGET    LENGTH
          DC    AL1(CStgtlof),AL1(MDLdt03+02-MDLdt03) FIELD  2  OFF
          DC    AL1(CSSRClof),AL1(MDLdt03_lA+02-MDLdt03) FIELD  1  OFF
          DC    AL1(CSSRCLN),AL1(MDLDT03A+01-MDLDT03)  SOURCE    LENGTH
+         DC   2XL1'FF'
+                        SPACE 3
+***********************************************************************
+*        ASSIGN/MOVE FIELD       (CHARACTER WITH FILLER, column > 256 *
+***********************************************************************
+MDLdtl3  LAY   R14,0(0,0)         get address of column
+MDLdtl3_la LAY R0,0(0,0)          get address of field
+MDLdtl3C LGHI  R15,0              length of column
+MDLdtL3D LGHI  R1,0               length of field
+         ICM   R1,B'1000',SPACES  Set padding character
+         MVCL  R14,R0             move field to column with padding
+MDLDTl3L EQU   *-MDLDTl3
+*
+MDLDTl3P EQU   0                  LITERAL POOL USAGE (EXCL FIELD LEN)
+*
+MDLDTl3R DC    0H
+         DC    AL1(CStgtlof),AL1(MDLdtl3+02-MDLdtl3)    Target offset
+         DC    AL1(CSSRClof),AL1(MDLdtl3_lA+02-MDLdtl3) Source offset
+         DC   AL1(CSTGTLNE),AL1(MDLDTl3C+02-MDLDTl3) Target LENGTH long
+         DC   AL1(CSSRCLNE),AL1(MDLDTl3D+02-MDLDTl3) Source LENGTH long
          DC   2XL1'FF'
                         SPACE 3
 ***********************************************************************
