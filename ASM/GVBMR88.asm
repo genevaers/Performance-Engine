@@ -2173,11 +2173,12 @@ COLPCLR  LH    R14,CDCOLOFF       LOAD  COLUMN    OFFSET
          LH    R15,CDCOLSIZ       LOAD  EDITED COLUMN      WIDTH (-1)
 *
          LA    R15,256(,R15)      ROUND UP TO  256 MULTIPLE
-         SRLG  R0,R15,8           No of 256 blocks into r0
+         LR    R0,R15 
+         SRL   R0,8               No of 256 blocks into r0
          J     COLPBEND
 COLPBLP  MVC   0(256,R14),SPACES
          LA    R14,256(,R14)
-COLPBEND BRCTG R0,COLPBLP
+COLPBEND BRCT  R0,COLPBLP
          EX    R15,BLNKTGT        INITIALIZE   TARGET AREA TO  SPACES
 *
 COLPNEXT AHI   R6,CDENTLEN        ADVANCE TO   NEXT COLUMN DEFINITION
@@ -2576,11 +2577,12 @@ COLBCNT  LH    R0,CDCALCNT        ANY CALCULATIONS INVOLVED  ???
          LR    R4,R14             save position in output rec
 *
          LA    R15,256(,R15)      ROUND UP TO  256 MULTIPLE
-         SRLG  R0,R15,8           No of 256 blocks into r0
+         LR    R0,R15
+         SRL   R0,8               No of 256 blocks into r0
          J     COLPB2END
 COLPB2LP  MVC   0(256,R14),SPACES
           LA    R14,256(,R14)
-COLPB2END BRCTG R0,COLPB2LP
+COLPB2END BRCT  R0,COLPB2LP
           EX    R15,BLNKTGT        INITIALIZE   TARGET AREA TO  SPACES
 *
          LR    r14,r4              restore position in output
@@ -2598,12 +2600,13 @@ COLPB2END BRCTG R0,COLPB2LP
 *
 COLBMOVE DS    0H
          LA    R15,256(,R15)      ROUND UP TO  256 MULTIPLE
-         SRLG  R0,R15,8           No of 256 blocks into r0
+         LR    R0,R15
+         SRL   R0,8               No of 256 blocks into r0
          J     COLPmvEND
 COLPmvLP MVC   0(256,R14),0(R1)
          LA    R1,256(,R1)
          LA    R14,256(,R14)
-COLPmvEND BRCTG R0,COLPmvLP
+COLPmvEND BRCT  R0,COLPmvLP
          EX    R15,MVCDATA        COPY  DATA TO  OUTPUT RECORD
          J     COLBNEXT
                      EJECT
@@ -2819,12 +2822,13 @@ COLBTREN SR    R15,R1             COMPUTE  DATA  LENGTH (-1)
 *
 COLBSHFT DS    0H
          LA    R15,256(,R15)      ROUND UP TO  256 MULTIPLE
-         SRLG  R0,R15,8           No of 256 blocks into r0
+         LR    R0,R15
+         SRL   R0,8               No of 256 blocks into r0
          J     COLPshEND
 COLPshLP MVC   0(256,R14),0(R1)
          LA    R1,256(,R1)
          LA    R14,256(,R14)
-COLPshEND BRCTG R0,COLPshLP
+COLPshEND BRCT R0,COLPshLP
          EX    R15,MVCDATA        COPY  DATA TO  OUTPUT RECORD
          LLCR  r15,r15            remainder of the move length
 *
@@ -6049,11 +6053,12 @@ BLDHA    CLI   CDPRTIND,C'Y'      PRINT THIS COLUMN ???
          Larl  R1,DASH
 *
          LA    R15,256(,R15)      ROUND UP TO  256 MULTIPLE
-         SRLG  R0,R15,7           No of 256 blocks into r0
+         LR    R0,R15
+         SRL   R0,7               No of 256 blocks into r0
          J     BLDHDEND
 BLDHDLP  MVC   0(128,R14),DASH
          LA    R14,128(,R14)
-BLDHDEND BRCTG R0,BLDHDLP
+BLDHDEND BRCT  R0,BLDHDLP
          EXrl  R15,BLDDASH
 *
 BLDH1    LA    R1,CDHEAD1         POINT  TO HEADER 1
