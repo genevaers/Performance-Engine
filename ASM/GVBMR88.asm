@@ -6054,12 +6054,12 @@ BLDHA    CLI   CDPRTIND,C'Y'      PRINT THIS COLUMN ???
 *
          LA    R15,256(,R15)      ROUND UP TO  256 MULTIPLE
          LR    R0,R15
-         SRL   R0,7               No of 256 blocks into r0
+         SRL   R0,8               No of 256 blocks into r0
          J     BLDHDEND
-BLDHDLP  MVC   0(128,R14),DASH
-         LA    R14,128(,R14)
+BLDHDLP  MVC   0(256,R14),DASH
+         LA    R14,256(,R14)
 BLDHDEND BRCT  R0,BLDHDLP
-         EXrl  R15,BLDDASH
+         EXRL  R15,BLDDASH
 *
 BLDH1    LA    R1,CDHEAD1         POINT  TO HEADER 1
          BRAS  R14,CALCHLEN       DETERMINE ACTUAL HEADER LENGTH (R15)
@@ -8302,7 +8302,7 @@ STDMASKL DC  X'4020202020202020202020202020202020202021204B202020'
          DROP  R6
                      EJECT
          ds  0h (just to make sure LARL works )
-DASH     DC 128C'-'
+DASH     DC 256C'-'
 HEXFF    DC 256X'FF'
 ZEROES   DC  32X'00'
 SPACES   DC 256C' '
