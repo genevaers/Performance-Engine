@@ -328,10 +328,11 @@ FCSUBB8_UU EQU  18             Unsigned to Unsigned Binary 8
 FCSUBB8_SS EQU  19             Signed   to Signed   Binary 8
 FCSUBB8_SU EQU  20             Signed   to Unsigned Binary 8
 FCSUBB8_US EQU  21             Unsigned to Signed   Binary 8
+FCSUB_LONG EQU  22             Fields > 256
 *
 FCP1SUB  DS    HL02            PASS-1   SUBROUTINE INDEX
-FCSUBPOS EQU   01              LONG SOURCE   FIELD POSITION
-FCSUBLOF EQU   02              LONG TARGET   FIELD POSITION
+*CSUBPOS EQU   01              LONG SOURCE   FIELD POSITION
+*CSUBLOF EQU   02              LONG TARGET   FIELD POSITION
 *
 FCP2SUB  DS    HL02            PASS-2   SUBROUTINE INDEX
 *
@@ -1266,16 +1267,20 @@ csdfpexp EQU   60                 Calculate DFP exponent
 csdfpopt EQU   61                 Optimise FP0/fp2 loads
 csdfpexps EQU   62                Calculate DFP exponent source
 *
-CSV1OFFr EQU   63                 VALUE   1      OFFSET
-CSV2OFFr EQU   64                 VALUE   2      OFFSET
-CSTGTLOFr EQU   65                 LONG  TARGET     FIELD  OFFSET
-CSSRCLOFr EQU   66                 LONG    SOURCE FIELD   OFFSET
+CSV1OFFR EQU   63                 VALUE   1      OFFSET
+CSV2OFFR EQU   64                 VALUE   2      OFFSET
+CSTGTLOFR EQU   65                 LONG  TARGET     FIELD  OFFSET
+CSSRCLOFR EQU   66                 LONG    SOURCE FIELD   OFFSET
 *
 CSdl96calln_r EQU 67             BAS to Calldl96 with normal - use op1
 CSSRCHR       EQU 68             Address of the lookup search routine
 CScmpdt1      EQU 69              Set the compare for CFxC with dates
 CScmpdt2      EQU 70              Set the compare for CFCx with dates
-csmaxval equ   CScmpdt2          This MUST be set to the maximum of the+
+CSTGTLNE      EQU 71              Target length - long field (>256)
+CSSRCLNE      EQU 72              Source length - long field
+CSLOOPC       EQU 73              loop counter for fields > 256
+CSSRCRM       EQU 74              Source long field remainder length
+csmaxval equ   CSSRCRM           This MUST be set to the maximum of the+
                    EQUates above - branch tables dependencies in 95/96
 *
 ***********************************************************************

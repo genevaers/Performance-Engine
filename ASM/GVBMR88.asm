@@ -2171,6 +2171,14 @@ COLPCLR  LH    R14,CDCOLOFF       LOAD  COLUMN    OFFSET
          LA    R14,PRNTTEXT(R14)  ADD   BASE      ADDRESS
 *
          LH    R15,CDCOLSIZ       LOAD  EDITED COLUMN      WIDTH (-1)
+*
+         LA    R15,256(,R15)      ROUND UP TO  256 MULTIPLE
+         LR    R0,R15 
+         SRL   R0,8               No of 256 blocks into r0
+         J     COLPBEND
+COLPBLP  MVC   0(256,R14),SPACES
+         LA    R14,256(,R14)
+COLPBEND BRCT  R0,COLPBLP
          EX    R15,BLNKTGT        INITIALIZE   TARGET AREA TO  SPACES
 *
 COLPNEXT AHI   R6,CDENTLEN        ADVANCE TO   NEXT COLUMN DEFINITION
@@ -2566,8 +2574,19 @@ COLBCNT  LH    R0,CDCALCNT        ANY CALCULATIONS INVOLVED  ???
          STH   R0,NOTNULL
 *
          LH    R15,CDCOLSIZ       LOAD EDITED COLUMN WIDTH    (-1)
-         EX    R15,BLNKTGT        INITIALIZE  TARGET AREA  TO SPACES
-         LR    R0,R15             SAVE COLUMN WIDTH  (-1)
+         LR    R4,R14             save position in output rec
+*
+         LA    R15,256(,R15)      ROUND UP TO  256 MULTIPLE
+         LR    R0,R15
+         SRL   R0,8               No of 256 blocks into r0
+         J     COLPB2END
+COLPB2LP  MVC   0(256,R14),SPACES
+          LA    R14,256(,R14)
+COLPB2END BRCT  R0,COLPB2LP
+          EX    R15,BLNKTGT        INITIALIZE   TARGET AREA TO  SPACES
+*
+         LR    r14,r4              restore position in output
+         LH    R0,CDCOLSIZ         SAVE COLUMN WIDTH  (-1)
 *
          LH    R15,CDDATLEN       LOAD DATA  LENGTH  (-1)
          SR    R0,R15             COMPUTE EXCESS ROOM IN  COLUMN
@@ -2579,7 +2598,16 @@ COLBCNT  LH    R0,CDCALCNT        ANY CALCULATIONS INVOLVED  ???
          JE    COLBMOVE
          AR    R14,R0             RIGHT JUSTIFY  DATA
 *
-COLBMOVE EX    R15,MVCDATA        COPY  DATA TO  OUTPUT RECORD
+COLBMOVE DS    0H
+         LA    R15,256(,R15)      ROUND UP TO  256 MULTIPLE
+         LR    R0,R15
+         SRL   R0,8               No of 256 blocks into r0
+         J     COLPmvEND
+COLPmvLP MVC   0(256,R14),0(R1)
+         LA    R1,256(,R1)
+         LA    R14,256(,R14)
+COLPmvEND BRCT  R0,COLPmvLP
+         EX    R15,MVCDATA        COPY  DATA TO  OUTPUT RECORD
          J     COLBNEXT
                      EJECT
 ***********************************************************************
@@ -2676,6 +2704,7 @@ COLBEDIT MVC   SAOUTFMT,CDOUTFMT  COPY  EDITED   FORMAT
 *
          LH    R15,CDCOLSIZ       LOAD  EDITED  COLUMN   WIDTH (-1)
          EX    R15,BLNKTGT        INITIALIZE TARGET AREA TO SPACES
+*         
          AHI   R15,1              INCREMENT TO TRUE LENGTH
 *
          LH    R0,CDMSKLEN        LOAD  MASK LENGTH
@@ -2791,7 +2820,18 @@ COLBTRAI BCTR  R15,0
          JE    COLBTRAI           YES - LOOP
 COLBTREN SR    R15,R1             COMPUTE  DATA  LENGTH (-1)
 *
-COLBSHFT EX    R15,MVCDATA        COPY  DATA TO  OUTPUT RECORD
+COLBSHFT DS    0H
+         LA    R15,256(,R15)      ROUND UP TO  256 MULTIPLE
+         LR    R0,R15
+         SRL   R0,8               No of 256 blocks into r0
+         J     COLPshEND
+COLPshLP MVC   0(256,R14),0(R1)
+         LA    R1,256(,R1)
+         LA    R14,256(,R14)
+COLPshEND BRCT R0,COLPshLP
+         EX    R15,MVCDATA        COPY  DATA TO  OUTPUT RECORD
+         LLCR  r15,r15            remainder of the move length
+*
          LA    R14,1(R14,R15)
          if    cli,vw_string_delimiter,ne,x'00',and,  quote needed and +
                cli,cdoutfmt+1,ne,fm_edit            NOT edited numeric
@@ -6011,7 +6051,15 @@ BLDHA    CLI   CDPRTIND,C'Y'      PRINT THIS COLUMN ???
          LA    R14,DASHTEXT(R14)
          LH    R15,CDCOLSIZ       LOAD  COLUMN  WIDTH (-1)
          Larl  R1,DASH
-         EXrl  R15,BLDDASH
+*
+         LA    R15,256(,R15)      ROUND UP TO  256 MULTIPLE
+         LR    R0,R15
+         SRL   R0,8               No of 256 blocks into r0
+         J     BLDHDEND
+BLDHDLP  MVC   0(256,R14),DASH
+         LA    R14,256(,R14)
+BLDHDEND BRCT  R0,BLDHDLP
+         EXRL  R15,BLDDASH
 *
 BLDH1    LA    R1,CDHEAD1         POINT  TO HEADER 1
          BRAS  R14,CALCHLEN       DETERMINE ACTUAL HEADER LENGTH (R15)
@@ -8254,7 +8302,7 @@ STDMASKL DC  X'4020202020202020202020202020202020202021204B202020'
          DROP  R6
                      EJECT
          ds  0h (just to make sure LARL works )
-DASH     DC  80C'-'
+DASH     DC 256C'-'
 HEXFF    DC 256X'FF'
 ZEROES   DC  32X'00'
 SPACES   DC 256C' '

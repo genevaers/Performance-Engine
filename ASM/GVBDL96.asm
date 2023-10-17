@@ -147,7 +147,8 @@ R15      EQU   15
          Copy  GVB0200A
          Copy  GVB0200B
 *
-MAXSRC   EQU   256
+MAXSRC   EQU   32767
+*AXSRC   EQU   256
 STDMAP   EQU   25                       STANDARD CCYYMMDDHHMMSSTTNNNN
 MAXDEC   EQU   08                       MAXIMUM  NO. OF DECIMALS
 *
@@ -200,7 +201,7 @@ dl96start equ  *
          USING PARMAREA,R10
 *
          MVI   SAFMTERR,X'00'     ASSUME FIELD DATA  IS ALWAYS GOOD
-                        SPACE 3
+*
          lg    R1,SAVALADR        LOAD  SOURCE DATA  AREA   ADDRESS
 *
          lgh   R2,SAVALLEN        LOAD  SOURCE DATA  LENGTH
@@ -554,6 +555,9 @@ NUMSLEN  lgr   R15,R2             COMPUTE NO. OF LEADING ZEROES NEEDED
          lgh   R0,SAOUTFMT
 *
          Clije  R0,FC_ALNUM,alpha
+
+         CLIJH R14,32,COLERR01    Numeric column can't be > 32 (this
+*                                  prevents potential abends)
 
          select clij,r0,eq
          when  (fc_pack,fc_sortp,fc_float)
@@ -925,7 +929,7 @@ ALPHA    llgt  R3,TGTADDR         LOAD  OUPTUT AREA ADDRESS
          CLI   SAOUTJUS,C'L'      LEFT JUSTIFY ???
          BRE   ALPHALFT           YES - BYPASS BACKSCAN
 *
-         LA    R14,0(R1,R2)
+         LA    R14,0(R1,R2)       Point to end of source
 *
          do until=(cli,0(r14),ne,c' ') scan past the blanks
            bctgr R14,0
@@ -934,59 +938,119 @@ ALPHA    llgt  R3,TGTADDR         LOAD  OUPTUT AREA ADDRESS
 
          LA    R14,1(,R14)        CORRECT DATA LENGTH
          sgr   R14,R1
-         lgr   R15,R14
+         lgr   R15,R14            save data length for later
          sgr   R14,R0             R14 = EXCESS CHARACTERS IN SOURCE
          BRP   ALPHACUT           BRANCH IF SOURCE > TARGET
          BRZ   ALPHAMVC           BRANCH IF SOURCE = TARGET
 *
-         lcgr  R14,R14
+         lcgr  R14,R14            load complement (num spaces before)
          if CLI,SAOUTJUS,ne,C'R'
-           srlg R14,r14,1
+           srlg R14,r14,1         find centre for justification = C
          endif
 *
-         MVI   0(R3),C' '         INSERT  LEADING SPACE
-         if aghi,R14,-2,NM         COMPUTE ADD'L   SPACES NEEDED (-1)
-           exrl R14,EXTEND
-         endif
-         aghi  R14,2
+         lgr   r4,r14            save number of spaces
+         MVI   0(R3),C' '       INSERT  LEADING SPACE
+         if aghi,R14,-2,NM        COMPUTE ADD'L   SPACES NEEDED (-1)
+
+           SRLG R0,R14,8
+           AHI  R0,1
+           SLLG R14,R14,56
+           SRLG R14,R14,56
+           BRU  ALPHAF_M1
+ALPHAF_M0  MVC  1(256,R3),0(R3)     PROPAGATE 256 BYTES
+           LA   R3,256(,R3)         ADVANCE target
+ALPHAF_M1  BRCT R0,ALPHAF_M0
+           EXRL R14,EXTEND         INITIALIZE TARGET AREA TO SPACES
+
 *
-         LA    R3,0(R3,R14)       ADJUST TARGET ADDR FOR  JUSTIFY
+         endif
+         LA    R3,2(R3,R14)       ADJUST TARGET ADDR FOR  JUSTIFY
+         lgr   R14,r4             restore saved number of spaces
+*
          BRU   ALPHAMVC
 *
 ALPHALFT lgr   R15,R2             ASSUME SOURCE DATA WILL FIT
          lgr   R14,R2             R14 = EXCESS CHARACTERS IN SOURCE
          sgr   R14,R0
          BRNP  ALPHAMVC           BRANCH IF SOURCE <= TARGET
-         bctgr R14,0
-         exrl  R14,CHKLEADZ
-         BRNE  ALPHACUT
 *
          CLI   SAVALFMT+1,FC_ALNUM SOURCE  DATA TYPE ALPHANUMERIC  ???
-         BRE   ALPHACUT            YES - BRANCH
+         BRE   ALPHACUT            YES - test for spaces
+*                                 Otherwise test for leading zeros
+* note - if the source is numeric then it's not gonna be > 256
+         bctgr R14,0              reduce for EXRL
+         exrl  R14,CHKLEADZ
+         BRNE  ALPHACUT
 *
          lgr   R2,R0              SKIP LEADING ZEROES
          LA    R1,1(R1,R14)
          sgr   R14,R14
          BRU   ALPHAMVC
 *
-ALPHACUT lgr   R15,R1             LOAD BEGINNING OF TRUNCATED DATA ADDR
-         agr   R15,R0
+* test for spaces (source alphanumeric so could be > 256)
+*
+ALPHACUT DS    0H
+         bctgr R14,0              reduce length for EXRL
+         lgr   R15,R1             Address source ...
+         agr   R15,R0             .. skip to end that will be truncated
+* test here if R14 is greater than 255 ...
+         CHI   r14,255
+         BRNH  ALPHACHKS
+*
+         SRLG  R0,R14,8
+         AHI   R0,1
+         SLLG  R14,R14,56
+         SRLG  R14,R14,56
+         BRU   ALPHAC_C1
+ALPHAC_C0 CLC  0(0,R15),SPACES    ALL spaces
+          BRNE ALPHATRUNC
+         LA    R15,256(,R15)      ADVANCE target
+ALPHAC_C1 BRCT R0,ALPHAC_C0
+         EXRL  R15,MOVEIT         MOVE SOURCE TO OUTPUT  AREA
+         LA    R3,1(R3,R15)       ADVANCE TO END OF DATA
+*
+ALPHACHKS DS   0H
          exrl  R14,CHKLEADS
          if    (NE)
            MVI SAFMTERR,EMTRUNC   INDICATE   TRUNCATION OCCURRED
          endif
 *
-         lgr   R15,R0             USE  MAXIMUM  (COLUMN SIZE)
+ALPHATRUNC DS  0H
+         MVI SAFMTERR,EMTRUNC     INDICATE   TRUNCATION OCCURRED
+         llgt  R14,LENADDR
+         lgh   R15,0(,R14)        Use column/target length
+
+*        lg    R15,R0             USE  MAXIMUM  (COLUMN SIZE)
 *
-ALPHAMVC bctgr R15,0              DECR MOVE  LENGTH FOR  EXECUTE
-         exrl  R15,MOVEIT         MOVE SOURCE TO OUTPUT  AREA
+* Move source into target
+*
+ALPHAMVC bctgr R15,0              DECR data length FOR EXECUTE
+*
+         SRLG  R0,R15,8
+         AHI   R0,1
+         SLLG  R15,R15,56
+         SRLG  R15,R15,56
+         BRU   ALPHAM_M1
+ALPHAM_M0 MVC  0(256,R3),0(R1)    PROPAGATE 256 BYTES
+         LA    R3,256(,R3)        ADVANCE target
+         LA    R1,256(,R1)        ADVANCE source
+ALPHAM_M1 BRCT R0,ALPHAM_M0
+         EXRL  R15,MOVEIT         MOVE SOURCE TO OUTPUT  AREA
          LA    R3,1(R3,R15)       ADVANCE TO END OF DATA
 *
          lcgr  R14,R14            EXTENSION  NEEDED ???
          BRNP  ALPHAXIT
          MVI   0(R3),C' '         INSERT  TRAILING SPACE
          if aghi,R14,-2,NM         COMPUTE ADD'L   SPACES NEEDED (-1)
-           exrl R14,EXTEND
+           SRLG R0,R14,8
+           AHI  R0,1
+           SLLG R14,R14,56
+           SRLG R14,R14,56
+           BRU ALPHAF_M3
+ALPHAF_M2  MVC 1(256,R3),0(R3)     PROPAGATE 256 BYTES
+           LA  R3,256(,R3)         ADVANCE target
+ALPHAF_M3  BRCT R0,ALPHAF_M2
+           EXRL R14,EXTEND         INITIALIZE TARGET AREA TO SPACES
          endif
          LA    R3,2(R3,R14)       ADVANCE TO END OF DATA
 *
@@ -1400,6 +1464,8 @@ Ret_err  equ   *
 *
 MSKERR01 MVI   SAFMTERR,EMSRCDEC  SOURCE DEC LENGTH EXCEEDS FIELD LEN
          BRU   Ret_err            RETURN WITH ERROR
+COLERR01 MVI   SAFMTERR,EMOUTNUM  COLUMN SIZE TOO LARGE FOR NUMERIC
+         BRU   Ret_err            RETURN WITH ERROR
                         SPACE 3
          DS   0D
 EXTEND   MVC   1(0,R3),0(R3)        *** EXECUTED ***
@@ -1507,26 +1573,28 @@ OCT      DC    C'OCTOBER'
 NOV      DC    C'NOVEMBER'
 DEC      DC    C'DECEMBER'
 *
-EMBAD    EQU   01  'INVALID DATA IN SOURCE FIELD
-EMTRUNC  EQU   02  'DATA TRUNCATED TO FIT WITHIN FIELD'
-EMFUNC   EQU   03  'INVALID FUNCTION CODE'
-EMMAXOUT EQU   04  'INVALID MAXIMUM OUTPUT AREA LENGTH'
-EMOUTFUL EQU   05  'OUTPUT AREA FULL (OVERFLOW)'
-EMOCCURS EQU   06  'INVALID OCCURENCE COUNT'
-EMFORMAT EQU   07  'INVALID FORMAT CODE'
-EMSRCLEN EQU   08  'SOURCE LENGTH IS NEGATIVE OR TOO LONG'
-EMRPTLEN EQU   09  'COLUMN WIDTH IS NEGATIVE OR TOO LONG'
-EMMSKLEN EQU   10  'MASK LENGTH EXCEEDS COLUMN WIDTH'
-EMMSKSRC EQU   11  'MASK LENGTH AND SOURCE LENGTH INCONSISTENT'
-EMHDRLEN EQU   12  'HEADER LENGTH EXCEEDS COLUMN WIDTH'
-EMSRCDEC EQU   13  'SOURCE DECIMALS INCONSISTENT WITH SOURCE LENGTH'
-EMMSKDIG EQU   14  'MASK DIGITS EXCEED SOURCE DIGITS'
-EMMSKDEC EQU   15  'MASK DECIMALS EXCEED SOURCE DECIMALS'
-EMMAXDIG EQU   16  'MAXIMUM NUMERIC LENGTH EXCEEDED FOR ROUNDING'
-EMFLDDEC EQU   17  'FIELD DECIMALS BUT NO MASK'
-EMFLDNEG EQU   18  'FIELD NEGATIVE BUT NO MASK'
-EMDATEIC EQU   19  'DATE FIELDS INCOMPATIBLE'
-                        SPACE 3
+* The error code equates are in DL96EQU (copy here for easy reference)
+*
+*EMBAD    EQU   01  'INVALID DATA IN SOURCE FIELD
+*EMTRUNC  EQU   02  'DATA TRUNCATED TO FIT WITHIN FIELD'
+**MFUNC   EQU   03  'INVALID FUNCTION CODE'
+*EMOUTNUM EQU   04  'INVALID MAXIMUM OUTPUT AREA LENGTH'
+*EMOUTFUL EQU   05  'OUTPUT AREA FULL (OVERFLOW)'
+*EMOCCURS EQU   06  'INVALID OCCURENCE COUNT'
+*EMFORMAT EQU   07  'INVALID FORMAT CODE'
+*EMSRCLEN EQU   08  'SOURCE LENGTH IS NEGATIVE OR TOO LONG'
+**MRPTLEN EQU   09  'COLUMN WIDTH IS NEGATIVE OR TOO LONG'
+*EMMSKLEN EQU   10  'MASK LENGTH EXCEEDS COLUMN WIDTH'
+*EMMSKSRC EQU   11  'MASK LENGTH AND SOURCE LENGTH INCONSISTENT'
+*EMHDRLEN EQU   12  'HEADER LENGTH EXCEEDS COLUMN WIDTH'
+*EMSRCDEC EQU   13  'SOURCE DECIMALS INCONSISTENT WITH SOURCE LENGTH'
+*EMMSKDIG EQU   14  'MASK DIGITS EXCEED SOURCE DIGITS'
+*EMMSKDEC EQU   15  'MASK DECIMALS EXCEED SOURCE DECIMALS'
+*EMMAXDIG EQU   16  'MAXIMUM NUMERIC LENGTH EXCEEDED FOR ROUNDING'
+*EMFLDDEC EQU   17  'FIELD DECIMALS BUT NO MASK'
+*EMFLDNEG EQU   18  'FIELD NEGATIVE BUT NO MASK'
+*EMDATEIC EQU   19  'DATE FIELDS INCOMPATIBLE'
+         COPY DL96EQU
          LTORG
                         EJECT
 code     loctr
