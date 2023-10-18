@@ -2875,7 +2875,13 @@ INITRETN   llgt R8,THRDES          LOAD "ES"  ROW ADDR
              llgf R15,GVBMRVK
 
            when   DB2SQL          DB2   EVENT  FILE  ???
-             llgf R15,MRSQADDR
+             llgt r15,execdadr    get address of exec area
+             if (cli,EXEC_DB2HPU,eq,c'Y')
+               llgf R15,MRSUADDR
+             else
+               llgf R15,MRSQADDR
+             endif
+             drop r15
              if ltr,r15,r15,z     Not available
                LHI r14,DB2_SQL_UNAVAILABLE
                LHI R15,8
@@ -5082,6 +5088,8 @@ ZIIPADDR DC    V(GVBMRZP)
 *
          WXTRN GVBMRSQ
 MRSQADDR DC    V(GVBMRSQ)         DB2 SQL TEXT READ ROUTINE
+         WXTRN GVBMRSU
+MRSUADDR DC    V(GVBMRSU)         DB2 HPU ROUTINE
 *
          WXTRN GVBMRDV
 MRDVADDR DC    V(GVBMRDV)
