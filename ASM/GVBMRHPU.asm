@@ -1,0 +1,385 @@
+***********************************************************************
+*
+* MEMBER : GVBMRHPU -- EXIT CALLED BY DB2HPU
+*
+***********************************************************************
+*
+*  THIS MEMBER IS CALLED 3 TIMES DURING THE UNLOADING OF A TABLE.
+*  R1 CONTAINS THE ADDRESS OF A PARAMETER BLOCK AS DESCRIBED BY
+*  THE EXTXPLST DSECT.
+*
+*  THE MOST IMPORTANT FIELD IS THE POINTER TO THE SQLDA OF THE
+*  PROCESSED TABLE WHICH GIVES DATAS IN EXTERNAL FORMAT.
+*
+*  FUNCTION 0 :
+*   PROCESS OF THE DB2 ROW
+*   RETURN CODES :
+*    0   : ROW TO BE WRITTEN IN THE OUTPUT FILE
+*    4   : ROW DISCARDED
+*
+*  FUNCTION 1 :
+*   INITIALIZATION OF THE EXIT
+*   RETURN CODES :
+*    0   : EXIT ACTIVE FOR THIS SELECT STATEMENT
+*    4   : DESACTIVATION OF THE EXIT FOR THIS SELECT
+*
+*  FUNCTION 2 :
+*   TERMINATION OF THE EXIT
+*   RETURN CODES NOT USED
+*
+***********************************************************************
+*
+         YREGS
+*
+*        SQLDA DESCRIPTION
+*
+SQLDA    DSECT
+SQLDAID  DS    CL8              ID
+SQLDABC  DS    F                BYTE COUNT -- IS THIS LENGTH OF ROW ??
+SQLN     DS    H                NUMBER OF COLUMNS
+SQLD     DS    H                NUMBER OF SELECTED COLUMNS
+SQLVAR   DS    0F               BEGIN COLUMNS
+SQLDSIZ  EQU   *-SQLDA          SIZE OF FIXED PART
+*
+SQLVARN  DSECT                  COLUMN
+SQLTYPE  DS    H                TYPE
+SQLLEN   DS    0H               LENGTH
+SQLPRCSN DS    X                DEC PRECISION
+SQLSCALE DS    X                DEC SCALE
+SQLDATA  DS    A                ADRESS OF DATA
+SQLIND   DS    A                ADRESS NULL FIELD INDICATOR
+SQLNAME  DS    H,CL30           SIZE AND COLUMN NAME
+SQLVSIZ  EQU   *-SQLVARN
+*
+EXTXPLST DSECT                  PARMAMETERS PASSED TO THE EXIT
+EXTXFUNC DS    F                FUNCTION (0 PROCESS, 1 INIT, 2 TERM)
+EXTXASQL DS    A                ADDRESS OF SQLDA
+EXTXATBN DS    A                ADDRESS OF TABLE IDENTIFICATOR
+*                                      CREATOR(8) / TABLENAME(18)
+         DS    H                RESERVED
+EXTXNREF DS    H                REFERENCE NUMBERID
+EXTXASSI DS    A                ADDRESS OF SSID(4)
+EXTXAUSR DS    A                ADDRESS OF USER(8)
+EXTXATID DS    A                ADDRESS OF UTILITY ID(16)
+EXTXATB  DS    A                ADDRESS OF TABLE IDENTIFICATOR
+*                                VARCHAR CREATOR / TABLENAME
+         DS    5F               RESERVED
+EXTXAUWA DS    A                ADDRESS OF WORKAREA
+EXTXEXUE DS    A                EXUEXU ENTRY IN EXUEXU TABLE
+EXTXTCB  DS    F                FIELDS RESERVED FOR THE EXIT
+EXTXASOC DS    X                FIELDS RESERVED FOR THE EXIT
+         DS    3X               FIELDS RESERVED FOR THE EXIT
+         DS    F                FIELDS RESERVED FOR THE EXIT
+*        DS    4F               FIELDS RESERVED FOR THE EXIT
+EXTXAMSG DS    A                ADDRESSE OF MESSAGE
+EXTXLMSG DS    F                LENGTH OF MESSAGE
+EXTXUMSG DS    CL100            EXIT MESSAGE AREA
+EXTXUWA  DS    0F               EXIT WORK AREA
+         ORG   EXTXPLST+1024    END OF LIST
+*
+GETM     DSECT
+SAVE     DS    18F              LOCAL SAVEAREA
+TBCREATL DS    H                CREATOR LENGTH
+TBCREAT  DS    CL160            TABLE CREATOR
+TBNAMEL  DS    H                TABLE NAME LENGTH
+TBNAME   DS    CL160            TABLE NAME
+*WORK     DS    CL444            WORKAREA
+*
+WKREENT  DS    XL128            RE-ENTRANT  PARAMETER  LIST
+WKTOKNRC DS    A                NAME/TOKEN  SERVICES RETURN CODE
+WKTOKNAM DS    XL16             TOKEN NAME
+WKTOKN   DS    XL16             TOKEN
+WKEXU1ST DS    A                FIRST EXUEXU ENTRY
+WKEXUNUM DS    H                NUMBER OF EXUEXU ENTRIES
+         DS    XL2              WORKAREA
+WORK     DS    CL272            WORKAREA
+*
+GETML    EQU   *-GETM           LENGTH
+*
+*WKAREA   DSECT ,                ----------------------------------
+*WKECBMAI DS    XL4              ECB THAT MAIN TASKS WAITS ON
+*WKECBEXI DS    XL4              ECB THAT EXIT WAITS ON
+*WKRECPOS DS    A                CURRENT POSITION OF RECORD IN BLK
+*WKRECLST DS    A                POSITION OF LAST BYTE IN DATABLOCK
+*WKROWLEN DS    F                CALCULATED ROW LENGTH
+*WKCOUNT1 DS    F
+*WKCOUNT2 DS    F
+*WKEOF    DS    X            EXIT HAS RETURNED FINAL (PARTIAL) BLOCK
+*WKWAIT   DS    X            EXIT HAS FILLED BUFFER AND IS WAITING
+*WKSTATUS DS    X            1: EXIT FILLING BUFFER. 2: BUFFER FULL
+*WKFINAL  DS    X            PENDING FINAL CALL AFTER RETURNING LST BLK
+*WKRECNUM DS    F
+*WKBLKRWD DS    XL4
+*WKDATBLK DS    XL8192
+*WKAREAL  EQU   *-WKAREA
+*
+         COPY  GVBASSRT
+         COPY  GVBMR95C
+         COPY  GVBMR95L
+         COPY  GVB0200B
+*
+INZEXIT  RMODE 24
+INZEXIT  AMODE 31
+INZEXIT  CSECT
+         STM   R14,R12,12(R13)  SAVE CALLERS REGISTERS
+         LR    R12,R15          R12=BASE REGISTER
+         USING INZEXIT,R12      ESTABLISH ADDRESSABILITY
+         LR    R10,R1           GET PARAMETERS
+         USING EXTXPLST,R10     "
+         L     R11,EXTXAUWA     R11=WORKAREA ADDRESS
+         USING GETM,R11         WORKAREA ADDRESSABILITY
+         ST    R11,8(R13)       GIVE CALLER MY SAVE AREA ADDRESS
+         ST    R13,4(,R11)      SAVE CALLERS SAVE AREA ADDRESS
+         LR    R13,R11
+         L     R2,EXTXFUNC      GET FUNCTION
+         SLL   R2,2             * 4 FOR DISPACHING
+         B     *+4(R2)
+         B     PROCESS          FUNCTION 0
+         B     INIT             FUNCTION 1
+         B     TERM             FUNCTION 2
+*
+***      INITIALIZATION
+*
+INIT     DS    0H
+         WTO 'GVBMRHPU INIT CALL'
+*
+*  A READY-TO-USE WORKAREA OF 840 BYTES IS ALLOCATED BY THE CALLING
+*  FUNCTION. IF MORE SPACE IS NEEDED, A LARGER AREA SHOULD BE
+*  ALLOCATED HERE.
+*  EXAMPLE:
+*        GETMAIN R,LV=GETML     GET A WORKAREA
+*        ST    R1,EXTXAUWA      SAVE GETMAIN ADDRESS
+*        LR    R11,R1
+*
+**       ST    R11,8(R13)       GIVE CALLER MY SAVE AREA ADDRESS
+**       ST    R13,4(R11)       SAVE CALLERS SAVE AREA ADDRESS
+*
+         L     R3,EXTXATB       ADDRESS OF TABLE IDENTIFICATOR
+*
+         L     R1,0(R3)         TABLE CREATOR VARCHAR
+         LH    R2,0(R1)         LENGTH
+         STH   R2,TBCREATL      STORE LENGTH
+         BCTR  R2,0             FOR EXECUTE
+         EX    R2,MVCOWNER      COPY OWNER
+*
+*
+         L     R1,4(R3)         TABLE NAME VARCHAR
+         LH    R2,0(R1)         LENGTH
+         STH   R2,TBNAMEL       STORE LENGTH
+         BCTR  R2,0             FOR EXECUTE
+         EX    R2,MVCNAME       COPY TABLE NAME
+*
+         MVC   WKTOKNAM+0(8),GENEVA
+         MVC   WKTOKNAM+8(8),PGMNAME
+*
+         CALL  IEANTRT,(TOKNLVL2,WKTOKNAM,WKTOKN,WKTOKNRC),            X
+               MF=(E,WKREENT)
+         L     R15,WKTOKNRC       SUCCESSFUL   ???
+         LTR   R15,R15
+         JZ    INIT0010
+         WTO   'NAME/TOKEN NOT FOUND'
+         J     RC4
+*
+INIT0010 EQU   *
+         L     R8,WKTOKN        R8 => EXUEXU TABLE HEADER
+         LTR   R8,R8
+         JP    INIT0012
+         WTO   'SHARED STORAGE NOT FOUND'
+         J     RC4
+*
+INIT0012 EQU   *
+         MVI   EXTXASOC,X'00'   NOT ALREADY ASSOCIATED
+         AHI   R8,-16           BACK UP TO EXUEXU HEADER
+         LGH   R9,8(,R8)        NUMBER OF TABLE ENTRIES
+         STH   R9,WKEXUNUM      REMEMBER NUMBER OF TABLE ENTRIES
+         AHI   R8,16            FORWARD TO FIRST TABLE ENTRY
+         ST    R8,WKEXU1ST      REMEMBER FIRST TABLE ENTRY
+         USING EXUEXU,R8
+*
+         ENQ (GENEVA,MRSUNAME,E,,STEP),RNL=NO
+*
+INIT0016 EQU   *
+         CLI   EXUASSOC,X'FF'   EXUEXU SLOT ALREADY USED ?
+         JNE   INIT0018         NO, GO
+         LA    R8,EXUEXUL(,R8)
+         BRCT  R9,INIT0016
+         DC    H'0'             SHOULDN'T HAPPEN
+*
+INIT0018 EQU   *
+         XC    EXTXTCB,EXTXTCB
+         MVI   EXTXASOC,X'FF'   ALREADY ASSOCIATED NOW
+         MVI   EXUASSOC,X'FF'   EXUEXU SLOT NOW USED
+         ST    R8,EXTXEXUE      REMEMBER EXUEXU ENTRY
+*
+         LLGT  R1,WKTOKN        EXUEXU HEADER
+         AHI   R1,-16           BACK UP TO EXUEXU HEADER
+         LGH   R0,10(,R1)       COUNT OF INITIALIZATIONS
+         AHI   R0,1             INCREMENT
+         STH   R0,10(,R1)
+*
+         DEQ (GENEVA,MRSUNAME,,STEP),RNL=NO
+*
+         WTO 'EXUEXU ASSOCIATION MADE'
+*
+         B     RC0
+*
+MVCOWNER MVC   TBCREAT,2(R1)
+MVCNAME  MVC   TBNAME,2(R1)
+*
+***      PROCESS RETURNED ROW
+*
+PROCESS  DS    0H
+***      WTO 'GVBMRHPU PROCESS CALL'
+         USING PSA,R0
+         L     R8,PSATOLD
+         NC    EXTXTCB,EXTXTCB
+         JZ    A0050
+         C     R8,EXTXTCB
+         JE    A0050
+         WTO 'DB2HPU CHANGE OF TCB'
+A0050    EQU   *
+         ST    R8,EXTXTCB       STORE THIS ONE
+         DROP  R0
+*
+         L     R8,EXTXEXUE
+         MVI   EXUSTAT,C'1'     FILLING BUFFER
+*
+         L     R3,EXTXASQL      GET SQLDA ADDRESS
+         USING SQLDA,R3
+         LA    R4,SQLDSIZ(,R3)  PASS FIXED AREA
+         USING SQLVARN,R4
+*
+*        FIRST TIME DETERMINE THE ROW LENGTH
+*
+         LT    R9,EXUROWLN
+         JP    A0140
+         XR    R9,R9            CUMULATIVE ROW LENGTH
+         XR    R5,R5            GET NUMBER OF COLUMNS
+         LH    R5,SQLN
+A0144    EQU   *
+         LH    R7,SQLLEN
+         AR    R9,R7
+         LA    R4,SQLVSIZ(,R4)
+         BCT   R5,A0144         NEXT COLUMN
+         ST    R9,EXUROWLN
+*
+*        PROCESS ALL COLUMNS
+*
+A0140    EQU   *
+         ASI   EXURNUM,1        INCREMENT RECORD COUNT
+         L     R1,EXURPOS       THIS RECORD
+         LR    R0,R1
+         AR    R0,R9
+         C     R0,EXURLAST      ENOUGH BYTES LEFT FOR IT TO FIT ?
+         JNH   A0147            YES, THERE SHOULD ALWAYS BE
+         DC    H'0'
+A0147    EQU   *
+         ST    R0,EXURPOS       NEXT RECORD
+         AR    R0,R9
+*
+         C     R0,EXURLAST      2 * ENOUGH BYTES LEFT FOR IT TO FIT ?
+         JNH   A0146            YES, GO
+         MVI   EXUWAIT,C'Y'     NO, THIS ONE FITS THEN WE MUST WAIT
+*
+A0146    EQU   *
+         LA    R4,SQLDSIZ(,R3)  PASS FIXED AREA
+         XR    R5,R5            GET NUMBER OF COLUMNS
+         LH    R5,SQLN
+*
+         LR    R9,R1
+*
+*        PROCESS EACH COLUMN
+*
+A0160    EQU   *
+         LH    R7,SQLLEN
+         BCTR  R7,0
+*
+         L     R6,SQLDATA
+         EX    R7,MVCFIELD
+         LA    R1,1(R7,R1)
+*
+         LA    R4,SQLVSIZ(,R4)
+         BCT   R5,A0160         NEXT COLUMN
+*
+***      WTO 'DB2HPU STORING RECORD IN BLOCK'
+         CLI   EXUWAIT,C'Y'
+         JE    A0170            JUST STORE A RECORD IN THE BLOCK
+         J     A0180            END PROCESS OK
+*
+A0170    EQU   *
+         MVI   EXUSTAT,C'2'     BUFFER FULL
+         XC    EXUECBEX,EXUECBEX  ----
+*
+***      WTO 'DB2HPU POSTING MR95'
+         POST  EXUECBMA         RETURN A RECORD BLOCK TO MR95
+***      WTO 'DB2HPU WAITING FOR MR95 TO CONSUME LAST BLOCK'
+         WAIT  1,ECB=EXUECBEX   WAIT FOR MR95 TO CONSUME THE BLOCK
+***      WTO 'DB2HPU MR95 HAS CONSUMED LAST BLOCK'
+         MVI   EXUWAIT,C' '       RESET THE NEED TO POST/WAIT FLAG
+         XC    EXURNUM,EXURNUM    RESET NUMBER OF RECORDS IN BLOCK
+         LLGT  R0,EXUBLKA         RESET RECORD POSITION IN BLOCK
+         ST    R0,EXURPOS
+*
+A0180    EQU   *
+* ****** B     RC0              END PROCESS OK
+         B     RC4              END PROCESS OK (RETURN NO RECORD)
+*
+MVCFIELD MVC   0(0,R1),0(R6)
+*
+*        EXIT HAS FINISHED UNLOADING RECORDS
+*
+TERM     EQU   *
+         WTO 'GVBMRHPU TERM CALL'
+         WTO 'DB2HPU POSTING MR95 AT TERMINATION OF THIS SUBTASK'
+*
+         ENQ (GENEVA,MRSUNAME,E,,STEP),RNL=NO
+         LLGT  R1,WKTOKN        EXUEXU HEADER
+         AHI   R1,-16           BACK UP TO EXUEXU HEADER
+         LGH   R0,12(,R1)       COUNT OF TERMINATIONS
+         AHI   R0,1             INCREMENT
+         STH   R0,12(,R1)
+         DEQ (GENEVA,MRSUNAME,,STEP),RNL=NO
+*
+         L     R8,EXTXEXUE
+         MVI   EXUEOF,C'Y'
+         MVI   EXUSTAT,C'2'     BUFFER FULL AS IT'S GOING TO GET
+         POST  EXUECBMA         SAY WE'VE FINISHED
+*
+*   IF A WORKING AREA WAS ALLOCATED, IT SHOULD BE FREED HERE
+*   EXAMPLE:
+*        L     R1,EXTXAUWA      FREE WORKAREA
+*        FREEMAIN R,A=(R1),LV=GETML
+*
+         B     RC0              END TERMINATION OK
+*
+RC0      EQU   *
+         LA    R15,0
+         B     RETURN
+RC4      EQU   *
+         LA    R15,4
+         B     RETURN
+RC8      EQU   *
+         LA    R15,8
+*        B     RETURN
+RETURN   EQU   *
+         L     R13,SAVE+4
+         L     R14,12(R13)
+         LM    R0,R12,20(R13)
+         BSM   0,R14
+*
+TOKNLVL2 DC    A(2)             NAME/TOKEN  AVAILABILITY  LEVEL
+GENEVA   DC    CL8'GENEVA  '         TOKEN  NAME
+PGMNAME  DC    CL8'GVBMRSU '
+MRSUNAME DC    CL8'MRSUEXA '          MINOR  ENQ  NODE FOR WRITE I/O
+TOKNPERS DC    F'0'
+IEANTCR  DC    V(IEANTCR)
+IEANTRT  DC    V(IEANTRT)
+         LTORG ,
+*
+         DCBD  DSORG=PS
+*
+         IHADCBE
+*
+         IHAPSA
+*
+         END
