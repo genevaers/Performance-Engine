@@ -3713,6 +3713,20 @@ TK02_30  Larl  R6,BADNUMS         --> ERROR MESSAGE
 ***********************************************************************
 TK02_40  LA    R6,EXSORTKY        COMPUTE VALUE ADDRESS
          AH    R6,SKVALOFF
+* check size of sort key value and that it will fit in Sort Key title
+* area
+         LA    R0,SKENTLEN(,r3)   point to end of SKT area
+         SR    R0,R14             calc length left
+         CR    R0,R15             Will SK fit? 
+         JNL   TK02_42            fits ok
+         LR    R15,R0             no, set to max length
+         j     TK02_45
+*
+*LHI   R14,MSG#NNN        TERMINATE EXECUTION
+*         MVC   ERRDATA(8),XXXX
+*         J     RTNERROR
+*         
+TK02_42  equ   *
 *
          CH    R15,SKFLDLEN       FORMATTED LENGTH = VALUE LENGTH ???
          JE    TK02_45            YES - BYPASS POSSIBLE PADDING

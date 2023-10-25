@@ -420,6 +420,12 @@
  GVBMSGDF 450,'&&1 - Error processing SYSIN dataset for sort',TYPE=U
  GVBMSGDF 451,'&&1 - Column overflow occurred. Check output file(s) for+
                 filler characters (&&2)',TYPE=U
+ GVBMSGDF 452,'&&1 - Sort key length must be 256 or less',TYPE=U
+ GVBMSGDF 453,'&&1 - For Reports sort key length must be 150 or less',T+
+               YPE=U
+ GVBMSGDF 454,'&&1 - Report width must must be 256 or less. Check the l+
+               ength of the columns.',TYPE=U               
+                 
  GVBMSGDF 499,'&&1 - You will never see this message: recursive error',+
                TYPE=U
 *
