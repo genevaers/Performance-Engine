@@ -2876,6 +2876,7 @@ INITRETN   llgt R8,THRDES          LOAD "ES"  ROW ADDR
 
            when   DB2SQL          DB2   EVENT  FILE  ???
              llgt r15,execdadr    get address of exec area
+             USING EXECDATA,R15
              if (cli,EXEC_DB2HPU,eq,c'Y')
                llgf R15,MRSUADDR
              else
