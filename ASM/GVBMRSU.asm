@@ -117,16 +117,14 @@ WKPARM1  DS    XL4
 WKPARM   DS    CL100
 WKPARMX  DS    CL100
 WKRENT   DS    XL128              RE-ENTRANT  PARAMETER  LIST
+WKEXUCUR DS    A                  EXU last send to MR95
 WKECBSUB DS    XL4                ECB sub
 WKTCBSUB DS    XL4                TCB sub
 WKPARALL DS    XL2
+         DS    XL2
 WKPLISTA DS    A
 WKPL6    DS    PL6
 WKDBL1   DS    D
-WKDBL2   DS    D
-WKTEMP   DS    CL80
-WKTEM2   DS    CL80
-*
 *
 WKTOKNRC DS    A                  NAME/TOKEN  SERVICES RETURN CODE
 WKTOKNAM DS    XL16               TOKEN NAME
@@ -136,23 +134,7 @@ SYSDCB   DS    (SYSFILEL)C        SYSIN        "DCB"
 WKREC    DS    Cl80
 WKEXUADR DS    A                  ADDRESS of EXUEXU table after header
 WKECBLST DS    A                  ADDRESS OF ECB LIST TO WAIT ON
-WKUSCNT  DS    F                  Count DB2 HPU executing sub subtasks
 WKR15RSA DS    F                  Special save area for R15
-*         DS    0F            -------------------------------------
-*WKECBMAI DS    XL4              ECB THAT MAIN TASKS WAITS ON
-*WKECBEXI DS    XL4              ECB THAT EXIT WAITS ON
-*WKRECPOS DS    A                CURRENT POSITION OF RECORD IN BLK
-*WKRECLST DS    A                POSITION OF LAST BYTE IN DATABLOCK
-*WKROWLEN DS    F                CALCULATED ROW LENGTH
-*WKCOUNT1 DS    F
-*WKCOUNT2 DS    F
-*WKEOF    DS    X               exit has returned final (partial) block
-*WKWAIT   DS    X               exit has filled buffer and is waiting
-*WKSTATUS DS    X               1: exit filling buffer. 2: buffer full
-*WKFINAL  DS    X           pending final call after returning last blk
-*WKRECNUM DS    F
-*WKBLKRWD DS    XL4
-*WKDATBLK DS    XL8192
 WKLEN    EQU   (*-WKAREA)
 *
          YREGS
@@ -240,31 +222,12 @@ START    STM   R14,R12,SAVESUBR+RSA14  SAVE  CALLER'S REGISTERS
 *
 *   don't get new save area and link it to old or you loose the thread
 *
-* *      ST    R13,WKSAVE1+4      previous save area
-* *      LA    R0,WKSAVE1
-* *      ST    R0,8(,R13)         next save area
-* *      LR    R13,R0             now current save area
-*
          LR    R0,R8              INITIALIZE workarea (LOW VALUES)
          L     R1,STGBLKLN
          AHI   R1,-L'PGMNAME
          XR    R14,R14
          XR    R15,R15
          MVCL  R0,R14
-*
-*   * only one start-up of utility allowed
-*
-***      ENQ   (GENEVA,PGMNAME,E,,STEP),RNL=NO
-*
-*        if LTR,R15,R15,nz
-*          GVBMSG LOG,MSGNO=INIT_ENQ_FAIL,SUBNO=1,GENENV=GENENV,      +
-*             SUB1=(modname,8),                                       +
-*             MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
-*              MF=(E,MSG_AREA)
-*
-*          LA    R15,12
-*          J     RETURNE
-*        endif
 *
 **********************************************************************
 * GET SQL TEXT FROM VDP                                              *
@@ -430,7 +393,6 @@ A0124    EQU   *
          EXRL  R2,EXEPACK
          CVB   R0,WKDBL1
          STH   R0,WKPARALL
-         ST    R0,WKUSCNT              This is how many DB2 HPU sub
          J     A0129                   subtasks will be executing
 EXEPACK  PACK  WKDBL1(0),0(0,R1)
 *
@@ -648,7 +610,7 @@ DB2FETCH1 DS    0H
          LARL  R10,GVBMRSU        set static area base
          LLGT  R4,WKEXUADR        get first EXUEXU entry
 * ****** wto   'evntread1'
-         J     A0020              First time, skip the post
+         J     A0020              First time, straight to continue
 *
 DB2FETCH DS    0H
          STMG  R14,R12,SAVESUB3
@@ -660,54 +622,45 @@ DB2FETCH DS    0H
 * Can only post DB2 HPU exit on subsequent call allowing MR95 chance
 * to process the previous block we returned
 *
-         LGH   R15,WKPARALL
-         LLGT  R4,WKEXUADR        get first EXUEXU entry
+         LLGT  R4,WKEXUCUR        EXU block last returned to MR95
          USING EXUEXU,R4
 *
-***      dc    h'0'
-A0012    EQU   *
-         CLI   EXUFINAL,C'Y'      Did we already hit end of data ?
-         JNE   A0012A             No, go
+         CLI   EXUFINAL,C'Y'      Was it final data block from an exit?
+         JE    A0014              Yes, go
 *
-         ST    R15,WKR15RSA
+* Just another block of data
+         CLI   EXUWAIT,C'Y'       This exit instance waiting for us ?
+         JE    A0012
+         DC    H'0'
+A0012    EQU   *
+         CLI   EXUSTAT,C'3'       And correct state ?
+         JE    A0013
+         DC    H'0'
+A0013    EQU   *
+         XC    EXUECBMA,EXUECBMA  reset ECB -----
+         MVI   EXUSTAT,C' '       reset status
+         POST  EXUECBEX           allow INZEXIT instance to continue
+         J     A0020              Continue..
+*
+* Determine if final data block from the final INZEXIT instance....
+A0014    EQU   *
          ENQ (GENEVA,MRSUNAME,E,,STEP),RNL=NO
          LLGT  R1,WKEXUADR
-         AHI   R1,-16           BACK UP TO EXUEXU HEADER
-         CLC   10(2,R1),12(R1)  INITIALIZATIONS <= TERMINATIONS ?
-         JNH   A0012B           YES: we're on the final one
+         AHI   R1,-16             BACK UP TO EXUEXU HEADER
+         CLC   10(2,R1),12(R1)    INITIALIZATIONS <= TERMINATIONS ?
+         JNH   A0015              YES: we're on the final instance
 *
+*                                 NO: not the final INZEXIT instance
          DEQ (GENEVA,MRSUNAME,,STEP),RNL=NO
          wto 'not quite there yet'
-         LLGT  R15,WKR15RSA
-         MVI   EXUFINAL,C' '     Reset so we don't process entry again
-         XC    EXUECBMA,EXUECBMA reset ECB -----
-         J     A0014            NO: try next entry
-*                                 yes, is it final DB2HPU instance ?
-A0012B   EQU   *
+         XC    EXUECBMA,EXUECBMA  reset ECB -----
+         MVI   EXUSTAT,C' '       reset status
+         J     A0020              NO: continue..
+*
+A0015    EQU   *                  Final EXU (partition) !!!
          DEQ (GENEVA,MRSUNAME,,STEP),RNL=NO
          wto 'processing last EXU entry'
-         LLGT  R15,WKR15RSA
-         J     EVNTEOF    yes, go -- it's last instance and partition
-*
-A0012A   EQU   *
-         CLI   EXUWAIT,C'Y'       This exit instance waiting for us ?
-         JNE   A0014
-*
-         CLI   EXUSTAT,C'2'  not sure if we need this !!!!!!!!!!!!!!!
-         JNE   A0010
-* ****** wto   'posting exit'
-*
-         XC    EXUECBMA,EXUECBMA  reset ECB -----
-*
-         POST  EXUECBEX
-*
-         J     A0020
-*
-A0014    EQU   *
-         LA    R4,EXUEXUL(,R4)    next EXUEXU entry
-         BRCT  R15,A0012
-*
-* Drop through if nothing ready yet, and..
+         J     EVNTEOF            Go: it's last data from last instance
 *
 * Wait for one of the DB2 HPU related exits to post us
 *
@@ -729,21 +682,25 @@ A0022    EQU   *
          LA    R14,4(,R14)        next EXUEXU ECB list entry
          LA    R4,EXUEXUL(,R4)    next EXUEXU entry
          BRCT  R15,A0022
+         wto 'cant find EXU that posted us'
          DC    H'0'
 A0023    EQU   *
 * ****** wto   'next block of records has arrived'
 *                                 records or reached eof
-         CLI   EXUSTAT,C'2'
-         JE    A0010
-         CLI   EXUSTAT,C'3'
+         CLI   EXUSTAT,C'2'       block populated ?
+         JE    A0010              yes, that's correct
+         CLI   EXUSTAT,C'5'
          JNE   A0024
          wto 'error detected in subtask'
          DETACH WKTCBSUB
          J     A0202          not sure how to tell mr95 it's error !!!
 A0024    EQU   *
+         wto 'incorrect EXUSTAT status'
          DC    H'0'               this means exit is running still !!
 A0010    EQU   *
          ASI   EXUCNT1,1         Count times through
+         ST    R4,WKEXUCUR       This is the EXU being passed to MR95
+         MVI   EXUSTAT,C'3'      Passing data to MR95
 *
          CLI   EXUEOF,C'Y'
          JNE   FETCHOK            CONTINUE
@@ -788,7 +745,6 @@ A0202    EQU   *
 *
 *
 FETCHOK  DS    0H
-**       LA    R6,EXUBLKA         Current record at start of block
          LLGT  R6,EXUBLKA         Current record at start of block
          STG   R6,RECADDR         Store address of record
          LGF   R0,EXUROWLN
@@ -826,21 +782,12 @@ EVNTEOF  EQU   *
          XGR   R6,R6         Indicate NO Records and end of partitions
          STG   R6,RECADDR         Save the Record address
 *
-**       ENQ (GENEVA,MRSUNAME,E,,STEP),RNL=NO
-**       LLGT  R1,WKEXUADR
-**       AHI   R1,-16           BACK UP TO EXUEXU HEADER
-**       CLC   10(2,R1),12(R1)  INITIALIZATIONS > TERMINATIONS ?
-**       JH    EVNTEOF4         YES
-**       DEQ (GENEVA,MRSUNAME,,STEP),RNL=NO
-*
          wto 'doing detach'
-*
 *
          WAIT  1,ECB=WKECBSUB     subtask has finished altogether
 *
          DETACH WKTCBSUB
 *
-EVNTEOF4 EQU   *
          L     R2,EVNTDCBA        LOAD END-OF-FILE EXIT ADDRESS
          using IHADCB,r2
          lt    R14,dcbdcbe        is there a DCBE?
@@ -872,7 +819,6 @@ SUBTASK  ds    0h
          O     R0,=X'80000000'
          ST    R0,WKPARM0
          MVC   WKPARM1+2(2),=H'14'
-* *      MVC   WKPARM(14),=CL14'DM12,DB2UNLOAD'
          LA    R1,WKPARM0
          LINK  EP=INZUTILB
 *
@@ -881,7 +827,7 @@ SUBTASK  ds    0h
          chi   r15,4
          je    subtask3
          wto   'error from db2 hpu'
-         MVI   EXUSTAT,C'3'
+         MVI   EXUSTAT,C'5'
          POST  EXUECBMA           post main task, as noone else will
          j     subtask2
 subtask3 equ   *
