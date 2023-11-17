@@ -306,7 +306,7 @@
                TYPE=U
  GVBMSGDF 198,'&&1 - Source file type DB2 via HPU not available',      +
                TYPE=U
- GVBMSGDF 199,'&&1 - DB2 HPU has unexpected return code &&2',TYPE=U'
+ GVBMSGDF 199,'&&1 - DB2 HPU has unexpected return code &&2',TYPE=U
 *
 *
 *
