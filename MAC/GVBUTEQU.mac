@@ -220,6 +220,8 @@ NO_DATASETS    EQU 194 NO data sets located IKJEHCIR
 CIR_OUTPUT_ERR EQU 195 IKJEHCIR error. Data length error
 POSS_DSNAMES_MISSING EQU 196 Possibility of missing DSNames
 DB2_SQL_UNAVAILABLE  EQU 197 - Source file type DB2SQL not available
+DB2_HPU_UNAVAILABLE  EQU 198 - Source file type DB2HPU not available
+DB2_HPU_FAIL EQU 199 DB2HPU utility completed with non zero rc
 *
 GLOBAL_TOKEN_RT_FAIL EQU 200 - UNABLE TO retrieve GENEVA GLOBAL TOKEN
 *

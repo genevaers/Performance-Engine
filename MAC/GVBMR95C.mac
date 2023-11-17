@@ -60,26 +60,26 @@ EXTCHK_6431  DS    A           extract file amode 64 check    ROUTINE
 *
 EXTFILEL EQU   *-EXTFILE
 *
+* Structure for each instance of input partition/replicate of exit
 EXUEXU   DSECT
 EXUOUTBN DS    A                association to DB2 HPU sub task
 EXUASSOC DS    XL1              Association done
-EXUEOP   DS    XL1              Continue until end of partition
-*                                 because one DB2HPU thread has reached
-*                                 EOF for final partition
-         DS    XL2              Spare
-EXUECBMA DS    XL4              ECB THAT MAIN TASKS WAITS ON
-EXUECBEX DS    XL4              ECB THAT EXIT WAITS ON
+         DS    XL3              Spare
+EXUECBMA DS    XL4              ECB THAT MAIN TASK WAITS ON
+EXUECBEX DS    XL4              ECB THAT EXITS WAIT ON
 EXURPOS  DS    A                CURRENT POSITION OF RECORD IN BLK
 EXURLAST DS    A                POSITION OF LAST BYTE IN DATABLOCK
 EXUROWLN DS    F                CALCULATED ROW LENGTH
-EXUCNT1  DS    F
-EXUCNT2  DS    F
-EXUEOF   DS    X                exit has returned final (partial) block
-EXUWAIT  DS    X                exit has filled buffer and is waiting
-EXUSTAT  DS    X                1: exit filling buffer. 2: buffer full
-EXUFINAL DS    X            pending final call after returning last blk
-EXURNUM  DS    F
-EXUBLKA  DS    A                data block
+EXUCNT1  DS    F                # times INZEXIT instance returned block 
+EXUEOF   DS    X                This instance returned final data block
+EXUWAIT  DS    X                This instance filled buffer and waiting
+EXUSTAT  DS    X                1: exit instance filling buffer.
+*                               2: exit instance has filled buffer
+*                               3: exit instance being processed MR95
+EXUFINAL DS    X                This instance pending final call after
+*                                returning its last blk
+EXURNUM  DS    F                Number records in returned block
+EXUBLKA  DS    A                Address data block
 *
 EXUEXUL  EQU   *-EXUEXU
                         SPACE 5

@@ -126,6 +126,7 @@ WKPLISTA DS    A
 WKPL6    DS    PL6
 WKDBL1   DS    D
 *
+WKSUBERR DS    F                  Subtask return code
 WKTOKNRC DS    A                  NAME/TOKEN  SERVICES RETURN CODE
 WKTOKNAM DS    XL16               TOKEN NAME
 WKTOKN   DS    XL16               TOKEN
@@ -190,15 +191,19 @@ START    STM   R14,R12,SAVESUBR+RSA14  SAVE  CALLER'S REGISTERS
          LARL  R10,GVBMRSU        set static area base
          USING (GVBMRSU,code),R10
 *
-*        OPEN  (SNAPDCB,(OUTPUT)),MODE=31
-                        EJECT
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
 *        I N I T I A L I Z E   W O R K   A R E A                      *
 *                                                                     *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *
-         xc    workmsg(4),workmsg zero translated error msg area
+         XC    workmsg(4),workmsg zero translated error msg area
+*
+         TESTAUTH
+         LTR   R15,R15
+         JZ    A0002
+*
+A0002    EQU   *
          LAY   R0,DB2FETCH        INITIALIZE READ ROUTINE ADDRESS
          O     R0,MODE31
          ST    R0,EVNTREAD
@@ -206,15 +211,11 @@ START    STM   R14,R12,SAVESUBR+RSA14  SAVE  CALLER'S REGISTERS
          L     R2,EVNTDCBA        INDICATE NO RDW PRESENT (FIXED FMT)
          NI    DCBRECFM-IHADCB(R2),X'3F'
          OI    DCBRECFM-IHADCB(R2),X'80'
-*
-***      wto 'entering GVBMRSU'
-*
          MVI   GPRECFMT,C'F'      INDICATE  FIXED LENGTH RECORDS
          MVI   GPRECDEL,X'00'     NO FIELD  DELIMITERS
 *
          L     R0,STGBLKLN     ALLOCATE WORAKRA FOR THIS MR95 Thread
          GETMAIN RU,LV=(0),LOC=(24)
-*        GETMAIN RU,LV=(0),LOC=(ANY)
          MVC   0(8,R1),PGMNAME
          USING WKAREA,R8
          LA    R8,L'PGMNAME(,R1)
@@ -571,7 +572,6 @@ TRACDEQ  DEQ   (GENEVA,TRACNAME,,STEP),RNL=NO
 TRACMVC  MVC   PRNTLINE+1(0),0(R3)     * * * * E X E C U T E D * * *
 *
 A0100    EQU   *
-* *      l     R13,wksave1+4      Original R13 (workarea thread)
          LAY   R15,DB2FETCH1      LOAD FETCH ROUTINE ADDRESS
          BASR  R14,R15            WAIT  FOR COMPLETION OF FIRST READ
          LLGTR R6,R6              Set top half to zero as it's 64 bit
@@ -606,22 +606,38 @@ RTNERROR DS    0H
 *
 DB2FETCH1 DS    0H
          STMG  R14,R12,SAVESUB3
-         LR    R9,R14             SAVE RETURN ADDRESS
-         LARL  R10,GVBMRSU        set static area base
-         LLGT  R4,WKEXUADR        get first EXUEXU entry
+         LR    R9,R14              SAVE RETURN ADDRESS
+         LARL  R10,GVBMRSU         set static area base
+         LLGT  R4,WKEXUADR         get first EXUEXU entry
 * ****** wto   'evntread1'
-         J     A0020              First time, straight to continue
+         J     A0020               First time, straight to continue
 *
 DB2FETCH DS    0H
          STMG  R14,R12,SAVESUB3
-         LR    R9,R14             SAVE RETURN ADDRESS
-         LARL  R10,GVBMRSU        set static area base
+         LR    R9,R14              SAVE RETURN ADDRESS
+         LARL  R10,GVBMRSU         set static area base
 * ****** wto   'evntread'
-         LLGT  R8,SQLWADDR        Needed if it's not 1st time through
+         LLGT  R8,SQLWADDR         Needed if it's not 1st time through
+*
+         ICM   R15,B'1111',WKSUBERR Did subtask (DB2HPU) have an error?
+         JZ    A0010               Yes, go
+*
+         CVD   R15,DBLWORK         STORE THE RETURN CODE (PACKED)
+         MVC   WORKMSG(8),SPACES
+         UNPK  WORKMSG(4),DBLWORK+4(4)
+         OI    WORKMSG+3,X'F0'     FORCE A DISPLAYABLE ZONE
+*
+         GVBMSG WTO,MSGNO=DB2_HPU_FAIL,SUBNO=2,                        +
+               SUB1=(PGMNAME,8),                                       +
+               SUB2=(WORKMSG,4),  return code                          +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+         J     A0202
 *
 * Can only post DB2 HPU exit on subsequent call allowing MR95 chance
 * to process the previous block we returned
 *
+A0010    EQU   *
          LLGT  R4,WKEXUCUR        EXU block last returned to MR95
          USING EXUEXU,R4
 *
@@ -665,8 +681,6 @@ A0015    EQU   *                  Final EXU (partition) !!!
 * Wait for one of the DB2 HPU related exits to post us
 *
 A0020    EQU   *
-* ****** wto   'waiting for next block of records'
-** *     WAIT  1,ECB=EXUECBMA     the exit has returned a block of
          LLGT  R1,WKECBLST
          WAIT  1,ECBLIST=(1)      the exit has returned a block of
 *
@@ -685,19 +699,13 @@ A0022    EQU   *
          wto 'cant find EXU that posted us'
          DC    H'0'
 A0023    EQU   *
-* ****** wto   'next block of records has arrived'
 *                                 records or reached eof
          CLI   EXUSTAT,C'2'       block populated ?
-         JE    A0010              yes, that's correct
-         CLI   EXUSTAT,C'5'
-         JNE   A0024
-         wto 'error detected in subtask'
-         DETACH WKTCBSUB
-         J     A0202          not sure how to tell mr95 it's error !!!
-A0024    EQU   *
+         JE    A0024              yes, that's correct
          wto 'incorrect EXUSTAT status'
          DC    H'0'               this means exit is running still !!
-A0010    EQU   *
+*
+A0024    EQU   *
          ASI   EXUCNT1,1         Count times through
          ST    R4,WKEXUCUR       This is the EXU being passed to MR95
          MVI   EXUSTAT,C'3'      Passing data to MR95
@@ -707,41 +715,22 @@ A0010    EQU   *
          MVI   EXUFINAL,C'Y'
          J     FETCHOK            CONTINUE
 *
-*     in case of errors somewhere
 *
-         LA    R1,SQL_FETCH_FAIL  ASSUME FETCH FAILED
-*
-         CVD   R15,DBLWORK         STORE THE RETURN CODE (PACKED)
-         MVC   WORKMSG(8),SPACES
-         UNPK  WORKMSG(4),DBLWORK+4(4)
-         OI    WORKMSG+3,X'F0'     FORCE A DISPLAYABLE ZONE
-         LTR   R15,R15             NEGATIVE  SQLCODE ???
-         JP    A0200               NO  - BYPASS MOVE
-         MVI   WORKMSG+0,C'-'
-A0200    EQU   *
-         MVI   WORKMSG+4,C' '
-         MVC   WORKMSG+5(8),GPDDNAME
-*
-         GVBMSG LOG,MSGNO=SQL_FETCH_FAIL,SUBNO=2,                      +
-               GENENV=GENENV,                                          +
-               SUB1=(modname,8),                                       +
-               SUB2=(WORKMSG,13),  sqlcode and ddname in here          +
-               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
-               MF=(E,MSG_AREA)
-*
-A0202    EQU   *
+A0202    EQU   *                  R15 contains return error
+         DETACH WKTCBSUB
          XGR   R6,R6              Indicate NO Record
          STG   R6,RECADDR         Save the Record address
 *
          L     R2,EVNTDCBA        LOAD SYNAD EXIT ADDRESS
-         L     R2,DCBDCBE-IHADCB(R2) --> DCBE
+         LT    R2,DCBDCBE-IHADCB(R2) --> DCBE
+         JZ    A0203
          USING DCBE,R2
          L     R14,DCBESYNA       LOAD I/O error routine addr
          drop  r2
          LTR   R14,R14            EXIT  ADDRESS  AVAILABLE   ???
          BPR   R14                YES - USE GVBMR95 EXIT   ADDRESS
+A0203    EQU   *
          BR    R9                 NO  - USE GVBMRSU RETURN ADDRESS
-*
 *
 *
 FETCHOK  DS    0H
@@ -763,6 +752,7 @@ FETCHOK  DS    0H
          STG   R6,SAVESUB3+64
          LMG   R14,R12,SAVESUB3
          BSM   0,R14
+         DROP  R4 EXUEXU
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
@@ -771,9 +761,6 @@ FETCHOK  DS    0H
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *
 EVNTEOF  EQU   *
-         wto   'evnteof'
-* ***    DC    H'0'
-*        SNAP  DCB=SNAPDCB,PDATA=(REGS),ID=220
 *
 **********************************************************************
 * DB2HPU has reached eof for the table or for a partition in table   *
@@ -826,9 +813,8 @@ SUBTASK  ds    0h
          jz    subtask2
          chi   r15,4
          je    subtask3
+         st    R15,WKSUBERR
          wto   'error from db2 hpu'
-         MVI   EXUSTAT,C'5'
-         POST  EXUECBMA           post main task, as noone else will
          j     subtask2
 subtask3 equ   *
          wto   'rc=4 from db2 hpu (all records passed to MR95)'
@@ -836,7 +822,6 @@ subtask3 equ   *
 subtask2 equ   *
          wto   'subtask stopping'
          pr    r14
-keymask  dc    b'0000000100000000'
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
@@ -914,11 +899,6 @@ PARALLEL DC    CL12'PARALLELISM '
 *        D A T A   C O N T R O L   B L O C K S                        *
 *                                                                     *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-*
-* SNAPDCB  DCB   DSORG=PS,DDNAME=SNAPDATA,MACRF=(W),                  X
-*               RECFM=VBA,LRECL=125,BLKSIZE=1632
-*
-*        IFGRPL AM=VSAM
 *
          DCBD  DSORG=PS
          ihadcbe
