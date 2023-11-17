@@ -2879,14 +2879,19 @@ INITRETN   llgt R8,THRDES          LOAD "ES"  ROW ADDR
              USING EXECDATA,R15
              if (cli,EXEC_DB2HPU,eq,c'Y')
                llgf R15,MRSUADDR
+               if ltr,r15,r15,z   Not available
+                 LHI r14,DB2_HPU_UNAVAILABLE
+                 LHI R15,8
+                 JZ ERRMSG#
+               endif
+               drop r15
              else
                llgf R15,MRSQADDR
-             endif
-             drop r15
-             if ltr,r15,r15,z     Not available
-               LHI r14,DB2_SQL_UNAVAILABLE
-               LHI R15,8
-               JZ ERRMSG#
+               if ltr,r15,r15,z     Not available
+                 LHI r14,DB2_SQL_UNAVAILABLE
+                 LHI R15,8
+                 JZ ERRMSG#
+               endif
              endif
 
            when   DB2VSAM         DB2 via VSAM?

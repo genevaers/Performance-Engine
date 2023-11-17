@@ -620,7 +620,7 @@ DB2FETCH DS    0H
          LLGT  R8,SQLWADDR         Needed if it's not 1st time through
 *
          ICM   R15,B'1111',WKSUBERR Did subtask (DB2HPU) have an error?
-         JZ    A0010               Yes, go
+         JZ    A0010               No, go
 *
          CVD   R15,DBLWORK         STORE THE RETURN CODE (PACKED)
          MVC   WORKMSG(8),SPACES
