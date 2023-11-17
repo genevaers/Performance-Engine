@@ -5548,6 +5548,21 @@ VDP2300X010      EQU *
 *
                  MVC SKFLDID,VDP2300_XVIEW_SORT_KEY_ID SORT FIELD ID
                  MVC SKFLDLEN,VDP2300_SK_FIELD_LENGTH SORT FIELD LENGTH
+*                 
+                 LH  R0,SKFLDLEN
+                 CHI R0,150         check length of sort key
+                 JNH VDP2300X011b
+                 CLI VWDESTYP+1,BATCH   HARDCOPY/BATCH report?
+                 JNE VDP2300X011a
+                 LHI R14,MSG#453  Report Sort key must be <= 150
+                 j    RTNERROR    INDICATE ERROR
+VDP2300X011a     EQU *                                  
+                 CHI R0,256         check length of sort key
+                 JNH VDP2300X011b
+                 LHI R14,MSG#452  Sort key must be <= 256
+                 j    RTNERROR    INDICATE ERROR
+*                 
+VDP2300X011b     EQU *                 
                  MVC SKFLDFMT,VDP2300_SK_FORMAT_ID+2  SORT FIELD FORMAT
            MVC SKFLDCON,VDP2300_SK_FIELD_CONTENT_ID+2 SORT FIELD FORMAT
                  XR R0,R0                          FIELD SIGNED IND
@@ -6304,7 +6319,11 @@ OFFCALC2 L     R14,CDSRTDEF       SORT KEY     ???
          AHI   R15,1
          STH   R15,VWOUTLEN
 *
-         j     OFFCALC6           ADVANCE TO NEXT COLUMN
+         CHI   R15,256            Reports limited to width 256
+         jnh   OFFCALC6       
+*
+         LHI   R14,MSG#454        if it is, issue error message 16
+         J     RTNERROR           and branch to error routine
 *
 OFFCALC4 CLI   CDPRTIND,C'Y'      HIDDEN COLUMN ???
          JNE   OFFCALC6
@@ -6315,6 +6334,15 @@ OFFCALC4 CLI   CDPRTIND,C'Y'      HIDDEN COLUMN ???
          AH    R15,CDCOLSIZ
          AHI   R15,1
          STH   R15,VWOUTLEN
+*
+         CLI   VWDESTYP+1,BATCH   HARDCOPY/BATCH report?
+         JNE   OFFCALC6           
+*          
+         CHI   R15,256            Reports limited to width 256
+         jnh   OFFCALC6       
+*
+         LHI   R14,MSG#454        if it is, issue error message 16
+         J     RTNERROR           and branch to error routine
 *
 OFFCALC6 AHI   R7,CDENTLEN
          BRCT  R0,OFFCALC2

@@ -306,6 +306,10 @@ MSG#449  EQU   449 Marginal File not supported
 MSG#450  EQU   450 Error processing SYSIN dataset for sort
 MSG#451  EQU   451 Column overflow occurred. Check output file(s) for f+
                iller characters (filler-character).
+MSG#452  EQU   452 Sort key length must be 256 or less
+MSG#453  EQU   453 For Reports sort key length must be 150 or less
+MSG#454  EQU   454 Report width must be 256 or less
+*
 MSG#499  EQU   499 Recursive error (E35)-- will not be printed
 *
 *
