@@ -118,8 +118,8 @@ WKPARM   DS    CL100
 WKPARMX  DS    CL100
 WKRENT   DS    XL128              RE-ENTRANT  PARAMETER  LIST
 WKEXUCUR DS    A                  EXU last send to MR95
-WKECBSUB DS    XL4                ECB sub
-WKTCBSUB DS    XL4                TCB sub
+WKECBSUB DS    XL4                ECB subtask
+WKTCBSUB DS    XL4                TCB subtask
 WKPARALL DS    XL2
          DS    XL2
 WKPLISTA DS    A
@@ -425,6 +425,7 @@ A0129    EQU   *
          LA    R0,4              length of ECB address
          LLGTR R0,R0
          MH    R0,WKPARALL       times number elements needed
+         AHI   R0,4              plus subtask ECB
          GETMAIN RU,LV=(0),LOC=(ANY)
          ST    R1,WKECBLST       connect MRSU thread area to ECBLIST
 *
@@ -475,7 +476,9 @@ A0130    EQU   *
          LA    R4,EXUEXUL(,R4)      => next EXUEXU entry
          LA    R7,4(,R7)            => next address in ECB list
          BRCT  R9,A0130
-         AHI   R7,-4                back to last entry
+         LA    R0,WKECBSUB          subtask ended ECB
+         ST    R0,0(,R7)
+*         AHI   R7,-4                back to last entry
          OI    0(R7),X'80'          indicate last word in list
          DROP  R4 EXUEXU
 *
@@ -619,21 +622,6 @@ DB2FETCH DS    0H
 * ****** wto   'evntread'
          LLGT  R8,SQLWADDR         Needed if it's not 1st time through
 *
-         ICM   R15,B'1111',WKSUBERR Did subtask (DB2HPU) have an error?
-         JZ    A0010               No, go
-*
-         CVD   R15,DBLWORK         STORE THE RETURN CODE (PACKED)
-         MVC   WORKMSG(8),SPACES
-         UNPK  WORKMSG(4),DBLWORK+4(4)
-         OI    WORKMSG+3,X'F0'     FORCE A DISPLAYABLE ZONE
-*
-         GVBMSG WTO,MSGNO=DB2_HPU_FAIL,SUBNO=2,                        +
-               SUB1=(PGMNAME,8),                                       +
-               SUB2=(WORKMSG,4),  return code                          +
-               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
-               MF=(E,MSG_AREA)
-         J     A0202
-*
 * Can only post DB2 HPU exit on subsequent call allowing MR95 chance
 * to process the previous block we returned
 *
@@ -696,8 +684,26 @@ A0022    EQU   *
          LA    R14,4(,R14)        next EXUEXU ECB list entry
          LA    R4,EXUEXUL(,R4)    next EXUEXU entry
          BRCT  R15,A0022
+*
+         TM    WKECBSUB,X'40'
+         JO    A0022A
          wto 'cant find EXU that posted us'
          DC    H'0'
+*
+A0022A   EQU   *
+         LLGT  R15,WKSUBERR        Did subtask (DB2HPU) have an error?
+         CVD   R15,DBLWORK         STORE THE RETURN CODE (PACKED)
+         MVC   WORKMSG(8),SPACES
+         UNPK  WORKMSG(4),DBLWORK+4(4)
+         OI    WORKMSG+3,X'F0'     FORCE A DISPLAYABLE ZONE
+*
+         GVBMSG WTO,MSGNO=DB2_HPU_FAIL,SUBNO=2,                        +
+               SUB1=(PGMNAME,8),                                       +
+               SUB2=(WORKMSG,4),  return code                          +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+         J     A0202
+*
 A0023    EQU   *
 *                                 records or reached eof
          CLI   EXUSTAT,C'2'       block populated ?
