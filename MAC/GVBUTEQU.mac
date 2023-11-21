@@ -225,6 +225,8 @@ DB2_HPU_FAIL EQU 199 DB2HPU utility completed with non zero rc
 *
 GLOBAL_TOKEN_RT_FAIL EQU 200 - UNABLE TO retrieve GENEVA GLOBAL TOKEN
 *
+DB2_HPU_NAPF EQU 201 DB2HPU utility requires APF authorization
+*
 DB2_VSAM_OPEN_FAIL EQU   300 - Unable to open Db2 base VSAM file
 MSG#301  EQU   301 (301U) - Error on Db2 base VSAM SHOWCB
 MSG#302  EQU   302 (302U) - Error on Db2 base VSAM MODCB

@@ -313,6 +313,8 @@
  GVBMSGDF 200,'&&1 - Unable to retrieve Geneva global name/token pair',+
                TYPE=S
 *
+ GVBMSGDF 201,'&&1 - DB2 HPU requires APF authorization',TYPE=U
+*
 *  Message from GVBMRDV - Db2 via VSAM
 *
  GVBMSGDF 300,'&&1 - Unable to open Db2 base VSAM file &&2',TYPE=U

@@ -191,8 +191,10 @@ INIT0010 EQU   *
 INIT0012 EQU   *
          MVI   EXTXASOC,X'00'   NOT ALREADY ASSOCIATED
          AHI   R8,-16           BACK UP TO EXUEXU HEADER
-         LGH   R9,8(,R8)        NUMBER OF TABLE ENTRIES
+         USING EXHEXH,R8
+         LGH   R9,EXHPARLL      NUMBER OF TABLE ENTRIES
          STH   R9,WKEXUNUM      REMEMBER NUMBER OF TABLE ENTRIES
+         DROP  R8
          AHI   R8,16            FORWARD TO FIRST TABLE ENTRY
          ST    R8,WKEXU1ST      REMEMBER FIRST TABLE ENTRY
          USING EXUEXU,R8
@@ -214,9 +216,11 @@ INIT0018 EQU   *
 *
          LLGT  R1,WKTOKN        EXUEXU HEADER
          AHI   R1,-16           BACK UP TO EXUEXU HEADER
-         LGH   R0,10(,R1)       COUNT OF INITIALIZATIONS
+         USING EXHEXH,R1
+         LGH   R0,EXHINIT       COUNT OF INITIALIZATIONS
          AHI   R0,1             INCREMENT
-         STH   R0,10(,R1)
+         STH   R0,EXHINIT
+         DROP  R1
 *
          DEQ (GENEVA,MRSUNAME,,STEP),RNL=NO
 *
@@ -336,9 +340,11 @@ TERM     EQU   *
          ENQ (GENEVA,MRSUNAME,E,,STEP),RNL=NO
          LLGT  R1,WKTOKN        EXUEXU HEADER
          AHI   R1,-16           BACK UP TO EXUEXU HEADER
-         LGH   R0,12(,R1)       COUNT OF TERMINATIONS
+         USING EXHEXH,R1
+         LGH   R0,EXHFINI       COUNT OF TERMINATIONS
          AHI   R0,1             INCREMENT
-         STH   R0,12(,R1)
+         STH   R0,EXHFINI
+         DROP  R1
          DEQ (GENEVA,MRSUNAME,,STEP),RNL=NO
 *
          L     R8,EXTXEXUE

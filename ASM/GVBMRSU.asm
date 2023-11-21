@@ -202,6 +202,12 @@ START    STM   R14,R12,SAVESUBR+RSA14  SAVE  CALLER'S REGISTERS
          TESTAUTH
          LTR   R15,R15
          JZ    A0002
+         GVBMSG WTO,MSGNO=DB2_HPU_NAPF,SUBNO=1,                        +
+               SUB1=(PGMNAME,8),                                       +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+         la    r15,8
+         J     RETURNE
 *
 A0002    EQU   *
          LAY   R0,DB2FETCH        INITIALIZE READ ROUTINE ADDRESS
@@ -405,9 +411,11 @@ A0129    EQU   *
          MH    R0,WKPARALL       times number elements needed
          AHI   R0,16
          GETMAIN RU,LV=(0),LOC=(ANY)
-         MVC   0(8,R1),=CL8'EXUEXU'
-         MVC   8(2,R1),WKPARALL  insert number entries in header
+         USING EXHEXH,R1
+         MVC   EXHEYE,=CL8'EXUEXU'
+         MVC   EXHPARLL,WKPARALL  insert number entries in header
          XC    10(6,R1),10(R1)
+         DROP  R1
          AHI   R1,16
          ST    R1,WKEXUADR       connect MRSU thread area to 1st EXUEXU
          LR    R4,R1             table of DB2 HPU sub threads
@@ -502,9 +510,6 @@ A0130    EQU   *
                ECB=(7),SZERO=YES        ECB (located in THRDAREA)
          ST    R1,WKTCBSUB
          DROP  R9
-*
-INITDEQ  ds    0h
-***      DEQ   (GENEVA,PGMNAME,,STEP),RNL=NO
 *
          wto 'initialization complete'
 *
@@ -651,8 +656,10 @@ A0014    EQU   *
          ENQ (GENEVA,MRSUNAME,E,,STEP),RNL=NO
          LLGT  R1,WKEXUADR
          AHI   R1,-16             BACK UP TO EXUEXU HEADER
-         CLC   10(2,R1),12(R1)    INITIALIZATIONS <= TERMINATIONS ?
+         USING EXHEXH,R1
+         CLC   EXHINIT,EXHFINI    INITIALIZATIONS <= TERMINATIONS ?
          JNH   A0015              YES: we're on the final instance
+         DROP  R1
 *
 *                                 NO: not the final INZEXIT instance
          DEQ (GENEVA,MRSUNAME,,STEP),RNL=NO
@@ -734,7 +741,7 @@ A0202    EQU   *                  R15 contains return error
          L     R14,DCBESYNA       LOAD I/O error routine addr
          drop  r2
          LTR   R14,R14            EXIT  ADDRESS  AVAILABLE   ???
-         BPR   R14                YES - USE GVBMR95 EXIT   ADDRESS
+         BNZR  R14                YES - USE GVBMR95 EXIT   ADDRESS
 A0203    EQU   *
          BR    R9                 NO  - USE GVBMRSU RETURN ADDRESS
 *
@@ -877,7 +884,7 @@ LOGNAME  DC    CL8'MR95LOG '      MINOR  ENQ NODE  (MR95 LOG FILE)
 ZEROES   DC   8CL01'0'
 REFTBLID DC    CL03'#DD'
 *
-TOKNLVL2 DC    A(2)               NAME/TOKEN  AVAILABILITY  LEVEL
+TOKNLVL2 DC    A(2)               NAME/TOKEN  AVAILABILITY  TASK LEVEL
 GENEVA   DC    CL8'GENEVA  '           TOKEN  NAME
 PGMNAME  DC    CL8'GVBMRSU '
 MRSUNAME DC    CL8'MRSUEXA '          MINOR  ENQ  NODE FOR WRITE I/O
