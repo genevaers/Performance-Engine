@@ -108,7 +108,9 @@ WKTOKN   DS    XL16             TOKEN
 WKEXU1ST DS    A                FIRST EXUEXU ENTRY
 WKEXUNUM DS    H                NUMBER OF EXUEXU ENTRIES
          DS    XL2              WORKAREA
-WORK     DS    CL272            WORKAREA
+MSG_AREA GVBMSG PREFIX=MMM,MF=L
+PRNTBUFF DS    CL72            
+WORK     DS    CL104            Should be 840 bytes           
 *
 GETML    EQU   *-GETM           LENGTH
 *
