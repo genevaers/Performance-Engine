@@ -112,9 +112,9 @@ WKEXUNUM DS    H                NUMBER OF EXUEXU ENTRIES
          DS    XL2              WORKAREA
 MSG_AREA GVBMSG PREFIX=MMM,MF=L
 PRNTBUFF DS    CL72            
-WORK     DS    CL104            Should be 840 bytes           
+WORK     DS    CL104            Remaining bytes
 *
-GETML    EQU   *-GETM           LENGTH
+GETML    EQU   *-GETM           LENGTH (Should be 840 bytes)
 *
          COPY  GVBASSRT
          COPY  GVBMR95C
