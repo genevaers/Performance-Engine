@@ -89,8 +89,8 @@
 *
          Copy  GVBASSRT
 *
-         COPY  GVBMR88W
-         COPY  GVBMR88C
+         COPY  GVBMRSMW
+         COPY  GVBMRSMC
          COPY  VDPHEADR
          COPY  GVB0001A
          COPY  GVB0002A
@@ -247,8 +247,6 @@ start    STM   R14,R12,savgrs14        SAVE  CALLER'S REGISTERS
          brasl R10,VDPLOAD        LOAD THE VIEW DEFINITION TABLES
 *
          BRAS  R10,ALLOCDYN       ALLOCATE DYNAMIC AREAS
-*
-*         BRAS  R10,FILLLKUP       LOAD THE  TITLE  LOOK-UP TABLES
 *
          brasl R10,PRINTRT2       Print the control report IRUN
 *
@@ -450,58 +448,6 @@ ALLOC09  GVBSTX   fp8,0(,R1) storage with DFP zero
          GETMAIN R,LV=(0),LOC=(ANY)       OBTAIN MEMORY
          ST    R1,CLCOFFTB        SAVE    TABLE  ADDRESS
 
-***********************************************************************
-*  GET WORKAREA FOR REPORT TITLES                                     *
-***********************************************************************
-         LH    R0,MAXRPT          GET A MINIMUM OF 2 REPORT TITLE LINES
-         if CHI,R0,lt,2
-           LHI R0,2
-           STH R0,MAXRPT
-         endif
-*
-         LHI   R1,PRNTMAXL+4      MAXIMUM REPORT TITLE LINE LENGTH
-         MR    R0,R0
-         LA    R0,l'titleyeb(,R1)
-         GETMAIN R,LV=(0),LOC=(ANY)
-         MVC   0(l'titleyeb,R1),TITLEYEB
-         AHI   R1,l'titleyeb
-         ST    R1,RTITLEA
-         USING RTITLE,R1
-*
-         LH    R0,MAXRPT
-ALLOCRTI MVC   RTCC(PRNTMAXL),SPACES
-         LHI   R15,PRNTMAXL+4
-         STH   R15,RTRECLEN
-         XC    RTRECLEN+2(2),RTRECLEN+2
-         AHI   R1,PRNTMAXL+4
-         BRCT  R0,ALLOCRTI
-         DROP  R1
-*
-***********************************************************************
-*  GET WORKAREA FOR REPORT FOOTERS                                    *
-***********************************************************************
-         LH    R0,MAXFOOTR        LOAD   MAXIMUM FOOTER LINES
-         LTR   R0,R0
-         JNP   ALLOCXIT
-*
-         LHI   R1,PRNTMAXL+4      MAXIMUM REPORT TITLE  LINE LENGTH
-         MR    R0,R0
-         LA    R0,l'footeyeb(,R1)
-         GETMAIN R,LV=(0),LOC=(ANY)
-         MVC   0(l'footeyeb,R1),FOOTEYEB
-         AHI   R1,l'footeyeb
-         ST    R1,RFOOTRA
-         USING RTITLE,R1
-*
-         LH    R0,MAXFOOTR
-ALLOCRFI MVC   RTCC(PRNTMAXL),SPACES
-         LHI   R15,PRNTMAXL+4
-         STH   R15,RTRECLEN
-         XC    RTRECLEN+2(2),RTRECLEN+2
-         AHI   R1,PRNTMAXL+4
-         BRCT  R0,ALLOCRFI
-         DROP  R1
-*
 ALLOCXIT BR    R10                RETURN
                      EJECT
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -516,7 +462,7 @@ OPENOUT  L     R8,VWCHAIN         LOAD FIRST  REPORT REQUEST ADDRESS
 OPLOOP   TM    VWFLAG2,VWOUTDCB   OUTPUT  DCB  USED  ???
          JO    OPDDINIT           YES -   GET  DCB   AREA
          TM    VWFLAG2,VWPRINT    OUTPUT  DCB  USED  ???
-         JNO   OPLOCATE           NO - BYPASS  OPENING OF OUTPUT  FILE
+         JNO   OPNEXTVW           NO - BYPASS  OPENING OF OUTPUT  FILE
                      SPACE 3
 ***********************************************************************
 *  SCAN OTHER VIEWS TO CHECK IF OUTPUT DCB SHARED (ALREADY ALLOCATED) *
@@ -532,7 +478,7 @@ OPDDLOOP LTR   R14,R14            END-OF-CHAIN ???
          j     OPDDLOOP
 *
 OPDDFND  MVC   VWDCBADR,VWDCBADR-VIEWREC(R14)
-         j     OPLOCATE
+         j     OPNEXTVW
 *
 ***********************************************************************
 *  IF FIRST VIEW USING DDNAME, ALLOCATE DCB AREA                      *
@@ -570,7 +516,7 @@ OPDDNOTF LHI   R0,DATADCBL+l'vwddname LOAD DATA FILE DCB LENGTH
                oi vwflag2,vwnodd      DDname not in JCL
            endif
            drop r15
-           b oplocate
+           b OPNEXTVW
          endif
                      SPACE 3
 OPJFCB   LA    R14,WORKAREA           LOAD  JFCB    ADDRESS
@@ -588,7 +534,7 @@ OPFBAVBA TM    JFCRECFM,X'04'         "RECFM=__A"
 *
 OPLRECL  LH    R1,JFCLRECL            LRECL AVAILABLE FROM JCL  ???
          CHI   R1,1
-         JH    OPLOCATE
+         JH    OPNEXTVW
 *
          LH    R1,VWOUTLEN            LOAD  RECORD  LENGTH
          TM    VWFLAG2,VWPRINT        PRINT OUTPUT  ???
@@ -606,7 +552,7 @@ OPLRECLQ EQU   *
          JNO   OPBLKSIZ               NO  - BYPASS  RDW    ADDITION
          AHI   R1,4                   ADD   RDW     LENGTH
          STH   R1,DCBLRECL            SET   LOGICAL RECORD LENGTH
-         j     OPLOCATE
+         j     OPNEXTVW
 *
 OPBLKSIZ LH    R14,JFCBLKSI           BLKSIZE IN    JCL    ???
          DROP  R14
@@ -620,80 +566,6 @@ OPBLKSIQ EQU   *
          MR    R14,R14
          STH   R15,DCBBLKSI
          DROP  R2
-                     SPACE 3
-***********************************************************************
-*  LOCATE LOOK-UP BUFFERS FOR SORT BREAK TITLES                       *
-***********************************************************************
-OPLOCATE LH    R2,VWSRTCNT        LOAD SORT KEY  TABLE  ENTRY COUNT
-         LTR   R2,R2              ANY  SORT KEYS ???
-         JNP   OPNEXTVW           NO  -  ADVANCE TO NEXT VIEW
-                     SPACE 3
-         L     R4,VWSKADDR
-         USING SORTKEY,R4
-         ST    R4,CURSRTKY
-*
-         XC    CURTTLOF,CURTTLOF  INITIALIZE OFFSET TO TITLE KEY VALUE
-*
-OPSKLOOP CLI   SKHDRBRK+1,SUPPRESS SUPPRESS SORT BREAK ???
-         JE    OPSKNEXT
-*
-         OC    SKLRID,SKLRID      TITLE KEYS USED  IN THIS REQUEST ???
-         JZ    OPSKNEXT           NO  - BYPASS LOOKUP
-*
-         LA    R1,SKFILEID        POINT  TO  FILE  ID + RECORD ID
-         BRAS  R9,LOCLB           LOCATE MATCHING  RECORD  BUFFER
-         USING LKUPBUFR,R6
-*
-         LTR   R6,R6              BUFFER FOUND (ALREADY OPEN) ???
-         JNP   OPSKERR            NO  -  INDICATE  ERROR
-*
-         ST    R6,SKLBADDR        YES -  SAVE THE  BUFFER ADDRESS
-*
-         LH    R0,CURTTLOF        LOAD   CURRENT TITLE KEY VALUE OFFSET
-         AHI   R0,4               SKIP   "LR ID" IN EXTRACT REC TITLE K
-*        STH   R0,SKTTLOFF        SAVE   THIS  TITLE'S KEY OFFSET
-         AH    R0,LBKEYLEN        ADD    NEXT   VALUE'S LENGTH
-         AHI   R0,1+4             ADJUST TO TRUE LENGTH(+FILEID FILLER)
-         TM    LBFLAGS,LBEFFRMV   WERE EFFECTIVE DATES REMOVED ???
-         JNO   OPSKOFF            N - SKIP ADJUSTMENT
-         AHI   R0,4               ADD BACK THE LENGTH OF THE START DATE
-OPSKOFF  STH   R0,CURTTLOF        UPDATE CURRENT TITLE KEY OFFSET
-*
-         j     OPSKNEXT           BYPASS ALLOCATE
-                     SPACE 3
-***********************************************************************
-*  LOOK-UP BUFFER FOR SORT BREAK TITLE NOT FOUND                      *
-***********************************************************************
-OPSKERR  LHI   R14,MSG#426        LOAD  ERROR MESSAGE NUMBER
-*
-         MVC   ERRDATA(L'LKUPMSG),LKUPMSG
-*
-         L     R0,VWVIEW#               VIEW    ID
-         CVD   R0,DBLWORK
-         OI    DBLWORK+L'DBLWORK-1,X'0F'
-         MVC   ERRDATA+02(8),VALUMSK1
-         ED    ERRDATA+02(8),DBLWORK+4
-*
-         L     R0,SKFILEID              FILE    ID
-         CVD   R0,DBLWORK
-         OI    DBLWORK+L'DBLWORK-1,X'0F'
-         MVC   ERRDATA+13(8),VALUMSK1
-         ED    ERRDATA+13(8),DBLWORK+4
-*
-         L     R0,SKLRID                RECORD  ID
-         CVD   R0,DBLWORK
-         OI    DBLWORK+L'DBLWORK-1,X'0F'
-         MVC   ERRDATA+24(8),VALUMSK1
-         ED    ERRDATA+24(8),DBLWORK+4
-*
-         j     RTNERROR
-                     SPACE 3
-***********************************************************************
-*  ADVANCE TO NEXT SORT KEY                                           *
-***********************************************************************
-OPSKNEXT AHI   R4,SKENTLEN        ADVANCE TO NEXT SORT KEY WITHIN REQ
-         ST    R4,CURSRTKY
-         BRCT  R2,OPSKLOOP
 *
 ***********************************************************************
 *  ADVANCE TO NEXT VIEW                                               *
@@ -704,591 +576,8 @@ OPNEXTVW L     R8,VWNEXT          ADVANCE TO NEXT REQUEST
 *
          BR    R10                RETURN
 *
-         DROP  R4
-         DROP  R6
          DROP  R8
-                     EJECT
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-*                                                                     *
-*        F I L L   M E M O R Y   R E S I D E N T   T A B L E S        *
-*                                                                     *
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *
-***********************************************************************
-*  OPEN REFERENCE TABLE HEADER RECORD FILE (MR88RTH)                  *
-***********************************************************************
-FILLLKUP L     R2,HDRDCBA         LOAD   TABLE HEADER DCB  ADDRESS
-         OPEN  ((R2),(INPUT)),MODE=31,MF=(E,RENTPARM) OPEN HEADER FILE
-         LHI   R14,MSG#427        ASSUME OPEN FAILED
-         TM    48(R2),X'10'       OPEN SUCCESSFUL ???
-         JNO   RTNERROR           NO - INDICATE ERROR
-         MVC   HDRGETA+1(3),DCBGETA-IHADCB(R2)
-         OC    HDRGETA,MODE31
-*
-         MVC   SVFILENO,HEXFF     INITIALIZE PREVIOUS EXTRACT FILE#
-*
-* print IREF report headers
-*
-         phead hd=iref
-***********************************************************************
-*  READ FIRST REFERENCE TABLE HEADER RECORD (MR88RTH)                 *
-***********************************************************************
-         L     R1,HDRDCBA         LOAD HEADER TABLE DATA FILE DCB ADDR
-         L     R15,HDRGETA        READ HEADER RECORD
-         BASR  R14,R15
-         LR    R7,R1              LOAD RECORD ADDRESS
-         USING TBLHEADR,R7
-*
-         rptit msg=rptiref_hd1   column headings
-         rptit msg=rptiref_hd2   column  underlining
-         rptit msg=rptiref_hd3   column  underlining
-*
-         xc    refrect,refrect   Zero record total
-         xc    refmemt,refmemt   Zero memory total
-*
-FILLHDR  ds    0h
-         ASI   rthcount,1         count records in RTH (1 per GREF)
-*
-* Get info for IREF report
-*
-rp2      using irefrept,prntline
-         mvc   rp2.ireff1,spaces
-         mvc   rp2.ireff2,spaces
-         mvc   rp2.ireff3,spaces
-         mvc   rp2.ireff4,spaces
-* build dd name GREFnnn
-         MVC   refddn,REFRXXX
-         LH    R0,TBXFILE#               CONVERT FILE NO. TO DEC
-*        STH   R0,SVFILENO               save for comparision later
-         CVD   R0,DBLWORK
-         OI    DBLWORK+L'DBLWORK-1,X'0F' FORCE A VALID  ZONE
-         CHI   R0,999                    THREE OR FOUR DIGIT ???
-         JH    rp200010
-         UNPK  refddn+4(3),DBLWORK       BUILD DDNAME SUFFIX (3)
-         J     rp200012
-rp200010 EQU   *
-         UNPK  refddn+4(4),DBLWORK       BUILD DDNAME SUFFIX (4)
-rp200012 EQU   *
-         mvc   rp2.irefdd,refddn
-* key length
-         lhy   R0,tbkeylen
-         cvd   r0,dblwork
-         mvc   rp2.irefklen,=x'40202120'
-         ed    rp2.irefklen,dblwork+6
-* record count
-         ly    R0,tbreccnt
-         cvd   r0,dblwork
-         mvc   rp2.irefrcnt,countmsk
-         ed    rp2.irefrcnt,dblwork+3
-         a     r0,refrect
-         st    r0,refrect        Add record count to total
-* memory usage
-         xr    r3,r3             assume zero
-         if ltgf,r1,tbreccnt,p   load record count, test for +ve
-          lgh  r3,tbreclen       load record length
-          mlgr r2,r1             compute  table size
-         endif
-*
-         cvdg r3,dblwork2
-         mvc rp2.irefmemu,mem_mask
-         ed  rp2.irefmemu,dblwork2+8+2
-         ag  r3,refmemt       Add memory usage to total
-         stg r3,refmemt
-* Get the PF name from the VDP0650
-         mvc rp2.irefpfnm,spaces
-         if lt,r3,vdp0650a,p     Get the VDP 650 record if available
-           using vdp0650_join_record,r3
-* must loop through entries to get the correct one
-           lh r0,tbxfile#        get the file/entry number
-           if  c,R0,le,vdp0650_grefcnt If no entry, then skip
-             la    r3,vdp0650_gref_entry
-             using vdp0650_gref_entry,r3
-             bct  r0,PFnamenx
-             b    PFnamef          if zero we have found PF
-PFnamenx ds  0h
-             do from=(r0)                loop to the entry we want
-*              get entlen and add it to r3
-               l   r1,vdp0650_gref_entlen  Get length of PF name
-               la  r3,vdp0650_gref_entry_len(r1,r3) next entry
-             enddo
-PFnamef ds   0h
-             l   r4,vdp0650_gref_entlen  Get length of PF name
-             bctr r4,r0                  Decrement for "EX"
-             ex  r4,rp2move              copy it to report
-           endif
-         endif
-*
-         rptit ,
-*
-static   loctr
-rp2move  mvc   rp2.irefpfnm(0),vdp0650_gref_pf
-nonemsg  dc    0cl(nonemsg_e-nonemsg_s)
-nonemsg_s dc   al2(nonemsg_e-nonemsg_s),al2(0),c'<none>'
-nonemsg_e equ  *
-code     loctr
-         drop  r3
-*
-         L     R5,TBRECCNT        LOAD RECORD COUNT
-         LTR   R5,R5              ANY  DATA   RECORDS ???
-         JNP   fillhnxt           NO - ADVANCE TO  NEXT HEADER
-*
-***********************************************************************
-*  CLOSE REFERENCE TABLE DATA FILE IF NEXT DIFFERENT FROM PREVIOUS    *
-***********************************************************************
-         LH    R0,SVFILENO        FIRST TABLE  ???
-         LTR   R0,R0
-         JM    FILLOPEN           YES - OPEN   DATA  FILE
-*
-         CH    R0,TBXFILE#        SAME EXTRACT FILE# AS PREVIOUS ???
-         JE    FILLLOC            YES - CONTINUE  USING PREVIOUS
-*
-         L     R2,LKUPDCBA        CLOSE PREVIOUS  DATA  FILE
-         CLOSE ((R2)),MODE=31,MF=(E,RENTPARM)
-*
-***********************************************************************
-*  OPEN REFERENCE TABLE DATA FILE IF DIFFERENT FROM PREVIOUS          *
-***********************************************************************
-FILLOPEN L     R2,LKUPDCBA        LOAD   TABLE DATA DCB ADDRESS
-         USING IHADCB,R2
-*
-         LH    R0,TBXFILE#               get file number
-         STH   R0,SVFILENO               save for comparision later
-*
-         mvc   dcbddnam,refddn
-*
-         LArl  R0,FILLEOFD          SET  END-OF-FILE  EXIT  ADDRESS
-         STCM  R0,B'0111',DCBEODA
-*
-         OPEN  ((R2),(INPUT)),MODE=31,MF=(E,RENTPARM) OPEN DATA   FILE
-         TM    48(R2),X'10'       OPEN SUCCESSFUL ???
-         BRO   FILLGETA           YES -  CONTINUE
-*
-         LHI   R14,MSG#428          OPEN FAILED
-         MVC   ERRDATA(8),DCBDDNAM  SAVE INDICATIVE DATA
-         j     RTNERROR           INDICATE ERROR
-*
-FILLGETA MVC   DATAGETA+1(3),DCBGETA-IHADCB(R2)
-         OC    DATAGETA,MODE31
-*
-         DROP  R2
-*
-***********************************************************************
-*  LOCATE LOOK-UP BUFFER FOR "LRID" (ERROR IF ALREADY ALLOCATED)      *
-***********************************************************************
-FILLLOC  XC    TEMPWORK,TEMPWORK  BUILD  LOOK-UP   BUFFER KEY
-         MVC   TEMPWORK+8(4),TBLRID
-         LA    R1,TEMPWORK        POINT  TO  FILE  ID + RECORD ID
-         BRAS  R9,LOCLB           LOCATE MATCHING  RECORD BUFFER
-         USING LKUPBUFR,R6
-*
-         LTR   R6,R6              BUFFER FOUND (ALREADY ALLOCATED) ???
-         JNP   FILLALLO           NO  -  ALLOCATE  BUFFER
-         LHI   R14,MSG#429        YES -  INDICATE  ERROR (DUPLICATE)
-         MVC   ERRDATA(12),TBFILEID SAVE INDICATIVE DATA
-         j     RTNERROR
-                     EJECT
-***********************************************************************
-*  ALLOCATE LOOK-UP BUFFER FOR THIS "LRID"                            *
-***********************************************************************
-FILLALLO LH    R3,TBRECLEN        LOAD RECORD LENGTH
-         S     R3,REDPREFX
-         AH    R3,TBKEYLEN        ADD  KEY    LENGTH
-         AHI   R3,LBPREFLN        ADD  PREFIX LENGTH
-*
-         LA    R1,TEMPWORK        POINT TO  FILE & RECORD ID'S
-         BRAS  R9,ALLOCATE        ALLOCATE  RECORD BUFFER
-         USING LKUPBUFR,R6
-*
-         OI    LBFLAGS,LBMEMRES   TURN  ON  MEMORY RESIDENT FLAG
-*
-         ST    R5,LBRECCNT        SAVE  THE RECORD COUNT
-*
-***********************************************************************
-*  ADJUST LOOK-UP KEY OFFSET TO EXCLUDE 16 BYTE HI/LO PREFIX          *
-***********************************************************************
-         LH    R15,TBKEYOFF       LOAD  KEY OFFSET
-*
-         LR    R0,R15             COPY LENGTH TO R0 FOR NEG TEST
-         S     R0,REDPREFX        SUBTRACT HI/LO JLT AREA LENGTH
-         LTR   R0,R0              KEY LENGTH NEGATIVE ???
-         JNM   FILLALLQ           YES - BYPASS ERROR
-         DC    H'0'               ERROR WITH NEG KEY
-FILLALLQ EQU   *
-         S     R15,REDPREFX       SUBTRACT HI/LO JLT AREA LENGTH
-*
-         STH   R15,LBKEYOFF
-*
-         LH    R15,TBKEYLEN       LOAD  KEY   LENGTH
-         BCTR  R15,0              DECREMENT   FOR  "EX"  INSTRUCTION
-         STH   R15,LBKEYLEN
-*
-         SR    R15,R15            EFFECTIVE DATES   PRESENT  ???
-         IC    R15,TBEFFDAT
-         LTR   R15,R15
-         JNP   LKUPALLO           NO  - BYPASS  COMPUTING OFFSET
-*
-         OI    LBFLAGS,LBEFFDAT   SET   EFFECTIVE DATE INDICATOR
-*
-         CHI   R15,ENDRANGE       END   DATES   PRESENT   ???
-         JNE   FILLALLR
-         OI    LBFLAGS,LBEFFEND
-*
-FILLALLR EQU   *
-         LH    R15,TBKEYLEN       LOAD  KEY  LENGTH
-         STH   R15,LBEFFOFF
-         AHI   R15,4-1            ADD   DATE LENGTH TO KEY LENGTH
-         STH   R15,LBKEYLEN
-*
-***********************************************************************
-*  GET MEMORY FOR REFERENCE TABLE DATA                                *
-***********************************************************************
-LKUPALLO LH    R4,TBRECLEN        LOAD RECORD LENGTH
-         S     R4,REDPREFX        SUBTRACT HI/LO JLT AREA LENGTH
-         STH   R4,LBRECLEN
-*
-         LA    R3,LKPREFLN(,R4)   ADD  PREFIX LENGTH
-         MR    R2,R5              COMPUTE TABLE SIZE
-*
-         LR    R0,R3              ALLOCATE MEMORY
-         GETMAIN RU,LV=(0),LOC=(ANY)
-         ST    R1,LBTBLBEG        SAVE    TABLE STARTING ADDRESS
-         AR    R3,R1              COMPUTE TABLE ENDING   ADDRESS
-         ST    R3,LBTBLEND        SAVE    TABLE ENDING   ADDRESS
-*
-         LR    R2,R1              POINT TO FIRST ENTRY
-         USING LKUPTBL,R2
-                     EJECT
-***********************************************************************
-*  READ NEXT REFERENCE TABLE DATA RECORD                              *
-***********************************************************************
-FILLLOOP L     R1,LKUPDCBA        LOAD  TABLE DATA  FILE DCB ADDRESS
-         L     R15,DATAGETA       READ   NEXT RECORD
-         BASR  R14,R15
-         LA    R8,4(,R1)          SAVE   DATA RECORD ADDRESS (SKIP RDW)
-*
-***********************************************************************
-*  MAKE SURE REFERENCE DATA KEYS ARE IN ASCENDING SEQUENCE            *
-***********************************************************************
-         LR    R14,R8             LOAD  RECORD  ADDRESS
-         A     R14,REDPREFX       SKIP RED PREFIX FROM JLT
-*
-         LH    R1,LBKEYOFF        COMPUTE  KEY ADDRESS
-         AR    R1,R14
-*
-         LH    R15,LBKEYLEN
-*
-         C     R2,LBTBLBEG        FIRST   ROW ???
-         JE    FILLSAVE           YES -  SKIP SEQUENCE CHECK
-         EXrl  R15,FILLKYCK       NO  - CHECK FOR  ASCENDING SEQUENCE
-         JNH   FILLSERR
-*
-FILLSAVE EXrl  R15,FILLKYSV       SAVE  CURRENT LOOK-UP  KEY
-*
-***********************************************************************
-*  COPY REFERENCE TABLE DATA RECORD TO MEMORY                         *
-***********************************************************************
-FILLMOVE XC    LKLOWENT,LKLOWENT  ZERO BINARY SEARCH PATHS
-         XC    LKHIENT,LKHIENT
-*
-         LR    R14,R8             COPY RECORD INTO TABLE
-         A     R14,REDPREFX
-         LR    R15,R4
-         LR    R3,R4
-         LA    R2,LKUPDATA
-         MVCL  R2,R14             NOTE: R2 IS ADVANCED BY "MVCL"
-*
-         BRCT  R5,FILLLOOP        LOOP  UNTIL "RECCNT" RECORDS LOADED
-*
-         j     BLDPATH            BUILD BINARY SEARCH  PATHS
-*
-* EOF for MR88RTH
-*
-FILLEOF  L     R2,HDRDCBA
-         CLOSE ((R2)),MODE=31,MF=(E,RENTPARM)
-*
-* Write to control report Input Reference file Totals (IREF)
-*
-         LH    R0,SVFILENO        Any records in RTH?
-         if  ltr,r0,r0,p
-*
-          rptit msg=rptiref_hd4        column  underlining
-           mvc rp2.irefdd,=cl8'Total'
-           mvc rp2.ireff2,spaces
-*
-           l   r2,refrect              the record count total
-           cvd r2,dblwork
-           mvc rp2.irefrcnt,countmsk
-           ed  rp2.irefrcnt,dblwork+3
-*
-           lg   r2,refmemt             the memory usage total
-           cvdg r2,dblwork
-           mvc rp2.irefmemu,mem_mask
-           ed  rp2.irefmemu,dblwork+8+2
-           rptit ,
-           rptit msg=rptiref_hd5   column  underlining
-         else ,
-           mvc prntrdwh(l'nonemsg),nonemsg
-           rptit ,
-         endif
-         rptit msg=vb_blankl
-*
-         L     R2,LKUPDCBA
-         CLOSE ((R2)),MODE=31,MF=(E,RENTPARM)
-*
-         BR    R10                RETURN
-*
-***********************************************************************
-*  PREMATURE END-OF-FILE BEFORE READING NO. OF RECORDS IN HEADER      *
-***********************************************************************
-FILLEOFD L     R2,HDRDCBA
-         CLOSE ((R2)),MODE=31,MF=(E,RENTPARM)
-*
-         L     R2,LKUPDCBA
-         CLOSE ((R2)),MODE=31,MF=(E,RENTPARM)
-*
-         L     R0,LBFILEID        INDICATE FILE
-         CVD   R0,DBLWORK
-         OI    DBLWORK+L'DBLWORK-1,X'0F'
-         UNPK  ERRDATA+00(8),DBLWORK
-*
-         MVI   ERRDATA+08,C'/'
-*
-         L     R0,LBLRID          INDICATE LOGICAL RECORD
-         CVD   R0,DBLWORK
-         OI    DBLWORK+L'DBLWORK-1,X'0F'
-         UNPK  ERRDATA+09(8),DBLWORK
-*
-         LHI   R14,MSG#439
-         j     RTNERROR           RETURN
-*
-***********************************************************************
-*  LOOK-UP DATA KEY SEQUENCE ERROR                                    *
-***********************************************************************
-FILLSERR LH    R0,TBXFILE#        CONVERT  REFERENCE FILE NO. TO DEC
-*        L     R0,LBFILEID        INDICATE FILE
-         CVD   R0,DBLWORK
-         OI    DBLWORK+L'DBLWORK-1,X'0F'
-         MVC   ERRDATA+00(8),REFRXXX
-         UNPK  ERRDATA+04(3),DBLWORK
-*
-FILLSER4 MVI   ERRDATA+08,C'/'
-*
-         L     R0,LBLRID          INDICATE LOGICAL RECORD
-         CVD   R0,DBLWORK
-         OI    DBLWORK+L'DBLWORK-1,X'0F'
-         UNPK  ERRDATA+09(8),DBLWORK
-*
-         MVI   ERRDATA+17,C':'
-*
-         LHI   R0,L'ERRDATA-1-9-9 LOAD MAXIMUM INDICATIVE DATA LENGTH
-         CR    R15,R0             KEY  LENGTH  EXCEEDS MAXIMUM ???
-         JNH   FILLSER6           NO - SHOW    COMPLETE KEY
-         LR    R15,R0             YES - USE    MAXIMUM  LENGTH ALLOWED
-FILLSER6 EXrl  R15,FILLKYMV       MOVE  KEY TO INDICATIVE DATA AREA
-*
-         LHI   R14,MSG#438        KEYS  ARE OUT-OF-SEQUENCE
-         j     RTNERROR           RETURN ERROR MESSAGE
-*
-         DROP  R2
-         DROP  R7
-*
-FILLKYCK CLC   0(0,R1),LBKEY          * * * *  E X E C U T E D  * * * *
-FILLKYSV MVC   LBKEY(0),0(R1)         * * * *  E X E C U T E D  * * * *
-FILLKYMV MVC   ERRDATA+18(0),0(R1)    * * * *  E X E C U T E D  * * * *
-                     EJECT
-BLDPATH  L     R2,LBTBLBEG        INITIALIZE FIRST TABLE ENTRY ADDRESS
-         L     R7,LBRECCNT        INITIALIZE LOOP  COUNTER
-*
-         LH    R5,LBKEYLEN        LOAD   KEY LENGTH (-1)
-*
-         LHI   R0,LKPREFLN        LOAD TABLE ENTRY LENGTH
-         AH    R0,LBRECLEN
-                     SPACE 3
-BLDSRCH  L     R4,LBRECCNT        INITIALIZE TOP   OCCURRENCE NUMBER
-         BCTR  R4,0               CHANGE (1:N) SCALE TO (0:N-1)
-*
-         XR    R3,R3              INITIALIZE BOTTOM OCCURRENCE NUMBER
-*
-         XC    PREVNODE,PREVNODE  INITIALIZE PREVIOUS NODE ADDRESS
-*
-         LA    R14,0(R3,R4)       COMPUTE MIDDLE OCCURRENCE NUMBER
-         SRL   R14,1
-         LR    R15,R0             COMPUTE ADDRESS OF MIDDLE ENTRY
-         MR    R14,R14
-         A     R15,LBTBLBEG
-         ST    R15,LBMIDDLE       SAVE    ADDRESS OF MIDDLE ENTRY
-                     SPACE 3
-BLDLOOP  LA    R1,0(R3,R4)        COMPUTE MIDDLE OCCURRENCE NUMBER
-         SRL   R1,1
-*
-         LR    R15,R0             COMPUTE ADDRESS OF MIDDLE ENTRY
-         MR    R14,R1
-         A     R15,LBTBLBEG
-         USING LKUPTBL,R15
-*
-         L     R14,PREVNODE       SET BINARY SEARCH BRANCH  NODE
-         LTR   R14,R14
-         JNP   BLDLOOPQ
-         ST    R15,0(0,R14)
-*
-BLDLOOPQ EQU   *
-         EXRL  R5,BLDKEY          COMPARE KEYS  ???
-         JL    BLDTOP
-         JH    BLDBOT
-*
-BLDMATCH AR    R2,R0              ADVANCE TO NEXT   TABLE   ENTRY
-*
-         BRCT  R7,BLDSRCH         LOOP UNTIL ALL    ENTRIES FOUND
-***********************************************************************
-*  READ NEXT REFERENCE TABLE HEADER RECORD (MR88RTH)                  *
-***********************************************************************
-fillhnxt ds    0h
-         L     R1,HDRDCBA         LOAD HEADER TABLE DATA FILE DCB ADDR
-         L     R15,HDRGETA        READ HEADER RECORD
-         BASR  R14,R15
-         LR    R7,R1              LOAD RECORD ADDRESS
-         USING TBLHEADR,R7
-*
-         j     FILLHDR
-                     EJECT
-BLDTOP   LA    R14,LKLOWENT       SAVE PREVIOUS PATH ADDRESS
-         ST    R14,PREVNODE
-*
-         LR    R4,R1              SET TOP    = CURRENT - 1
-         BCTR  R4,0
-         CR    R3,R4              BOTTOM  > TOP    ???
-         JNH   BLDLOOP            NO  - CONTINUE
-         j     BLDNOMAT           YES - EXIT
-*
-BLDBOT   LA    R14,LKHIENT        SAVE PREVIOUS PATH ADDRESS
-         ST    R14,PREVNODE
-*
-         LR    R3,R1              SET BOTTOM = CURRENT + 1
-         AHI   R3,1
-         CR    R3,R4              BOTTOM  > TOP    ???
-         JNH   BLDLOOP            NO  - CONTINUE
-*
-BLDNOMAT LHI   R14,MSG#430        SHOULD NEVER GET NOT FOUND
-*
-         MVC   ERRDATA(L'NOTFMSG),NOTFMSG
-*
-         L     R0,LBFILEID               FILE   ID
-         CVD   R0,DBLWORK
-         OI    DBLWORK+L'DBLWORK-1,X'0F'
-         MVC   ERRDATA+02(8),VALUMSK1
-         ED    ERRDATA+02(8),DBLWORK+4
-*
-         L     R0,LBLRID                 RECORD ID
-         CVD   R0,DBLWORK
-         OI    DBLWORK+L'DBLWORK-1,X'0F'
-         MVC   ERRDATA+13(8),VALUMSK1
-         ED    ERRDATA+13(8),DBLWORK+4
-*
-         LHI   R0,L'ERRDATA-22-1
-         CR    R5,R0
-         JNH   FILLHNXQ
-         LR    R5,R0
-FILLHNXQ EQU   *
-         EXRL  R5,BLDERR                 INCL INDICATIVE DATA (KEY)
-*
-         J     RTNERROR
-*
-BLDKEY   CLC   LKPREFLN(0,R2),LKUPDATA   * * *  E X E C U T E D   * * *
-BLDERR   MVC   ERRDATA+22(0),LKPREFLN(R2)  * *  E X E C U T E D   * * *
-*
-         DROP  R6
-         DROP  R15
-                     EJECT
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-*                                                                     *
-* "ALLOCATE" - ALLOCATES MEMORY DYNAMICALLY FOR NEW LOGICAL RECORD    *
-*              BUFFERS.                                               *
-*                                                                     *
-*  REGISTER USAGE:                                                    *
-*                                                                     *
-*        R9  - RETURN   ADDRESS                                       *
-*        R6  - NEW      LOGICAL RECORD BUFFER ADDRESS  * * RETURNED * *
-*        R3  - NEW      LOGICAL RECORD BUFFER LENGTH                  *
-*        R1  - FILE ID & RECORD ID     ADDRESS                        *
-*            - AREA ADDRESS (GETMAIN)                                 *
-*        R0  - AREA LENGTH  (GETMAIN)                                 *
-*                                                                     *
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-*
-         USING LKUPBUFR,R6
-*
-ALLOCATE LR    R14,R1             SAVE FILE & RECORD ID ADDRESS
-*
-         LR    R0,R3              LOAD AREA LENGTH
-         GETMAIN R,LV=(0),LOC=(ANY)
-*
-         L     R6,SVLBPREV        LOAD PREVIOUS RECORD BUFFER ADDRESS
-         ST    R1,LBNEXT          ADD TO BUFFER CHAIN
-         LR    R6,R1              INITIALIZE CURRENT BUFFER ADDRESS
-         STH   R3,LBLEN
-*
-         XC    LBNEXT,LBNEXT      INITIALIZE FORWARD CHAIN  POINTER
-*
-         MVC   LBDDNAME,0(R14)    INITIALIZE FILE ID/DDNAME
-         MVC   LBLRID,L'LBDDNAME(R14)        LOGICAL RECORD ID
-         XC    LBKEYOFF,LBKEYOFF  INITIALIZE KEY     OFFSET
-         XC    LBKEYLEN,LBKEYLEN  INITIALIZE KEY     LENGTH
-         XC    LBRECLEN,LBRECLEN  INITIALIZE RECORD  LENGTH
-         XC    LBRECCNT,LBRECCNT  INITIALIZE RECORD  COUNT
-         XC    LBTBLBEG,LBTBLBEG  INITIALIZE RECORD   TABLE BEGIN
-         XC    LBTBLEND,LBTBLEND  INITIALIZE RECORD   TABLE END
-         XC    LBMIDDLE,LBMIDDLE  INITIALIZE MIDDLE   ENTRY ADDRESS
-         XC    LBLSTFND,LBLSTFND  INITIALIZE LAST     ENTRY FOUND
-         XC    LBEFFOFF,LBEFFOFF  INITIALIZE EFFECTIVE DATE OFFSET
-         XC    LBFLAGS,LBFLAGS    INITIALIZE PROCESSING FLAGS
-*
-         BR    R9                 RETURN  TO CALLER
-*
-         DROP  R6
-                     EJECT
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-*                                                                     *
-* "LOCLB" - SEARCHES THE BUFFER CHAIN FOR AN ENTRY WHICH MATCHES      *
-*           THE "FILE ID/REC ID" IN THE LOGIC TABLE ENTRY.            *
-*                                                                     *
-* REGISTER USAGE:                                                     *
-*                                                                     *
-*        R9  - RETURN   ADDRESS                                       *
-*        R8  - CURRENT  LOGIC   TABLE  ROW    ADDRESS                 *
-*        R6  - CURRENT  LOGICAL RECORD BUFFER ADDRESS                 *
-*        R3  - CURRENT  LOGICAL RECORD BUFFER  LENGTH                 *
-*        R1  - FILE ID + RECORD ID    ADDRESS (SEARCH ARGUMENT)       *
-*                                                                     *
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-*
-         USING VIEWREC,R8
-*
-LOCLB    XR    R3,R3              INITIALIZE CURRENT  BUFFER LENGTH
-         LA    R14,LBCHAIN        INITIALIZE PREVIOUS BUFFER ADDRESS
-         ST    R14,SVLBPREV
-         L     R6,LBNEXT-LKUPBUFR(,R14)      CURRENT  BUFFER ADDRESS
-         USING LKUPBUFR,R6
-*
-         j     LOCEND             CHECK  FOR END-OF-CHAIN
-                     SPACE 3
-LOCLOOP  ST    R6,SVLBPREV        ADVANCE TO NEXT ENTRY
-         L     R6,LBNEXT
-LOCEND   LTR   R6,R6              END-OF-CHAIN ???
-         BZR   R9                 YES - EXIT SUBROUTINE
-*
-         CLC   LBDDNAME,0(R1)     MATCHING ENTRY ???
-         JNE   LOCLOOP            NO  - ADVANCE TO NEXT ENTRY ON CHAIN
-         CLC   LBLRID,L'LBDDNAME(R1)
-         JNE   LOCLOOP
-                     SPACE 3
-         LH    R3,LBLEN           LOAD  CURRENT BUFFER  LENGTH
-*
-         BR    R9                 EXIT  SUBROUTINE
-*
-         DROP  R6
-         DROP  R8
-         DROP  R13
-                     EJECT
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
 * M R 9 5   D I R E C T   C O N N E C T   I N I T I A L I Z A T I O N *
@@ -1538,7 +827,11 @@ newsa    using saver,r1
          LR    R13,R1
          TIME  STCK,(R2),LINKAGE=SYSTEM,DATETYPE=YYYYMMDD,             +
                MF=(E,(R5))
-
+*               
+* Call SORT here
+* Exit xxx will be called for every sorted record, then
+* At EOF SORT returns with R15=0
+*
          LA    R1,SORTCTLA-WORKAREA(,R3)   CALL  SORT PROGRAM
          LINK  EP=SORT
          lr    r9,r15             save the sort r15
@@ -1755,8 +1048,6 @@ LOGADDR  DC    A(LOGFILE)
 CTRLADDR DC    A(CTRLFILE)
 *
 VDPADDR  DC    A(VIEWFILE)
-HDRADDR  DC    A(HDRFILE)
-LKUPADDR DC    A(LKUPFILE)
 SYSINADR DC    A(SYSIN)
 *
 SORTREC  DC    C' RECORD TYPE=V,LENGTH=8192 '
@@ -1915,8 +1206,6 @@ CTRLFILE DCB   DSORG=PS,DDNAME=MR88RPT,MACRF=(PM),                     X
 *
 VIEWFILE DCB   DSORG=PS,DDNAME=MR88VDP,MACRF=(GL),EODAD=VDPEOF
 *
-HDRFILE  DCB   DSORG=PS,DDNAME=REFRRTH,MACRF=(GL),EODAD=FILLEOF
-*
 LKUPFILE DCB   DSORG=PS,DDNAME=MR88RTD,MACRF=(GL)
 *
 SYSIN    DCB   DSORG=PS,DDNAME=SYSIN,MACRF=(GL),EODAD=SYSINEOF
@@ -2025,16 +1314,6 @@ PGMINIT  ds    0h
          S     R14,DCBAREAA
          AR    R14,R1
          ST    R14,VDPDCBA
-*
-         L     R14,HDRADDR
-         S     R14,DCBAREAA
-         AR    R14,R1
-         ST    R14,HDRDCBA
-*
-         L     R14,LKUPADDR
-         S     R14,DCBAREAA
-         AR    R14,R1
-         ST    R14,LKUPDCBA
 *
          L     R14,SYSINADR
          S     R14,DCBAREAA

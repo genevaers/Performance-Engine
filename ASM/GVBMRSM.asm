@@ -95,16 +95,8 @@
 *
          Copy  GVBASSRT
 *
-         COPY  GVBMR88W
-         COPY  GVBMR88C
-         COPY  GVB1300A
-*
-VDP1300LN EQU  *-VDP1300_TITLE_LINES_RECORD
-*
-         COPY  GVB1400A
-*
-VDP1400LN EQU  *-VDP1400_FOOTER_LINES_RECORD
-*
+         COPY  GVBMRSMW
+         COPY  GVBMRSMC
          COPY  GVB1600A
 *
          copy  gvbrptit
@@ -143,7 +135,7 @@ fp15     equ 15,,,,fpr
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
 * 1.  OBTAIN AND INITIALIZE  PROGRAM WORK AREA                        *
-* 2.  CALL INITIALIZATION SUBROUTINE (GVBMRFI) TO ALLOCATE BUFFERS    *
+* 2.  CALL INITIALIZATION SUBROUTINE (GVBMRSI) TO ALLOCATE BUFFERS    *
 *                                                                     *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *
@@ -223,7 +215,7 @@ prevsa   using saver,r10
 *   FP8/10 is loaded with a floating point zero - the exponent is
 *   unpredictable
 *   FP9/11 will be loaded with the quantum value for 3 or 8 decimal
-*   places during GVBMRFI processing - these registers must be left
+*   places during GVBMRSI processing - these registers must be left
 *   as is as code here is dependent on these values (also DL96)
 *
          lay   r14,fp_reg_savearea  Point at register save area
@@ -259,72 +251,79 @@ prevsa   using saver,r10
          nilh  r14,b'1111101111111111' turn off decimal overflow
          spm   r14
 ***********************************************************************
-*  Initialization - call MRFI
+*  Initialization - call MRSI
 *
-*    Note: portions of MRFI are called at other times in order to
+*    Note: portions of MRSI are called at other times in order to
 *          return records from the sort E15/E35. These can also
 *          result in non zero return codes here via it's own RTNERROR.
 *
 ***********************************************************************
-         L     R15,GVBMRFIA       LOAD "GVBMRFI"   ADDRESS
-         BASR  R14,R15            CALL "GVBMRFI" - INITIALIZATION
+         L     R15,GVBMRSIA       LOAD "GVBMRSI"   ADDRESS
+         BASR  R14,R15            CALL "GVBMRSI" - INITIALIZATION
 
-*        MRFI will have loaded a zero in fp8/10
+*        MRSI will have loaded a zero in fp8/10
 *        and the quantum value into fp9/11
 *
          LTR   R14,R15            SUCCESSFUL INITIALIZATION ???
          JNZ   RTNERROR           NO  - ERROR (MESSAGE NO.)
 *
-*         MVC   PRNTSUBR,VSAMWRTA  INITIALIZE PRINT ROUTINE ADDRESS
-         MVC   READSUBR,MERGEADR  INITIALIZE READ  ROUTINE ADDRESS
-*
-*        OPEN  (SNAPDCB,(OUTPUT)),MODE=31
-                     EJECT
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-*                                                                     *
-* 1.  SET  END-OF-FILE EXIT ROUTINE ADDRESS IN  DCB'S                 *
-* 2.  READ ALL EXTRACT FILE CONTROL RECORDS AND SUM RECORD COUNTS     *
-*                                                                     *
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-*
-         CLI   EXTREOF,C'Y'       EMPTY EXTRACT FILE  ???
-         JE    READEOF            EOF Processing      
+*  SET  END-OF-FILE EXIT ROUTINE ADDRESS IN  DCB'S                 *
 *
          L     R1,EXTRDCBA        LOAD DCB  ADDRESS
          Larl  R14,EXTREND        SET  END-OF-FILE     ADDRESS
          STCM  R14,B'0111',DCBEODA-IHADCB(R1)
 *
-         L     R9,READSUBR        INITIALIZE  BASE  REGISTER
-         llgf  R15,MERGENXT       LOAD SECONDARY ENTRY POINT ADDRESS
-         BASSM R10,R15            SELECT  LOWEST KEY  RECORD
+* GVBMRSI opens the extract file and returns first record
+* Check if file is empty
+*
+         L     R1,EXTRRECA        LOAD EXTRACT FILE RECORD ADDR
+*         
+         CLI   EXTREOF,C'Y'       EMPTY EXTRACT FILE  ?
+         JE    READEOF            EOF Processing     
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+* Check for Control records
+* Must have at least one
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
          ST    R1,RECADDR         Save current Record addr
          LR    R7,R1              
          USING CTLREC,R7
-* test if it's a control record
-         OC    CTVIEW#,CTVIEW#    CONTROL RECORD (NO REPORT ID)  ???
-         JZ    CTRLREC            YES - CONTINUE
+*         
+* Start of control record loop
 *
-         LHI   R14,MSG#400        MISSING CONTROL REC - error
-         J     RTNERROR           CONTROL RECORD MUST BE  FIRST
-*
-CTRLREC  MVC   SVFILENO,CTFILENO  SAVE  THE EXTRACT FILE NUMBER
-         MVC   SVFINPDT,CTFINPDT  SAVE  THE FINANCIAL    PERIOD   DATE
-         ZAP   SVRECCNT,CTRECCNT  SAVE  THE FILE  RECORD COUNT
-* Get next record - skip if another control rec
+*     SVRECCNT is initialised in GVBMRSI
 CTRLLOOP EQU   *              Loop through control records
-         llgf  R15,READSUBR       LOAD  GET SUBROUTINE ADDRESS
-         BASSM R10,R15            READ  THE NEXT  EXTRACT FILE RECORD
+         OC    CTVIEW#,CTVIEW#    CONTROL RECORD (NO REPORT ID) ?
+         JNZ   CTRLLPEX           NO  - Exit loop 
+*
+CTRLREC  EQU   *
+         MVC   SVFILENO,CTFILENO  SAVE  THE EXTRACT FILE NUMBER
+         MVC   SVFINPDT,CTFINPDT  SAVE  THE FINANCIAL    PERIOD   DATE
+         AP    SVRECCNT,CTRECCNT  SUM   THE FILE  RECORD COUNTS
+*         
+CTRLNEXT EQU   *
+* Get next record - skip if another control rec
+*         llgf  R15,READSUBR       LOAD  GET SUBROUTINE ADDRESS
+         BRAS  R10,READSUBR       READ  THE NEXT  EXTRACT FILE RECORD
          ST    R1,RECADDR         Save current record addr
          LR    R7,R1              LOAD DATA ADDRESS
 *
-         OC    CTVIEW#,CTVIEW#    CONTROL RECORD (NO REPORT ID) ???
-         JNZ   CTRLLPEX           NO  - continue 
-*
-         AP    SVRECCNT,CTRECCNT  SUM   THE FILE  RECORD COUNTS
-         J     CTRLLOOP       LOOP THROUGH ALL CONTROL RECORDS
+         J     CTRLLOOP       End loop through Control records
+*         
 CTRLLPEX EQU   *
-*
          DROP  R7
+*
+* check we have at least one control record
+*
+         IF CP,SVRECCNT,EQ,P000
+           LHI   R14,MSG#400        MISSING CONTROL REC - error
+           J     RTNERROR           CONTROL RECORD MUST BE  FIRST
+         ENDIF
+* Normalise the VIEWID number
+         USING HDRREC,R7
+         L     R0,HDVIEW#         
+         SRL   R0,1               STRIP  HEADER INDICATOR
+         ST    R0,HDVIEW#
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
 * 1.  CHECK FOR HEADER RECORD (REPORT BREAK)                          *
@@ -335,31 +334,41 @@ CTRLLPEX EQU   *
 *
 READLOOP EQU   *
 *
-NEXTEXT  ST    R1,RECADDR
-         LR    R7,R1              LOAD THE  DATA  ADDRESS
+HEADLOOP EQU   *
 * Check for Header record (new View)
-         USING HDRREC,R7
-CHKHDR   L     R0,HDVIEW#         REPORT BREAK  ???
-         SRL   R0,1               STRIP  HEADER INDICATOR
-         ST    R0,HDVIEW#
-         C     R0,SVVIEW#
-         JE    EXTPROC            NO  -  BYPASS BREAK LOGIC
-*
-         MVI   EOREOFCD,C'H'      INDICATE  READING HEADERS
+*         C     R0,SVVIEW#
+*         JE    EXTPROC            NO  -  BYPASS BREAK LOGIC
 *
          LR    R1,R7              POINT  TO   HEADER  RECORD (PARM)
          BRAS  R10,VALIDHDR       VERIFY THAT IT IS A HEADER RECORD
          LTR   R15,R15            VALID  HEADER   RECORD ???
-         JZ    HDRINIT            YES -  CONTINUE WITH   INITIALIZATION
+         JNZ   EXTRACTR           No , quit header rec loop
 *
-         OC    HDVIEW#,HDVIEW#    CONTROL  RECORD ???
-         JZ    READNEXT           YES -    IGNORE
+         MVI   EOREOFCD,C'H'      INDICATE  READING HEADERS         
+*
+*         OC    HDVIEW#,HDVIEW#    CONTROL  RECORD ???
+*         JZ    READNEXT           YES -    IGNORE
 *         
-         MVI   EOREOFCD,C' '      RESET END-OF-REQUEST   FLAG
-         LHI   R14,MSG#401        INCORRECT REC TYPE
-         J     RTNERROR           INDICATE ERROR
-* Found header record - Save header info in workarea         
-HDRINIT  LA    R14,HDSORTKY       COMPUTE ADDRESS OF HEADER DATA
+*         MVI   EOREOFCD,C' '      RESET END-OF-REQUEST   FLAG
+*         LHI   R14,MSG#401        INCORRECT REC TYPE
+*         J     RTNERROR           INDICATE ERROR
+* Found header record - same as last one?
+         CLC   HDVIEW#,SVVIEW#     SAME REQUEST NO AS PREV ???
+         JE    HDRSUM                      YES - SUM THE RECORD COUNTS
+*
+* Header with different VIEW ID 
+*
+* Process previous Header record
+         MVC   SAVERECA,RECADDR            SAVE  NEXT  HEADER RECORD
+         L     R7,PREVRECA                 Point to prev extract record
+         ST    R7,RECADDR
+         BRAS  R10,RPTBREAK                PROCESS BREAK  FOR PREV
+*
+         L     R7,SAVERECA                 LOAD   HEADER RECORD  BASE
+         ST    R7,RECADDR                  RESTORE  NEXT REQUEST HEADER
+*         J     HDRINIT                   PROCESS  NEXT REQUEST HEADER   
+* Process Current header record
+         LA    R14,HDSORTKY       COMPUTE ADDRESS OF HEADER DATA
          AH    R14,HDSORTLN
          AH    R14,HDTITLLN
          USING HDRDATA,R14
@@ -370,41 +379,15 @@ HDRINIT  LA    R14,HDSORTKY       COMPUTE ADDRESS OF HEADER DATA
          MVC   VWOVRIND,HDOVRIND  SAVE REQUEST OVER LIMIT INDICATOR
          DROP  R14
 * 
-HDRLOOP  EQU   *
-         llgf  R15,READSUBR
-         BASSM R10,R15
-         ST    R1,RECADDR         SAVE NEXT  RECORD'S  ADDRESS
-*                                (R7 - STILL POINTS TO PREVIOUS RECORD)
-         L     R0,HDVIEW#-HDRREC(,R1)      STRIP HEADER  INDICATOR
-         SRL   R0,1
-         ST    R0,HDVIEW#-HDRREC(,R1)
+         J     HDR_NEXT   read next record
+         
+*         L     R0,HDVIEW#-HDRREC(,R1)      STRIP HEADER  INDICATOR
+*         SRL   R0,1
+*         ST    R0,HDVIEW#-HDRREC(,R1)
 *
-         BRAS  R10,VALIDHDR                CHECK IF HEADER  RECORD
-         LTR   R15,R15
-         JZ    HDRSAME                     BRANCH  IF   HEADER
-*
-* Extract record following header record - process previous report
-*         
-         MVC   SAVERECA,RECADDR            SAVE    NEXT RECORD ADDRESS
-         MVC   RECADDR,PREVRECA            RESTORE LAST RECORD ADDRESS
-         MVI   EOREOFCD,C'R'               INDICATE END-OF-REQUEST
-         BRAS  R10,RPTBREAK                PROCESS BREAK
-         MVC   RECADDR,SAVERECA            RESTORE NEXT RECORD ADDRESS
-         J     RBRKNEW                     SET-UP  FOR  NEW    REQUEST
-*
-HDRSAME  EQU   *
-         CLC   HDVIEW#,HDVIEW#-HDRREC(R1)  SAME REQUEST NO AS PREV ???
-         JE    HDRSUM                      YES - SUM THE RECORD COUNTS
-*
-* Header with different VIEW ID - no extract rec for previous View
-*
-         MVC   SAVERECA,RECADDR            SAVE  NEXT  HEADER RECORD
-         ST    R7,RECADDR                  USE CURRENT HEADER RECORD
-         BRAS  R10,RPTBREAK                PROCESS BREAK  FOR PREV
-*
-         L     R7,SAVERECA                 LOAD   HEADER RECORD  BASE
-         ST    R7,RECADDR                  RESTORE  NEXT REQUEST HEADER
-         J     HDRINIT                     PROCESS  NEXT REQUEST HEADER
+*         BRAS  R10,VALIDHDR                CHECK IF HEADER  RECORD
+*         LTR   R15,R15
+*         JZ    HDRSAME                     BRANCH  IF   HEADER
 *
 HDRSUM   EQU   * 
 *
@@ -432,10 +415,63 @@ HDRSUM02 EQU   *
          MVC   VWOVRIND,HDOVRIND-HDRDATA(R14)
 *
 HDRSUM03 EQU   *
-         J     HDRLOOP
+HDR_NEXT  EQU   *
+         MVC   SVVIEW#,HDVIEW#    Save current View number
+*         
+         BRAS  R10,READSUBR       READ  THE NEXT  EXTRACT FILE RECORD
+         ST    R1,RECADDR         SAVE NEXT  RECORD'S  ADDRESS
+         LR    R7,R1              LOAD DATA ADDRESS
+* Normalise the VIEWID number
+         L     R0,HDVIEW#         
+         SRL   R0,1               STRIP  HEADER INDICATOR
+         ST    R0,HDVIEW#
 *
          DROP  R7
-                     EJECT
+*
+         J     HEADLOOP
+*
+EXTRACTR EQU *
+*
+* Extract record following header record - process previous report
+*        
+         USING EXTREC,R7 
+         MVC   SAVERECA,RECADDR            SAVE    NEXT RECORD ADDRESS
+         MVC   RECADDR,PREVRECA            RESTORE LAST RECORD ADDRESS
+         MVI   EOREOFCD,C'R'               INDICATE END-OF-REQUEST
+         BRAS  R10,RPTBREAK                PROCESS BREAK
+*         
+         MVC   RECADDR,SAVERECA            RESTORE NEXT RECORD ADDRESS
+         BRAS  R10,RBRKNEW                  SET-UP  FOR  NEW    REQUEST
+*
+* Read all extract records for this View
+* 
+EXTRLOOP EQU  *
+*
+* Change in VIEWID ?
+         CLC   EXVIEW#,SVVIEW#     SAME VIEW ID as previous
+         JNE   EXTREXIT           
+*  - exit loop
+         BRAS  R10,EXTPROC Process extract record
+
+
+
+READNEXT EQU   *                  Read next sorted records
+*         ST    R7,PREVRECA
+         MVC   SVVIEW#,EXVIEW#    Save current VIEWID
+*         
+         BRAS  R10,READSUBR       READ  THE NEXT  EXTRACT FILE RECORD
+         ST    R1,RECADDR 
+         LR    R7,R1
+* Normalise the VIEWID number
+         L     R0,EXVIEW#         
+         SRL   R0,1               STRIP  HEADER INDICATOR
+         ST    R0,EXVIEW#
+*
+         J     EXTRLOOP 
+EXTREXIT EQU   *
+         J     READLOOP
+         DROP  R7
+
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
 *        P R O C E S S   N E W   R E P O R T
@@ -648,10 +684,9 @@ RBRKEXCL CLI   CALCOPER+1,PUSHC   COLUMN#  ???
 *
 RBRKEXCN AHI   R1,CALCLEN
          BRCT  R15,RBRKEXCL
-                     SPACE 3
+*
 RBRKEXIT EQU   *
-*         BRAS  R9,PAGEBRK         CALL  PAGE BREAK SUBROUTINE
-*         MVC   NEEDTITL,VWBRKCNT  SAVE NO. OF SORT BREAK LEVELS
+         BR    R10                RETURN
 *
          DROP  R6
          DROP  R7
@@ -817,14 +852,13 @@ CHKDCLCL MVC   0(256,R14),0(R1)
 CHKDCLCE BRCT  R0,CHKDCLCL
          EX    R15,MVCR14R1
 *
-*CHKDET   CLI   VWSUMTYP+1,DETAIL  DETAIL  REPORT ???
+CHKDET   EQU   *
+         CLI   VWSUMTYP+1,DETAIL  DETAIL  REPORT ???
 *         JE    DETPRNT            YES - PRINT DATA
 *
 ***********************************************************************
 *  SUMMARY REPORT:  ADD DETAIL COLUMN VALUES TO SUMMARY ACCUMULATORS  *
 ***********************************************************************
-*         CLI   LASTFILE,C'M'      MASTER  FILE   RECORD ???
-*         JE    CHKDET01           YES -   BYPASS CALCULATIONS
          BRAS  R10,CALCCOLM       PERFORM DETAIL COLUMN CALCULATIONS
 *
 *CHKDET01 EQU   *
@@ -835,11 +869,11 @@ CHKDCLCE BRCT  R0,CHKDCLCL
 *
 *
 *
-READNEXT EQU   *                  Read next sorted records
-         llgf  R15,READSUBR       LOAD GET  SUBROUTINE ADDRESS(24-BIT)
-         BASSM R10,R15            READ THE  NEXT  EXTRACT FILE RECORD
 *         
          J     READLOOP           RETURN  TO TOP OF READ LOOP
+*
+         BR    R10                RETURN
+*         
 *
 static   loctr
 SRTBREAK CLC   0(0,R14),0(R15)    * * * *   E X E C U T E D   * * * *
@@ -1239,7 +1273,6 @@ COMCSVXT EQU   *
 *
 * deals with building and outputting regular column data
 *
-*
 COMFBLD1 DS    0H
          XC    CURSRTKY,CURSRTKY  INDICATE  AT LOWEST  DETAIL LEVEL
          BRAS  R9,COLBUILD        BUILD COLUMN OUTPUT
@@ -1391,23 +1424,16 @@ COLBUILD ST    R2,OUTPCURR        SAVE OUTPUT  AREA ADDRESS
 *
          L     R6,VWCOLADR        LOAD ADDRESS OF COLUMN SPECS
          USING COLDEFN,R6
-                     SPACE 3
+*
 COLBLOOP LH    R14,SVBRKCNT       DETAIL RECORD ???
          LTR   R14,R14
          JNP   COLBCHKS           YES -  IGNORE SUBTOTAL CALC OPTIONS
 *
          BRAS  R10,CALCCOLM       PERFORM COLUMN CALCULATIONS IF  ANY
 *
-COLBCHKS L     R14,CDSRTDEF       IS THIS COLUMN SORTED ???
-         LTR   R14,R14
-         JNP   COLBCHKP           NO  -   CONTINUE
+COLBCHKS EQU   * 
 *
-*         CLI   VWDESTYP+1,BATCH   HARDCOPY/BATCH  ???
-*         JNE   COLBCHKP           NO  -   CONTINUE
-*         CLI   SKDSPOPT-SORTKEY+1(R14),CATEGOR CATEGORIZE THIS COL ???
-*         JE    COLBNULL           YES -   BYPASS COLUMN
-*
-COLBCHKP CLI   CDPRTIND,C'Y'      PRINT   THIS  COLUMN ???
+         CLI   CDPRTIND,C'Y'      PRINT   THIS  COLUMN ???
          JE    COLBPRNT           YES -   CONTINUE
 *
 COLBNULL LH    R0,NOTNULL         DECREMENT NOT NULL COUNT
@@ -1995,7 +2021,7 @@ CALCDONE L     R2,0(,R6)          LOAD COLUMN  DEFN ADDRESS FROM LIST
 *
          LH    R14,CDCLCOFF       COPY RESULT  FROM STACK
          A     R14,CALCBASE
-         MVC   0(AccumDFPl,R14),ACCUMWRK
+         MVC   0(AccumDFPl,R14),ACCUMWRK (this is at calctgta)
 *
 CALCADV  AHI   R6,4               ADVANCE   TO NEXT CALC  COLUMN INDEX
          BRCT  R7,CALCCOL         LOOP THROUGH ALL  COLUMNS
@@ -2110,13 +2136,9 @@ RPBLANK  DS   0CL06               REPORT   BLANK LINE
          DC    CL01' '            BLANK
                      EJECT
 *
-GVBMRFIA DC    V(GVBMRFI)         ADDRESS OF "GVBMRFI"
+GVBMRSIA DC    V(GVBMRSI)         ADDRESS OF "GVBMRSI"
 GVBDL96A DC    V(GVBDL96)         ADDRESS OF "GVBDL96"
 GVBTP90A DC    V(GVBTP90)         ADDRESS OF "GVBTP90"
-*
-MERGEADR DC    A(MERGEREC+X'80000000')       "MERGEREC" SUBROUTINE
-MERGENXT DC    A(MERGNEXT+X'80000000')       "MERGNEXT" SUBROUTINE
-*VSAMWRTA DC    A(VSAMWRT+X'80000000')        "VSAMWRT"  SUBROUTINE
 *
 MASKNEG  DC    XL3'402160'
 MASKPARN DC    XL3'40214D'
@@ -2603,20 +2625,17 @@ code     loctr
 
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
-*        M E R G E   E X T R A C T   &   M A S T E R   F I L E S      *
+*        READ EXTRACT FILE                                            *
 *                                                                     *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *
          USING EXTREC,R7
 *
-MERGEREC LR    R9,R15             SET  TEMPORARY PROGRAM BASE REGISTER
-         USING MERGEREC,R9
+READSUBR DS    0H 
+*         LR    R9,R15             SET  TEMPORARY PROGRAM BASE REGISTER
+*         USING READSUBR,R9
 *
-         CLI   LASTFILE,C'E'      REPLENISH BUFFER FOR LAST FILE READ
-         JE    MERGEXTR
-*
-                     EJECT
-MERGEXTR L     R1,EXTRRECA        LOAD  PREVIOUS  RECORD   ADDRESS
+         L     R1,EXTRRECA        LOAD  PREVIOUS  RECORD   ADDRESS
          AH    R1,0(,R1)          ADVANCE TO NEXT RECORD
          C     R1,EXTREOD         LAST  RECORD IN BUFFER   ???
          JL    EXTRFMT            NO  - SAVE NEXT RECORD'S ADDRESS
@@ -2653,38 +2672,31 @@ EXTRNEWB L     R1,4+12(,R3)       LOAD  BUFFER ADDRESS FROM  DECB
 *
 EXTRFMT  ST    R1,EXTRRECA        SAVE  EXTRACT RECORD   ADDRESS
          AP    EXTRCNT,p001
-                     SPACE 3
 *
-MERGNEXT  ds 0H
-          if (CLI,EXTREOF,eq,C'Y')    ANY EXTRACT RECS REMAINING ???
-            L     R14,MERGDONE
+         if (CLI,EXTREOF,eq,C'Y')    ANY EXTRACT RECS REMAINING ???
+            L     R14,READDONE
             BR    R14
           endif                       return
 *
          L     R1,EXTRRECA              LOAD EXTRACT FILE RECORD ADDR
          MVI   LASTFILE,C'E'         ASSUME EXTRACT RECORD SELECTED
-         BR    R10                RETURN
+         BR    R10                RETURN         
+
 *
-                     SPACE 3
 EXTREND  MVI   EXTREOF,C'Y'       INDICATE END-OF-FILE  ON EXTRACT
 * SORT has completed here
 *
-         J     MERGNEXT
-*
-EXTRNEXT L     R1,EXTRRECA        RETURN NEXT EXTRACT RECORD
-         MVI   LASTFILE,C'E'
-         BR    R10
-                     SPACE 3
+         L     R14,READDONE
+         BR    R14
 *
 static   loctr
 *
-MERGDONE DC    A(READEOF)
-READCLC  CLC   EXVIEW#-EXTREC(0,R1),EXVIEW#-EXTREC(R14)
+READDONE DC    A(READEOF)
 *
 code     loctr
 *
          DROP  R7
-         DROP  R9
+*         DROP  R9
                      EJECT
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *

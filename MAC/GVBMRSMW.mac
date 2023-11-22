@@ -1,0 +1,544 @@
+**********************************************************************
+*
+* (C) COPYRIGHT IBM CORPORATION 2003, 2022.
+*     Copyright Contributors to the GenevaERS Project.
+* SPDX-License-Identifier: Apache-2.0
+*
+**********************************************************************
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+*  or implied.
+*  See the License for the specific language governing permissions
+*  and limitations under the License.
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*        V A R I A B L E   W O R K   A R E A                          *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+WORKAREA DSECT
+*
+SAVEAREA DS  18Ad                 REGISTER SAVE AREA
+SAVEMR88 DS  18Ad                 STGMR87  SAVE AREA
+SAVESORT DS  18Ad                 SORT     SAVE AREA
+*
+fp_reg_savearea ds 8fd            Enough for 8 64 bit registers
+*
+SAVENOEX DS  0XL72                SPECIAL  SAVE AREA FOR NO EXTRACT REC
+SAVECALC DS   9A                  SPECIAL  SAVE AREA FOR COL  CALC SUBR
+SAVECOLP DS   9A                  SPECIAL  SAVE AREA FOR COL PRINT SUBR
+*
+SAVETKEY DS   9A                  SPECIAL  SAVE AREA FOR BLD TITLE SUBR
+SAVEMR66 DS   9A                  SPECIAL  SAVE AREA FOR CRR/OSR   SUBR
+SAVErptr DS   6A                  SPECIAL  SAVE AREA FOR rptprnt   SUBR
+*
+SAVERBRK DS    A                  SAVE     AREA FOR REQUEST  BREAK SUBR
+SAVEPAGE DS    A                  SAVE     AREA FOR PAGE     BREAK SUBR
+SAVERPTP DS    A                  SAVE     AREA FOR REPORT   TITLE SUBR
+SAVEHDRP DS    A                  SAVE     AREA FOR HEADER   PRINT SUBR
+SAVETTLP DS    A                  SAVE     AREA FOR TITLE    PRINT SUBR
+SAVEWRTD DS    A                  SAVE     AREA FOR WRITE DOWNLOAD SUBR
+SAVER10  DS    A                  SAVE     AREA FOR 1ST LEVEL SUBR CALL
+SAVER11  DS    A                  SAVE     AREA FOR PGM BASE  REGISTER
+statflg1 ds    x                  status flags -- DD's missing (vwnodd)
+statflg2 ds    x                                  sort started/ended
+insort   equ   01
+postsort equ   02
+statflg3 ds    x                signal to terminate SORT on error x'ff'
+statflg4 ds    x                                  ....
+statovfl equ   x'01'              Flag indicating overflow
+*
+OVFLCHAR DS    X                  OVERFLOW character from last overflow
+*
+         ds    0lq                quadword align
+TEMPWORK DS    XL16               PACKED  DATA WORK AREA
+TEMPWORK2 DS   XL16               PACKED  DATA WORK AREA
+DBLWORK  DS    D                  DOUBLE  WORD WORK AREA
+DBLWORK2 DS    D                  DOUBLE  WORD WORK AREA
+DBLWORK3 DS    D                  DOUBLE  WORD WORK AREA
+*
+saver13  DS    Al4                save r13 on entry
+BEGTIME  DS    xl16               BEGIN TIME STAMP
+ENDTIME  DS    xl16               END TIME STAMP
+*
+srttime1 ds    xl16               Time SORT started
+srttime2 ds    xl16               Time 1st record received from SORT
+srttime3 ds    xl16               Time SORT ended
+*
+WRKAREA       DS   XL16           PACKED  DATA  WORK AREA
+*
+TIMElist TIME  LINKAGE=SYSTEM,MF=L
+*
+stckconveform stckconv mf=L
+*
+TIOTADDR DS    A                  TIOT ADDRESS FROM "EXTRACT"
+*
+wksavmsk DS    F                  save area for program mask
+*
+PARMDADR DS    A                  PARM    DATA ADDRESS (FROM EXEC CARD
+*
+ENVVTBLA DS    A                  ENVIRONMENT  VARIABLE TABLE ADDRESS
+*
+SVRUN#   DS    FL04               RUN      NUMBER
+SVRUNDT  DS    CL08               RUN      DATE
+SVPROCDT DS    CL08               PROCESS  DATE
+SVPROCTM DS    CL06               PROCESS  TIME
+SVFINPDT DS    CL06               FISCAL   PERIOD  DATE
+SVRECCNT DS    PL06               EXTRACT  FILE CONTROL TOTAL
+*
+MARGIND  DS    CL1                MARGINAL UPDATE VIEWS PRESENT
+*
+SAVERECA DS    A                  NEXT RECORD ADDR FOR HEADER ROUTINE
+PAGERECA DS    A                  NEXT RECORD ADDR FOR PAGE   BREAK
+*
+SVVIEW#  DS    F                  CURRENT  VIEW   NUMBER
+*
+*        The following is the areas used to process page numbers in the
+*        Title, Headers, and Footers areas. There is enough room for
+*        20 Title/Header areas and 20 Footer areas. Each entry is made
+*        up of 2 words the 1st being the address of the area and the
+*        2nd being its justification. The justification is stored as an
+*        offset of ie.
+*                     Left value 1 offset 4
+*                   Centre value 2 offset 8
+*                    Right value 3 offset 12
+*
+
+*
+*        Header Fields
+*
+svpg#_max equ  20                 maximun number of page number areas
+svpg#adr ds    40a                save page no. addresses in report hdr
+svpg#h_use_cnt ds f               Count of header page count areas
+svpg#h_next_free ds a             Next free header page count address
+*
+*        Footer Fields
+*
+svpg#ftr ds    40a                save page no.   address in report ftr
+svpg#f_use_cnt ds f               Count of footer page count areas
+svpg#f_next_free ds a             Next free footer page count address
+*
+SVFILENO DS    HL2                EXTRACT  FILE   NUMBER
+*
+fiscal_default_cnt ds f
+LBCHAIN  DS    HL2                THESE    TWO LINES MUST REMAIN
+         DS    AL4                TOGETHER  TO MATCH THE  BUFFER PREFIX
+*
+VDP_MR88_View_list ds a           Address of list of format views
+*                                 counter, followed by view numbers
+VWCHAIN  DS    A                  VIEW     DEFN PARAMETER  CHAIN ADDR
+*
+VDPCOUNT DS    F                  VIEW     DEFN TABLE      COUNT
+VDPSIZE  DS    F                  VIEW     DEFN TABLE      SIZE
+VDPBEGIN DS    A                  VIEW     DEFN PARAMETERS TABLE ADDR
+VDPCURR  DS    A                  VIEW     DEFN PARAMETERS TABLE CURR
+VDP_PREV_PTR_A    ds A            VDP previous element address fwd ptr
+vdp_addr_curr_seg ds A            VDP current table segment
+vdp_seg_len       ds F            VDP current table length
+vdp_seg_cnt       ds F            VDP number of table segments
+*
+FLDDEFTB DS    A                  FIELD    DEFN PARAMETER TABLE  ADDR
+FLDDEFMX DS    A                  FIELD    DEFN PARAMETER TABLE  MAX
+FLDDEFCR DS    A                  FIELD    DEFN PARAMETER TABLE  CURR
+*
+COLDEFTB DS    A                  COLUMN   DEFN PARAMETER TABLE  ADDR
+COLDEFMX DS    A                  COLUMN   DEFN PARAMETER TABLE  MAX
+COLDEFCR DS    A                  COLUMN   DEFN PARAMETER TABLE  CURR
+*
+SRTDEFTB DS    A                  SORT KEY DEFN PARAMETER TABLE  ADDR
+SRTDEFMX DS    A                  SORT KEY DEFN PARAMETER TABLE  MAX
+SRTDEFCR DS    A                  SORT KEY DEFN PARAMETER TABLE  CURR
+*
+CLCDEFTB DS    A                  COL CALC DEFN PARAMETER TABLE  ADDR
+CLCDEFMX DS    A                  COL CALC DEFN PARAMETER TABLE  MAX
+CLCDEFCR DS    A                  COL CALC DEFN PARAMETER TABLE  CURR
+*
+VIEWCNT  DS    PL6                VIEW     COUNT
+*
+EXTRCNT  DS    PL6                EXTRACT  FILE  RECORD COUNT
+MSTRCNT  DS    PL6                MASTER   FILE  RECORD COUNT
+DATACNT  DS    PL6                DATA     FILE  RECORD COUNT
+MARGCNT  DS    PL6                MARGINAL FILE  RECORD COUNT
+DOWNCNT  DS    PL6                DOWNLOAD FILE  RECORD COUNT
+*
+LKUPfnd  ds    PL6                Count of found lookups
+LKUPnot  ds    PL6                Count of lookups not found
+LKUPcnt  ds    PL6                Total count of lookups attmpted
+VWoutfcnt ds   PL6                View files written
+VWoutftot ds   PL6                View files records written
+*
+                     EJECT
+EXTRDCBA DS    A                  EXTRACT    FILE DCB ADDRESS
+MSTRDCBA DS    A                  MASTER     FILE DCB ADDRESS
+MARGDCBA DS    A                  MARGINAL UPDATE DCB ADDRESS
+DOWNDCBA DS    A                  DOWNLOAD   FILE DCB ADDRESS
+PRNTDCBA DS    A                  PRINT      FILE DCB ADDRESS
+CTRLDCBA DS    A                  CONTROL  REPORT DCB ADDRESS
+LOGDCBA  DS    A                  MR88LOG         DCB ADDRESS
+VDPDCBA  DS    A                  VIEW DEFN PARAMETER FILE    DCB  ADDR
+HDRDCBA  DS    A                  LOOK-UP  HEADER DCB ADDRESS
+LKUPDCBA DS    A                  LOOK-UP    DATA DCB ADDRESS
+SYSINDCB DS    A                  SORT      SYSIN DCB ADDRESS
+*
+VDFACBA  DS    A                  VDF  ACB            ADDRESS
+VDFRPLA  DS    A                  VDF  RPL            ADDRESS
+*
+PARMDCBA DS    A                  REQUEST    PARM DCB ADDRESS
+*
+*READSUBR DS    A                  EXTRACT  REC  READ  ROUTINE  ADDRESS
+EXTRDECB DS    A                  EXTRACT  FILE DECB  CURRENT  ADDRESS
+EXTREOD  DS    A                  EXTRACT  FILE BUFFER ENDING  ADDRESS
+EXTRRECA DS    A                  EXTRACT  FILE RECORD         ADDRESS
+EXTRGETA DS    A                  EXTRACT  FILE READ  ROUTINE  ADDRESS
+EXTRCHKA DS    A                  EXTRACT  FILE CHECK ROUTINE  ADDRESS
+MSTRDECB DS    A                  MASTER   FILE DECB  CURRENT  ADDRESS
+MSTREOD  DS    A                  MASTER   FILE BUFFER ENDING  ADDRESS
+MSTRRECA DS    A                  MASTER   FILE RECORD         ADDRESS
+MSTRGETA DS    A                  MASTER   FILE READ  ROUTINE  ADDRESS
+MSTRCHKA DS    A                  MASTER   FILE CHECK ROUTINE  ADDRESS
+DATAPUTA DS    A                  DATA     FILE PUT   ROUTINE  ADDRESS
+MARGPUTA DS    A                  MARGINAL FILE PUT   ROUTINE  ADDRESS
+DOWNPUTA DS    A                  DOWNLOAD FILE PUT   ROUTINE  ADDRESS
+PRNTSUBR DS    A                  OSR/CRR  REC  WRITE ROUTINE  ADDRESS
+CTRLPUTA DS    A                  CONTROL  FILE PUT   ROUTINE  ADDRESS
+HDRGETA  DS    A                  HEADER   FILE READ  ROUTINE  ADDRESS
+DATAGETA DS    A                  TBL DATA FILE READ  ROUTINE  ADDRESS
+*
+RECADDR  DS    A                  CURRENT  RECORD ADDRESS
+PREVRECA DS    A                  PREVIOUS RECORD ADDRESS
+                     EJECT
+CURSRTKY DS    A                  CURRENT  SORT KEY DEFINITION ADDRESS
+LSTSRTKY DS    A                  LAST     SORT KEY DEFINITION ADDRESS
+*
+OUTPCURR DS    A                  CURRENT  OUTPUT   POSITION ("CSV")
+*
+SVBRKCNT DS    HL2                CURRENT  SORT  BREAK COUNT (LEVEL)
+PREVROW# DS   0HL2                PREVIOUS REPORT TITLE  ROW  NBR
+NOTNULL  DS    HL2                NULL     COLUMN VALUE     COUNT
+*
+EXTCOLA  DS    A                  EXTRACT  COLUMN   VALUES ADDRESS
+SUBTOTAD DS    A                  SORT KEY SUBTOTAL ARRAY  ADDRESS
+EXTCNTA  DS    A                  EXTRACT  COLUMN   COUNT  VALUES
+EXTPCALC DS    A                  PRE-CALCULATION   VALUES ADDRESS
+EXTFRSTA DS    A                  FIRST    COLUMN   VALUES ADDRESS
+EXTLASTA DS    A                  LAST     COLUMN   VALUES ADDRESS
+EXTMAXA  DS    A                  MAXIMUM  COLUMN   VALUES ADDRESS
+EXTMINA  DS    A                  MINIMUM  COLUMN   VALUES ADDRESS
+EXTPREVA DS    A                  PREVIOUS COLUMN   VALUES ADDRESS
+*
+CLCCOLTB DS    A                  CALCULATED   COLUMN DEFN ADDRESS TBL
+*
+CLCOFFTB DS    A                  CALCULATED   COLUMN OFFSET       TBL
+*
+EXCPTBLA DS    A                  EXCEPTION    TABLE  ADDRESS
+CALCBASE DS    A                  CURRENT CALCULATION BASE  SET OF VALU
+CURTTLOF DS    H                  CURRENT TITLE   KEY VALUE OFFSET
+CURRLVL  DS    H                  CURRENT INDENTATION LEVEL
+*
+VWRECCNT DS    PL6                REPORT  REQUEST CONTROL   COUNT
+VWSATIND DS    CL1                REPORT  REQUEST SATISFIED INDICATOR
+VW0C7IND DS    CL1                0C7     ABEND   INDICATOR
+VWOVRIND DS    CL1                EXTRACT LIMIT   EXCEEDED  INDICATOR
+*
+EXTREOF  DS    CL1                EXTRACT  FILE EOF INDICATOR
+MSTREOF  DS    CL1                MASTER   FILE EOF INDICATOR
+VDFOPENF DS    CL1                VDF      FILE     OPEN   FLAG
+LASTFILE DS    CL1                LAST INPUT RECORD SOURCE  FILE (E,M)
+EOREOFCD DS    CL1                END  OF  REQUEST/FILE  CODE
+*
+LANGENV  DS    CL1                LE/COBOL EXIT PRESENT
+INSCHAR  DS    CL1                MASK INSERTION CHARACTER
+*
+SVSORTKY DS    A                  PREVIOUS SORT KEY VALUE ADDRESS
+*
+PREVCNT  DS    A                  PREVIOUS LOOP  COUNTER  VALUE
+PREVNODE DS    A                  PREVIOUS LOOK-UP  NODE
+*
+CURRSTAK DS    A                  CURRENT  STACK ELEMENT ADDRESS
+ACCUMWRK DS   5PL(AccumDFPl)      ACCUMULATOR     STACK
+*
+SVLBPREV DS    A                  SAVE PREVIOUS RECORD BUFFER ADDRESS
+SVVIEWTP DS    CL1                VIEW   TYPE ("B" - BASE VIEW)
+*
+PRINTIND DS    CL1                USE  PRINT AREA      INDICATOR
+COLMFRST DS    CL1                FIRST DISPAYABLE COL INDICATOR
+         DS    CL1
+         DS    CL1
+         DS    CL1
+GTOTLIND DS    CL1                PRINT  GRAND TOTALS  INDICATOR
+NEEDDASH DS    CL1                DASH LINE  UNDER  COLUMNS NEEDED
+NEEDTITL DS    HL2                SORT TITLE LINES  NEEDED (DEFERRED)
+CRLF     DS    CL2
+*
+MAXCOL   DS    HL2                MAXIMUM  NO. OF COLUMNS (ALL REPORTS)
+MAXBRK   DS    HL2                MAXIMUM  NO. OF SUBTOTAL BREAKS  (+1)
+MAXRPT   DS    HL2                MAXIMUM  NO. OF REPORT   TITLE LINES
+MAXFOOTR DS    HL2                MAXIMUM  NO. OF REPORT  FOOTER LINES
+*
+RTITLEA  DS    A                  REPORT   TITLE    AREA   ADDRESS
+RFOOTRA  DS    A                  REPORT   FOOTER   AREA   ADDRESS
+*
+VDFRECA  DS    A                  VDF      RECORD   ADDRESS
+VDFKEY   DS    CL07               VDF KEY: REQUEST  NO.
+         DS    CL02                        RECORD TYPE
+         DS    CL03                        COLUMN NUMBER
+         DS    CL05                        SEQUENCE NO.
+VDFKEYLN EQU   *-VDFKEY
+*
+LRGNUM   DS    CL01               LARGE  NUMBER  MODE (20,3)
+OUTASCII DS    CL01               OUTPUT ASCII DRILLDOWN
+*
+MSG_AREA GVBMSG PREFIX=MMM,MF=L
+*
+ERRDATA  DS    CL54               INDICATIVE   ERROR DATA
+                     EJECT
+RPHEADR1 DS   0CL137              COLUMN   HEADER LINE   1
+H1RECLEN DS    HL02               LINE     LENGTH
+         DS    XL02
+H1CC     DS    CL01               CARRIAGE CONTROL
+H1TEXT   DS    CL256              COLUMN   HEADER TEXT   LINE
+         DS    XL01               (FILLER)
+                     SPACE 2
+RPHEADR2 DS   0CL137              COLUMN   HEADER LINE   2
+H2RECLEN DS    HL02               LINE     LENGTH
+         DS    XL02
+H2CC     DS    CL01               CARRIAGE CONTROL
+H2TEXT   DS    CL256              COLUMN   HEADER TEXT   LINE
+         DS    XL01               (FILLER)
+                     SPACE 2
+RPHEADR3 DS   0CL137              COLUMN   HEADER LINE   3
+H3RECLEN DS    HL02               LINE     LENGTH
+         DS    XL02
+H3CC     DS    CL01               CARRIAGE CONTROL
+H3TEXT   DS    CL256              COLUMN   HEADER TEXT   LINE
+         DS    XL01               (FILLER)
+                     SPACE 2
+DASHLINE DS   0CL137              COLUMN   HEADER DASH   LINE
+DASHLEN  DS    HL02               LINE     LENGTH
+         DS    XL02
+DASHCC   DS    CL01               CARRIAGE CONTROL
+DASHTEXT DS    CL256              DASH     LINE
+         DS    XL01               (FILLER)
+                     SPACE 2
+TITLLINE DS   0CL137              SORT BREAK TITLE LINE
+TITLRDW  DS    HL02               SORT BREAK TITLE LENGTH
+         DS    XL02
+TITLCC   DS    CL01               CARRIAGE CONTROL
+TITLTEXT DS    CL256              SORT     TITLE  TEXT   LINE
+         DS    XL01               (FILLER)
+                     SPACE 2
+PRNTRDW  ds    0CL4               RDW for printing to VB output
+PRNTRDWH ds    HL02               High RDW
+PRNTRDWL ds    HL02               Low RDW
+PRNTLINE DS   0CL133              CONTROL  REPORT PRINT  LINE
+PRNTCC   DS    CL001              CARRIAGE CONTROL
+PRNTTEXT DS   0CL060              PRINT    TEXT
+PRNTPGM  DS    CL008              PRINT    PROGRAM NAME
+PRNTMSG  DS    CL052              PRINT    ERROR MESSAGE
+PRNTRCNT DS    CL015              PRINT    RECORD  COUNT
+         DS    CL004              PRINT    FILLER
+PRNTCLUE DS    CL050              PRINT   "CLUE"   INFORMATION
+         DS    CL003              PRINT    FILLER
+         ORG   PRNTTEXT+52        SORT times start here
+PRNTSRTT DS    CL025              SORT time
+         ORG
+PRNTLLEN EQU   (*-PRNTLINE)
+         DS    CL0123             PRINT    FILLER (256 CHAR LINE LIMIT)
+PRNTMAXL EQU   (*-PRNTLINE)
+                     EJECT
+*
+VDP0650A DS   A                  Address of the vdp0650 record
+*
+* Control report data parameters
+*
+vdpcnt_real  ds f                Count of number of VDP recs read
+vdp_date     ds cl10             VDP create date..
+vdp_time     ds cl8                         ...and time
+vdp_desc     ds cl48
+rthcount     ds f                Count of number of RTH recs read
+refddn       ds cl8              Reference file DDN GREFnnn
+refrect      ds f                Reference file record total
+refmemt      ds d                Reference file memory total
+*
+                     EJECT
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+* "STGTP90" -  PARAMETER AREA DEFINITION                              *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+TP90AREA DS   0A               FIELD SPECIFICATION ENTRY DEFINITION
+*
+PAANCHOR DS    AL04            TP90   WORK  AREA ANCHOR
+PADDNAME DS    CL08            FILE DDNAME
+PAFUNC   DS    CL02            FUNCTION CODE
+PAFTYPE  DS    CL01            FILE TYPE (V  = VSAM,  S = SEQUENTIAL)
+PAFMODE  DS    CL02            FILE MODE (I  = INPUT, O = OUTPUT    )
+*                                        (IO = BOTH                 )
+PARTNC   DS    CL01            RETURN CODE
+PAVSAMRC DS    HL02            VSAM   RETURN CODE
+PARECLEN DS    HL02            RECORD LENGTH
+PARECFMT DS    CL01            RECORD FORMAT (F=FIXED, V=VARIABLE)
+PARESDS  DS    CL01            ESDS direct access
+*
+PALEN    EQU   *-TP90AREA      PARAMETER AREA LENGTH
+                     SPACE 3
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*  "STGTP90" PARAMETER LIST DEFINITION                                *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+TP90LIST DS   0A               PARAMETER LIST FOR "STGTP90"
+TP90PA   DS    A
+TP90RECA DS    A
+TP90KEYA DS    A
+                     EJECT
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+* "GVBDL96" -  DATA CONVERSION PARAMETERS                             *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+         dl96area dsect=NO
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*  "GVBDL96" PARAMETER LIST DEFINITION                                *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+DL96LIST DS   0A
+*
+DL96PA   DS    A             ADDRESS OF FIELD  ARRAY ENTRY (SOURCE)
+DL96TGTA DS    A             ADDRESS OF TARGET DATA  AREA  (PIC(X))
+DL96LENA DS    A             ADDRESS OF EDITED DATA  LENGTH(S9(4) COMP)
+DL96RCA  DS    A             ADDRESS OF RETURN CODE        (S9(4) COMP)
+                     EJECT
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+* "STGMR66" -  "CRP" FILE I/O HANDLER                                 *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+MR66AREA DS   0A             I/O HANDLER PARAMETER AREA
+*
+PARMFC   DS    HL02          FUNCTION          CODE
+PARMRC   DS    HL02          VSAM     RETURN   CODE
+PARMFDBK DS    HL02          VSAM     FEEDBACK CODE
+PARMRBA  DS    FL04          RELATIVE BYTE     ADDRESS
+PARMDDN  DS    CL08          FILE DDNAME
+                     SPACE 3
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+* "STGMR66" -  PARAMETER LIST DEFINITION                              *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+MR66LIST DS   0A
+*
+MR66PA   DS    A             ADDRESS OF PARAMETER   AREA
+MR66SRCA DS    A             ADDRESS OF SOURCE DATA AREA  RDW
+                     SPACE 5
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*        S O R T   E X I T   P A R A M E T E R S                      *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+SORTRSA  DS    A                  SORT PROGRAM   RSA      ADDRESS
+*
+SORTCTLA DS    A                  SORT STATEMENT CONTROL  AREA  ADDR
+SORTE15A DS    A
+SORTE35A DS    A
+SORTTHRD DS    A                  THREAD    WORK AREA     ADDRESS
+         DS    A
+         DS    A
+         DS    A
+         DS    A
+SORTID   DS    CL4
+SORTFFFF DS    XL4
+*
+LEWORKA  DS    A                  LANGUAGE  ENVIRONMENT WORK    AREA
+*
+JFCBEXIT DS    A
+*
+RENTPARM DS   0XL256              RE-ENTRANT   PARAMETER  LIST AREA
+LKUPKEY  DS    CL256              LOOK-UP KEY  WORK AREA
+*
+         DS   0D
+DYNAAREA DS    (M35S99LN)C
+*
+JFCB     DS   0CL176              JOB  FILE CONTROL  BLOCK
+*         DS    (VDP1300LN)C
+*
+         ds   0d
+Run_date@ ds  a                   Zero if no RUN_DATE parm specified
+*                                 otherwise the address of the
+*                                 RUN_DATE value
+Run_date ds   cl8                 RUN_DATE parm value
+*
+Fiscal_date@ ds a                 Zero if no FISCAL_DATE parm specified
+*                                 otherwise the address of the
+*                                 FISCAL_DATE value
+Fiscal_date ds cl8                FISCAL_DATE value
+*
+Fiscal_date_ids@ ds a        Zero if no FISCAL_DATE with an id parm
+*                            specified, otherwise it points to
+*                            the 1st entry in the table
+Fiscal_date_ide@ ds a        Zero if no FISCAL_DATE with an id parm
+*                            specified, otherwise it points to
+*                            the last entry in the table
+max_fiscalid_digits equ 10   Max size of id in the VDP0050 record
+*
+Current_time  ds   cl12    time default proctm
+Current_date  ds   cl8     Date default Run and Fiscal ccyymmdd
+*
+error_nbr ds  fl4          This is the error MR87 will return when E35
+abend_msg ds  fl4          Abend on this error message number
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*        P R I N T   L I N E   O U T P U T   A R E A                  *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+UTMTBUFF ds   0CL164              BUFFER to pass to GVBMSG (LOG)
+UTMTRDW  ds    0cl4               RDW for printing to VB output
+UTMTRDWH ds    hl02               High RDW
+UTMTRDWL ds    hl02               Low RDW
+         org   utmtrdwl
+UTMTLEN  DS    HL02               DISPLAY  TEXT   LENGTH "WTO"
+UTMTLINE DS   0CL161              CONTROL  REPORT PRINT  LINE
+UTMTCC   DS    CL001              CARRIAGE CONTROL
+UTMTTEXT DS    CL056              PRINT    TEXT
+         DS    C                  Filler (PRNTSTAT)
+UTMTCNT  DS    CL015              PRINT    COUNT
+UTMTFILE DS    CL010              PRINT    EXTRACT FILE NO.
+UTMTFIL1 DS    CL001              PRINT    FILLER
+UTMTCLUE DS   0CL050              PRINT   "CLUE"  INFORMATION
+UTMTEXIT DS   0CL08
+UTMTBYTS DS    CL20
+UTMTINPT DS    CL20
+         DS    CL10
+         DS    CL027
+         ORG   UTMTLINE+28
+UTMTFLBL DS    CL02
+UTMTFND  DS    CL11               PRINT    LOOKUPS FOUND
+         DS    CL01
+UTMTNLBL DS    CL03
+UTMTNOT  DS    CL11               PRINT    LOOKUPS NOT  FOUND
+         DS    CL01
+UTMTSTAT DS    CL01               FINAL    REPORT  STATUS
+         ORG
+*
+MR88RETC DS    F
+         ds   0d
+WORKLEN  EQU   *-WORKAREA
+*
