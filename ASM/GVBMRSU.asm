@@ -490,13 +490,11 @@ A0130    EQU   *
          BRCT  R9,A0130
          LA    R0,WKECBSUB          subtask ended ECB
          ST    R0,0(,R7)
-*         AHI   R7,-4                back to last entry
          OI    0(R7),X'80'          indicate last word in list
          DROP  R4 EXUEXU
 *
          XC    WKECBSUB,WKECBSUB
          XC    WKTCBSUB,WKTCBSUB
-*
 *
 **********************************************************************
 * Start DB2 HPU utility                                              *
@@ -638,12 +636,12 @@ A0010    EQU   *
 *
 * Just another block of data
          CLI   EXUWAIT,C'Y'       This exit instance waiting for us ?
-         JE    A0012
-         DC    H'0'
+         JE    A0012              Yes, good
+         DC    H'0'              No, must be otherwise wouldn't be here
 A0012    EQU   *
-         CLI   EXUSTAT,C'3'       And correct state ?
-         JE    A0013
-         DC    H'0'
+         CLI   EXUSTAT,C'3'       And is it in the correct state ?
+         JE    A0013              Yes, good
+         DC    H'0'              No, must be otherwise wouldn't be here
 A0013    EQU   *
          XC    EXUECBMA,EXUECBMA  reset ECB -----
          MVI   EXUSTAT,C' '       reset status
@@ -689,10 +687,9 @@ A0022    EQU   *
          LA    R4,EXUEXUL(,R4)    next EXUEXU entry
          BRCT  R15,A0022
 *
-         TM    WKECBSUB,X'40'
-         JO    A0022A
-         wto 'cant find EXU that posted us'
-         DC    H'0'
+         TM    WKECBSUB,X'40'     posted by unexpected DB2 HPU term ?
+         JO    A0022A             Yes, go
+         DC    H'0'               One of the ECB's must have posted us!
 *
 A0022A   EQU   *
          LLGT  R15,WKSUBERR        Subtask (DB2HPU) had an error
@@ -710,15 +707,14 @@ A0022A   EQU   *
 *
 A0023    EQU   *
 *                                 records or reached eof
-         CLI   EXUSTAT,C'2'       block populated ?
+         CLI   EXUSTAT,C'2'       block populated status ?
          JE    A0024              yes, that's correct
-         wto 'incorrect EXUSTAT status'
-         DC    H'0'               this means exit is running still !!
+         DC    H'0'               no, cannot have posted us then !!!
 *
 A0024    EQU   *
          ASI   EXUCNT1,1         Count times through
          ST    R4,WKEXUCUR       This is the EXU being passed to MR95
-         MVI   EXUSTAT,C'3'      Passing data to MR95
+         MVI   EXUSTAT,C'3'      Now passing data to MR95
 *
          CLI   EXUEOF,C'Y'
          JNE   FETCHOK            CONTINUE
@@ -757,7 +753,8 @@ FETCHOK  DS    0H
          AGR   R0,R6
          STG   R0,EODADDR         used by MR95
 *
-* We can't post DB2 HPU exit here as MR95 has processed the block yet <
+* We can't post DB2 HPU exit here: MR95 hasn't processed the block yet
+* Post it when we come back in to DB2FETCH, if not EOF (FINAL)
 *
          STG   R6,SAVESUB3+64
          LMG   R14,R12,SAVESUB3

@@ -88,7 +88,6 @@ EXTXTCB  DS    F                FIELDS RESERVED FOR THE EXIT
 EXTXASOC DS    X                FIELDS RESERVED FOR THE EXIT
          DS    3X               FIELDS RESERVED FOR THE EXIT
          DS    F                FIELDS RESERVED FOR THE EXIT
-*        DS    4F               FIELDS RESERVED FOR THE EXIT
 EXTXAMSG DS    A                ADDRESSE OF MESSAGE
 EXTXLMSG DS    F                LENGTH OF MESSAGE
 EXTXUMSG DS    CL100            EXIT MESSAGE AREA
@@ -101,7 +100,6 @@ TBCREATL DS    H                CREATOR LENGTH
 TBCREAT  DS    CL160            TABLE CREATOR
 TBNAMEL  DS    H                TABLE NAME LENGTH
 TBNAME   DS    CL160            TABLE NAME
-*WORK     DS    CL444            WORKAREA AVAILABLE TO US
 *
 WKREENT  DS    XL128            RE-ENTRANT  PARAMETER  LIST
 WKTOKNRC DS    A                NAME/TOKEN  SERVICES RETURN CODE
@@ -142,18 +140,9 @@ INZEXIT  CSECT
 ***      INITIALIZATION
 *
 INIT     DS    0H
-         WTO 'GVBMRHPU INIT CALL'
 *
 *  A READY-TO-USE WORKAREA OF 840 BYTES IS ALLOCATED BY THE CALLING
-*  FUNCTION. IF MORE SPACE IS NEEDED, A LARGER AREA SHOULD BE
-*  ALLOCATED HERE.
-*  EXAMPLE:
-*        GETMAIN R,LV=GETML     GET A WORKAREA
-*        ST    R1,EXTXAUWA      SAVE GETMAIN ADDRESS
-*        LR    R11,R1
-*
-**       ST    R11,8(R13)       GIVE CALLER MY SAVE AREA ADDRESS
-**       ST    R13,4(R11)       SAVE CALLERS SAVE AREA ADDRESS
+*  FUNCTION.
 *
          L     R3,EXTXATB       ADDRESS OF TABLE IDENTIFICATOR
 *
@@ -178,14 +167,17 @@ INIT     DS    0H
          L     R15,WKTOKNRC       SUCCESSFUL   ???
          LTR   R15,R15
          JZ    INIT0010
-         WTO   'NAME/TOKEN NOT FOUND'
+         GVBMSG WTO,MSGNO=DB2_HPU_TOKN,SUBNO=1,                        +
+               SUB1=(MODNAME,8),                                       +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
          J     RC4
 *
 INIT0010 EQU   *
          L     R8,WKTOKN        R8 => EXUEXU TABLE HEADER
          LTR   R8,R8
          JP    INIT0012
-         WTO   'SHARED STORAGE NOT FOUND'
+         DC    H'0'             Should not happen, ever.
          J     RC4
 *
 INIT0012 EQU   *
@@ -206,8 +198,8 @@ INIT0016 EQU   *
          JNE   INIT0018         NO, GO
          LA    R8,EXUEXUL(,R8)
          BRCT  R9,INIT0016
-         DC    H'0'             SHOULDN'T HAPPEN
-*
+         DC    H'0'             SHOULDN'T EVER RUN OUT OF TABLE ENTRIES
+*          AS PARALLEL PARAMETER WAS USED TO REQUEST NUMBER OF SUBTASKS
 INIT0018 EQU   *
          XC    EXTXTCB,EXTXTCB
          MVI   EXTXASOC,X'FF'   ALREADY ASSOCIATED NOW
@@ -224,8 +216,6 @@ INIT0018 EQU   *
 *
          DEQ (GENEVA,MRSUNAME,,STEP),RNL=NO
 *
-         WTO 'EXUEXU ASSOCIATION MADE'
-*
          B     RC0
 *
 MVCOWNER MVC   TBCREAT,2(R1)
@@ -234,14 +224,13 @@ MVCNAME  MVC   TBNAME,2(R1)
 ***      PROCESS RETURNED ROW
 *
 PROCESS  DS    0H
-***      WTO 'GVBMRHPU PROCESS CALL'
          USING PSA,R0
          L     R8,PSATOLD
          NC    EXTXTCB,EXTXTCB
          JZ    A0050
          C     R8,EXTXTCB
          JE    A0050
-         WTO 'DB2HPU CHANGE OF TCB'
+         DC    H'0'             CHANGE OF TCB SHOULD NEVER HAPPEN
 A0050    EQU   *
          ST    R8,EXTXTCB       STORE THIS ONE
          DROP  R0
@@ -306,7 +295,6 @@ A0160    EQU   *
          LA    R4,SQLVSIZ(,R4)
          BCT   R5,A0160         NEXT COLUMN
 *
-***      WTO 'DB2HPU STORING RECORD IN BLOCK'
          CLI   EXUWAIT,C'Y'
          JE    A0170            JUST STORE A RECORD IN THE BLOCK
          J     A0180            END PROCESS OK
@@ -315,18 +303,14 @@ A0170    EQU   *
          MVI   EXUSTAT,C'2'     BUFFER FULL
          XC    EXUECBEX,EXUECBEX  ----
 *
-***      WTO 'DB2HPU POSTING MR95'
          POST  EXUECBMA         RETURN A RECORD BLOCK TO MR95
-***      WTO 'DB2HPU WAITING FOR MR95 TO CONSUME LAST BLOCK'
          WAIT  1,ECB=EXUECBEX   WAIT FOR MR95 TO CONSUME THE BLOCK
-***      WTO 'DB2HPU MR95 HAS CONSUMED LAST BLOCK'
          MVI   EXUWAIT,C' '       RESET THE NEED TO POST/WAIT FLAG
          XC    EXURNUM,EXURNUM    RESET NUMBER OF RECORDS IN BLOCK
          LLGT  R0,EXUBLKA         RESET RECORD POSITION IN BLOCK
          ST    R0,EXURPOS
 *
 A0180    EQU   *
-* ****** B     RC0              END PROCESS OK
          B     RC4              END PROCESS OK (RETURN NO RECORD)
 *
 MVCFIELD MVC   0(0,R1),0(R6)
@@ -334,9 +318,6 @@ MVCFIELD MVC   0(0,R1),0(R6)
 *        EXIT HAS FINISHED UNLOADING RECORDS
 *
 TERM     EQU   *
-         WTO 'GVBMRHPU TERM CALL'
-         WTO 'DB2HPU POSTING MR95 AT TERMINATION OF THIS SUBTASK'
-*
          ENQ (GENEVA,MRSUNAME,E,,STEP),RNL=NO
          LLGT  R1,WKTOKN        EXUEXU HEADER
          AHI   R1,-16           BACK UP TO EXUEXU HEADER
@@ -352,11 +333,6 @@ TERM     EQU   *
          MVI   EXUSTAT,C'2'     BUFFER FULL AS IT'S GOING TO GET
          POST  EXUECBMA         SAY WE'VE FINISHED
 *
-*   IF A WORKING AREA WAS ALLOCATED, IT SHOULD BE FREED HERE
-*   EXAMPLE:
-*        L     R1,EXTXAUWA      FREE WORKAREA
-*        FREEMAIN R,A=(R1),LV=GETML
-*
          B     RC0              END TERMINATION OK
 *
 RC0      EQU   *
@@ -367,19 +343,18 @@ RC4      EQU   *
          B     RETURN
 RC8      EQU   *
          LA    R15,8
-*        B     RETURN
 RETURN   EQU   *
          L     R13,SAVE+4
          L     R14,12(R13)
          LM    R0,R12,20(R13)
          BSM   0,R14
 *
-TOKNLVL2 DC    A(2)             NAME/TOKEN  AVAILABILITY  LEVEL
-GENEVA   DC    CL8'GENEVA  '         TOKEN  NAME
+MODNAME  DC    CL8'INZEXIT'           Module name
+TOKNLVL2 DC    A(2)                   NAME/TOKEN  AVAILABILITY  LEVEL
+GENEVA   DC    CL8'GENEVA  '          TOKEN  NAME
 PGMNAME  DC    CL8'GVBMRSU '
 MRSUNAME DC    CL8'MRSUEXA '          MINOR  ENQ  NODE FOR WRITE I/O
 TOKNPERS DC    F'0'
-IEANTCR  DC    V(IEANTCR)
 IEANTRT  DC    V(IEANTRT)
          LTORG ,
 *
