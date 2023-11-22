@@ -202,8 +202,9 @@ START    STM   R14,R12,SAVESUBR+RSA14  SAVE  CALLER'S REGISTERS
          TESTAUTH
          LTR   R15,R15
          JZ    A0002
-         GVBMSG WTO,MSGNO=DB2_HPU_NAPF,SUBNO=1,                        +
+         GVBMSG LOG,MSGNO=DB2_HPU_NAPF,SUBNO=1,                        +
                SUB1=(PGMNAME,8),                                       +
+               GENENV=GENENV,                                          +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
          la    r15,8
@@ -251,7 +252,11 @@ INITSQL  DS    0H
          OPEN  (SYSDCB,OUTPUT),MODE=31,MF=(E,WKREENT)
          TM    SYSDCB+48,X'10'   SUCCESSFUL  OPEN ???
          JO    A0046
-         wto 'open sysin file failed'
+         GVBMSG LOG,MSGNO=DB2_HPU_SYSI,SUBNO=1,                        +
+               SUB1=(PGMNAME,8),                                       +
+               GENENV=GENENV,                                          +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
          la    r15,8
          J     RETURNE
 **********************************************************************
@@ -321,10 +326,8 @@ INITLOOP BCTR  R1,0               BACKUP  TO PRECEEDING BYTE
 *
 INITLEN  STH   R9,SQLBUFFR        SAVE  ACTUAL  TEXT LENGTH
 *
-*        write SYSIN cards -- would still like to write parallelism 1
-*                             not defined.
+*        write SYSIN cards
 *
-         wto 'writing cards'
          XR    R4,R4
          LLGTR R5,R9
          D     R4,=A(37)
@@ -350,13 +353,9 @@ A0114    EQU   *
          MVC   WKREENT(STATCLOSL),0(R14)
          CLOSE (SYSDCB),MODE=31,MF=(E,WKREENT)
 *
-         wto 'cards written'
-*
 **********************************************************************
 * Examine for parallelism parameter                                  *
 **********************************************************************
-         wto 'determine parallelism'
-*
          LGH   R5,SQLBUFFR
          AFI   R5,-L'PARALLEL
          CHI   R5,2
@@ -368,17 +367,18 @@ A0120    EQU   *
          LA    R9,1(,R9)
          BRCT  R5,A0120
 *
-A0121    EQU   *
-         wto 'parallelism not found'
+A0121    EQU   *                       Parallelism not found
          MVC   WKPARALL,=H'1'
          J     A0129
 A0121A   EQU   *
-         wto 'parallelism not numeric'
+         GVBMSG WTO,MSGNO=DB2_HPU_PARA,SUBNO=1,                        +
+               SUB1=(PGMNAME,8),                                       +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
          MVC   WKPARALL,=H'1'
          J     A0129
 *
-A0122    EQU   *
-         wto 'parallelism found'
+A0122    EQU   *                       Parallelism found
          LA    R9,L'PARALLEL(,R9)
          LR    R0,R9
 A0123    EQU   *
@@ -391,7 +391,7 @@ A0123    EQU   *
 A0124    EQU   *
          SR    R9,R0                   Length of digits
          LTR   R9,R9
-         JNP   A0121A
+         JNP   A0121A                  invalid, go
          BCTR  R9,0
 *
          LR    R1,R0                   First digit of number
@@ -457,7 +457,11 @@ A0129    EQU   *
          L     R15,WKTOKNRC       SUCCESSFUL   ???
          LTR   R15,R15
          JZ    A0128
-         wto   'name/token pair not created'
+         GVBMSG LOG,MSGNO=DB2_HPU_TOKN,SUBNO=1,                        +
+               SUB1=(PGMNAME,8),                                       +
+               GENENV=GENENV,                                          +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
          la    r15,8
          j     returne
 *
@@ -510,8 +514,6 @@ A0130    EQU   *
                ECB=(7),SZERO=YES        ECB (located in THRDAREA)
          ST    R1,WKTCBSUB
          DROP  R9
-*
-         wto 'initialization complete'
 *
 **********************************************************************
 * DISPLAY SQL IN MR95 TRACE FILE IF OPEN                             *
@@ -587,7 +589,6 @@ A0100    EQU   *
 *
 *
 RETURN   DS    0H
-***      wto 'returning from GVBMRSU'
          XR    R15,R15            SET  RETURN CODE  TO ZERO
 *
 RETURNE  DS    0H
@@ -617,14 +618,12 @@ DB2FETCH1 DS    0H
          LR    R9,R14              SAVE RETURN ADDRESS
          LARL  R10,GVBMRSU         set static area base
          LLGT  R4,WKEXUADR         get first EXUEXU entry
-* ****** wto   'evntread1'
          J     A0020               First time, straight to continue
 *
 DB2FETCH DS    0H
          STMG  R14,R12,SAVESUB3
          LR    R9,R14              SAVE RETURN ADDRESS
          LARL  R10,GVBMRSU         set static area base
-* ****** wto   'evntread'
          LLGT  R8,SQLWADDR         Needed if it's not 1st time through
 *
 * Can only post DB2 HPU exit on subsequent call allowing MR95 chance
@@ -663,14 +662,12 @@ A0014    EQU   *
 *
 *                                 NO: not the final INZEXIT instance
          DEQ (GENEVA,MRSUNAME,,STEP),RNL=NO
-         wto 'not quite there yet'
          XC    EXUECBMA,EXUECBMA  reset ECB -----
          MVI   EXUSTAT,C' '       reset status
          J     A0020              NO: continue..
 *
 A0015    EQU   *                  Final EXU (partition) !!!
          DEQ (GENEVA,MRSUNAME,,STEP),RNL=NO
-         wto 'processing last EXU entry'
          J     EVNTEOF            Go: it's last data from last instance
 *
 * Wait for one of the DB2 HPU related exits to post us
@@ -698,7 +695,7 @@ A0022    EQU   *
          DC    H'0'
 *
 A0022A   EQU   *
-         LLGT  R15,WKSUBERR        Did subtask (DB2HPU) have an error?
+         LLGT  R15,WKSUBERR        Subtask (DB2HPU) had an error
          CVD   R15,DBLWORK         STORE THE RETURN CODE (PACKED)
          MVC   WORKMSG(8),SPACES
          UNPK  WORKMSG(4),DBLWORK+4(4)
@@ -782,8 +779,6 @@ EVNTEOF  EQU   *
          XGR   R6,R6         Indicate NO Records and end of partitions
          STG   R6,RECADDR         Save the Record address
 *
-         wto 'doing detach'
-*
          WAIT  1,ECB=WKECBSUB     subtask has finished altogether
 *
          DETACH WKTCBSUB
@@ -813,7 +808,6 @@ parsv_dcb ds   0h
 SUBTASK  ds    0h
          bakr  r14,0
          larl  r10,GVBMRSU        set static area base
-         wto   'subtask running'
 *
          LA    R0,WKPARM1+2
          O     R0,=X'80000000'
@@ -827,13 +821,10 @@ SUBTASK  ds    0h
          chi   r15,4
          je    subtask3
          st    R15,WKSUBERR
-         wto   'error from db2 hpu'
          j     subtask2
-subtask3 equ   *
-         wto   'rc=4 from db2 hpu (all records passed to MR95)'
+subtask3 equ   *                  rc=4: all records passed to MR95
 *
 subtask2 equ   *
-         wto   'subtask stopping'
          pr    r14
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
