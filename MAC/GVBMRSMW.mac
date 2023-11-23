@@ -47,7 +47,7 @@ SAVEHDRP DS    A                  SAVE     AREA FOR HEADER   PRINT SUBR
 SAVETTLP DS    A                  SAVE     AREA FOR TITLE    PRINT SUBR
 SAVEWRTD DS    A                  SAVE     AREA FOR WRITE DOWNLOAD SUBR
 SAVER10  DS    A                  SAVE     AREA FOR 1ST LEVEL SUBR CALL
-SAVER11  DS    A                  SAVE     AREA FOR PGM BASE  REGISTER
+SAVERET  DS    A                  SAVE     AREA FOR SUBR RETURN ADDR
 statflg1 ds    x                  status flags -- DD's missing (vwnodd)
 statflg2 ds    x                                  sort started/ended
 insort   equ   01

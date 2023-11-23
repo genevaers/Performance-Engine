@@ -281,6 +281,7 @@ prevsa   using saver,r10
          CLI   EXTREOF,C'Y'       EMPTY EXTRACT FILE  ?
          JE    READEOF            EOF Processing     
 *
+         XR    R8,R8       reset VIEWREC address (indicates 1st time)
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Check for Control records
 * Must have at least one
@@ -344,8 +345,6 @@ HEADLOOP EQU   *
          LTR   R15,R15            VALID  HEADER   RECORD ???
          JNZ   EXTRACTR           No , quit header rec loop
 *
-         MVI   EOREOFCD,C'H'      INDICATE  READING HEADERS         
-*
 *         OC    HDVIEW#,HDVIEW#    CONTROL  RECORD ???
 *         JZ    READNEXT           YES -    IGNORE
 *         
@@ -358,7 +357,14 @@ HEADLOOP EQU   *
 *
 * Header with different VIEW ID 
 *
-* Process previous Header record
+* check previous not an empty View i.e. no extract records
+*
+         CLI   EOREOFCD,C'H'     Was last one a header?
+         JE    HDR_NEXT          Yes, skip as no extr recs for previous
+*         
+         MVI   EOREOFCD,C'H'      INDICATE  READING HEADERS         
+
+* Process previous record (could be header , or extract rec)
          MVC   SAVERECA,RECADDR            SAVE  NEXT  HEADER RECORD
          L     R7,PREVRECA                 Point to prev extract record
          ST    R7,RECADDR
@@ -452,11 +458,9 @@ EXTRLOOP EQU  *
          JNE   EXTREXIT           
 *  - exit loop
          BRAS  R10,EXTPROC Process extract record
-
-
-
+*
 READNEXT EQU   *                  Read next sorted records
-*         ST    R7,PREVRECA
+         ST    R7,PREVRECA
          MVC   SVVIEW#,EXVIEW#    Save current VIEWID
 *         
          BRAS  R10,READSUBR       READ  THE NEXT  EXTRACT FILE RECORD
@@ -503,7 +507,8 @@ RBRKNOT  equ   *
          UNPK  ERRDATA+0(9),DBLWORK
          J     RTNERROR
 *
-RBRKINIT MVC   SVVIEW#,EXVIEW#    SAVE    NEW  VIEW  NUMBER
+RBRKINIT EQU   *
+* MVC   SVVIEW#,EXVIEW#    SAVE    NEW  VIEW  NUMBER
          MVI   VWPROC,C'P'        This view is processed in this run 
 *                                 (there could be views in VDP not in
 *                                  this extract file)                
@@ -707,7 +712,9 @@ RBRKEXIT EQU   *
          USING EXTREC,R7
          USING VIEWREC,R8
 *
-EXTPROC  MVC   VWCURSEC,DETPDL      INDICATE DETAIL LINE
+EXTPROC  DS    0H
+         ST    R10,SAVERET Save return address
+         MVC   VWCURSEC,DETPDL      INDICATE DETAIL LINE
 *
 ***********************************************************************
 *  PROCESS FILE FORMAT OUTPUT EXTRACT RECORD                          *
@@ -721,8 +728,9 @@ EXTCHK1  EQU   *
          CLI   VWSUMTYP+1,DETAIL  DETAIL FILE   ???
          JNE   EXTSUMF            NO  -  BRANCH TO   SUMMARY FILE
          BRAS  R10,DETFILE        WRITE  DETAIL FILE RECORD
-         ST    R7,PREVRECA
-         J     READNEXT           READ  NEXT RECORD
+*         ST    R7,PREVRECA
+*         J     READNEXT           READ  NEXT RECORD
+         J     EXTR_END
 *                     
 EXTSUMF  LH    R1,EXSORTLN        LOAD  LENGTH  OF SORT KEY (ALL KEYS)
          LTR   R15,R1             ANY   SORT KEYS  ???
@@ -758,36 +766,11 @@ EXTSUMFF L     R7,RECADDR         RESTORE POINTER TO CURRENT RECORD
          LH    R0,EXNCOL          LOAD NO. OF COLUMNS IN RECORD
          LTR   R0,R0              ANY COLUMNS IN THIS    RECORD ???
          JNP   ZEROCBRK           NO -  CHECK IF DETAIL  REPORT
-*
-         LA    R6,EXSORTKY        POINT TO FIRST COLUMN
-         AH    R6,EXSORTLN
-         AH    R6,EXTITLLN
-         AH    R6,EXDATALN
-         USING COLEXTR,R6
-*
 ***********************************************************************
 *  COPY EXTRACT RECORD "CT" COLUMNS INTO ARRAY USING COL# AS SUBSCRIPT*
 ***********************************************************************
-
-         eextr r12,fp9            get the biased exponent set by MR87
+         BRAS  R9,COPY_CT
 *
-         do from=(r0)
-           LH  R14,COLNO          LOAD     COLUMN NUMBER
-           BCTR R14,0             COMPUTE  OFFSET TO INDICATED COLUMN
-           SLL R14,2
-           A   R14,CLCOFFTB
-           L   R15,0(,R14)
-*
-           AR  R15,R1                   ADD  BASE  TO OFFSET
-           ZAP 0(AccumDFPl,R15),COLDATA MOVE packed data into accum
-           lmg r2,r3,0(r15)       get the packed value into a gpr pair
-           cxstr fp0,r2           convert to dfp
-           iextr fp0,fp0,r12      insert the biased exponent
-           GVBSTX fp0,0(,r15)        and save back in accumlator
-*
-           AHI R6,COLDATAL        ADVANCE  TO NEXT COLUMN  OFFSET
-         enddo ,                  LOOP THROUGH ALL COLUMNS IN EXTRACT
-
          BRAS  R9,FRSTSET         INITIALIZE SPECIAL ACCUMULATORS
 *
          L     R14,VWLOWSKY       LOAD  SORT KEY   COUNTER   ADDRESS
@@ -804,36 +787,11 @@ EXTNOBRK L     R1,EXTCOLA         LOAD ADDRESS OF CORRECT COLUMN BASE
          LH    R0,EXNCOL          LOAD NO. OF COLUMNS IN RECORD
          LTR   R0,R0              ANY COLUMNS IN THIS    RECORD ???
          JNP   ZEROCBRK           NO -  CHECK IF DETAIL  REPORT
-*
-         LA    R6,EXSORTKY        POINT TO FIRST COLUMN
-         AH    R6,EXSORTLN
-         AH    R6,EXTITLLN
-         AH    R6,EXDATALN
-         USING COLEXTR,R6
-*
 ***********************************************************************
 *  COPY EXTRACT RECORD "CT" COLUMNS INTO ARRAY USING COL# AS SUBSCRIPT*
 ***********************************************************************
-
-         eextr r12,fp9            get the biased exponent set by MR87
-*
-         do from=(r0)
-           LH  R14,COLNO          LOAD     COLUMN NUMBER
-           BCTR R14,0             COMPUTE  OFFSET TO INDICATED COLUMN
-           SLL R14,2
-           A   R14,CLCOFFTB
-           L   R15,0(,R14)
-*
-           AR  R15,R1                   ADD  BASE  TO OFFSET
-           ZAP 0(AccumDFPl,R15),COLDATA MOVE packed data into accum
-           lmg r2,r3,0(r15)       get the packed value into a gpr pair
-           cxstr fp0,r2           convert to dfp
-           iextr fp0,fp0,r12      insert the biased exponent
-           GVBSTX fp0,0(,r15)        and save back in accumlator
-*
-           AHI R6,COLDATAL        ADVANCE  TO NEXT COLUMN  OFFSET
-         enddo ,                  LOOP THROUGH ALL COLUMNS IN EXTRACT
-
+         BRAS  R9,COPY_CT
+*         
 ZEROCBRK XC    SVBRKCNT,SVBRKCNT  ZERO CURRENT BREAK LEVEL
 *
          LH    R15,VWSETLEN       SAVE PRE-CALCULATION RESULTS
@@ -853,7 +811,7 @@ CHKDCLCE BRCT  R0,CHKDCLCL
          EX    R15,MVCR14R1
 *
 CHKDET   EQU   *
-         CLI   VWSUMTYP+1,DETAIL  DETAIL  REPORT ???
+*         CLI   VWSUMTYP+1,DETAIL  DETAIL  REPORT ???
 *         JE    DETPRNT            YES - PRINT DATA
 *
 ***********************************************************************
@@ -864,30 +822,64 @@ CHKDET   EQU   *
 *CHKDET01 EQU   *
          BRAS  R10,SUM            ACCUMULATE  SUM
 *
+EXTR_END DS    0H
          ST    R7,PREVRECA
-         J     READNEXT            READ  NEXT  EXTRACT RECORD
 *
-*
-*
-*         
-         J     READLOOP           RETURN  TO TOP OF READ LOOP
-*
+         L     R10,SAVERET       Restore return address         
          BR    R10                RETURN
+*         J     READNEXT            READ  NEXT  EXTRACT RECORD         
 *         
-*
 static   loctr
-SRTBREAK CLC   0(0,R14),0(R15)    * * * *   E X E C U T E D   * * * *
-INITCENT MVC   PRNTTEXT(0),PRNTCC * * * *   E X E C U T E D   * * * *
-MVCPRINT MVC   0(0,R1),0(R14)     * * * *   E X E C U T E D   * * * *
-just_move mvc  0(0,r15),0(r14)
-just_move2 mvc  0(0,r15),0(r1)
+
 DETPDL   DC    CL2'DL'
 code     loctr
 *
-         DROP  R6
          DROP  R7
-                     EJECT
-READEOF  CLI   EOREOFCD,C'H'      READING NEXT HEADERS ???
+*
+***********************************************************************
+*  COPY EXTRACT RECORD "CT" COLUMNS INTO ARRAY USING COL# AS SUBSCRIPT*
+*   R7 -> extract record
+*   R9 -  Return address
+***********************************************************************
+COPY_CT  DS    0H
+*
+         USING EXTREC,R7
+         LA    R6,EXSORTKY        POINT TO FIRST COLUMN
+         AH    R6,EXSORTLN
+         AH    R6,EXTITLLN
+         AH    R6,EXDATALN
+         USING COLEXTR,R6
+*
+         LH    R0,EXNCOL          LOAD NO. OF COLUMNS IN RECORD         
+*
+         eextr r12,fp9            get the biased exponent set by MR87
+*
+         do from=(r0)
+           LH  R14,COLNO          LOAD     COLUMN NUMBER
+           BCTR R14,0             COMPUTE  OFFSET TO INDICATED COLUMN
+           SLL R14,2
+           A   R14,CLCOFFTB
+           L   R15,0(,R14)
+*
+           AR  R15,R1                   ADD  BASE  TO OFFSET
+           ZAP 0(AccumDFPl,R15),COLDATA MOVE packed data into accum
+           lmg r2,r3,0(r15)       get the packed value into a gpr pair
+           cxstr fp0,r2           convert to dfp
+           iextr fp0,fp0,r12      insert the biased exponent
+           GVBSTX fp0,0(,r15)        and save back in accumlator
+*
+           AHI R6,COLDATAL        ADVANCE  TO NEXT COLUMN  OFFSET
+         enddo ,                  LOOP THROUGH ALL COLUMNS IN EXTRACT
+*
+         BR    R9
+         DROP  R6,R7
+*********************************************************
+
+*
+* End of file processing
+*
+READEOF  DS    0H
+         CLI   EOREOFCD,C'H'      READING NEXT HEADERS ???
          JE    EOFBREAK           YES -  CHECK IF  REQUEST IN-PROGRESS
 *
          CLI   EOREOFCD,C' '      REQUEST  IN-PROGRESS (STARTED OK) ???
@@ -905,9 +897,7 @@ EOFBREAK BRAS  R10,RPTBREAK       PROCESS BREAK FOR LAST REQUEST
 *
          MVI   EOREOFCD,C'F'      INDICATE END-OF-FILE
 *
-CHKCOUNT  equ *
-*
-NOCOUNT  DS    0H
+CHKCOUNT DS    0H
 ***********************************************************************
 *  GET FINISH DATE/TIME                                               *
 ***********************************************************************
@@ -1114,35 +1104,11 @@ DETFILE  ST    R10,SAVER10        SAVE  RETURN ADDRESS (R10 IS REUSED)
          LTR   R0,R0              ANY COLUMNS IN THIS    RECORD ???
          JNP   COMFKEEP           NO - OUTPUT THE DATA
 *
-         LA    R6,EXSORTKY        POINT TO FIRST COLUMN
-         AH    R6,EXSORTLN
-         AH    R6,EXTITLLN
-         AH    R6,EXDATALN
-         USING COLEXTR,R6
-*
 ***********************************************************************
 *  COPY EXTRACT RECORD "CT" COLUMNS INTO ARRAY USING COL# AS SUBSCRIPT*
 ***********************************************************************
-
-         eextr r12,fp9            get the biased exponent set by MR87
-*
-         do from=(r0)
-           LH  R14,COLNO          LOAD     COLUMN NUMBER
-           BCTR R14,0             COMPUTE  OFFSET TO INDICATED COLUMN
-           SLL R14,2
-           A   R14,CLCOFFTB
-           L   R15,0(,R14)
-*
-           AR  R15,R1                   ADD  BASE  TO OFFSET
-           ZAP 0(AccumDFPl,R15),COLDATA MOVE packed data into accum
-           lmg r2,r3,0(r15)       get the packed value into a gpr pair
-           cxstr fp0,r2           convert to dfp
-           iextr fp0,fp0,r12      insert the biased exponent
-           GVBSTX fp0,0(,r15)        and save back in accumlator
-*
-           AHI R6,COLDATAL        ADVANCE  TO NEXT COLUMN  OFFSET
-         enddo ,                  LOOP THROUGH ALL COLUMNS IN EXTRACT
-
+         BRAS  R9,COPY_CT
+*         
          LH    R15,VWSETLEN       SAVE PRE-CALCULATION RESULTS
          LTR   R15,R15
          JNP   DETFMSTR
@@ -1166,7 +1132,6 @@ DETFMSTR equ  *
          J     COMFSKIP           +0 =  SKIP
          J     COMFKEEP           +4 = OUTPUT DATA RECORD(COMMON LOGIC)
 *
-         DROP  R6
          DROP  R7
          DROP  R8
                      EJECT
@@ -2673,10 +2638,8 @@ EXTRNEWB L     R1,4+12(,R3)       LOAD  BUFFER ADDRESS FROM  DECB
 EXTRFMT  ST    R1,EXTRRECA        SAVE  EXTRACT RECORD   ADDRESS
          AP    EXTRCNT,p001
 *
-         if (CLI,EXTREOF,eq,C'Y')    ANY EXTRACT RECS REMAINING ???
-            L     R14,READDONE
-            BR    R14
-          endif                       return
+         CLI   EXTREOF,C'Y'       ANY EXTRACT RECS REMAINING ???
+         JE    READEOF
 *
          L     R1,EXTRRECA              LOAD EXTRACT FILE RECORD ADDR
          MVI   LASTFILE,C'E'         ASSUME EXTRACT RECORD SELECTED
@@ -2684,16 +2647,10 @@ EXTRFMT  ST    R1,EXTRRECA        SAVE  EXTRACT RECORD   ADDRESS
 
 *
 EXTREND  MVI   EXTREOF,C'Y'       INDICATE END-OF-FILE  ON EXTRACT
+*
 * SORT has completed here
 *
-         L     R14,READDONE
-         BR    R14
-*
-static   loctr
-*
-READDONE DC    A(READEOF)
-*
-code     loctr
+         J     READEOF
 *
          DROP  R7
 *         DROP  R9
@@ -2748,8 +2705,10 @@ VALIDERR LHI   R15,4
          USING HDRREC,R7
          USING VIEWREC,R8
 *
-RPTBREAK L     R0,SVVIEW#         FIRST TIME  (SVVIEW# = 0) ???
-         LTR   R0,R0
+RPTBREAK DS    0H
+* First time through the VIEWREC has not  been selected
+*  The VIEWREC is selected in RBRKNEW
+         LTR   R8,R8              VIEWREC ? 
          BNPR  R10                YES - RETURN
 *
          ST    R10,SAVERBRK       SAVE  RETURN ADDRESS
