@@ -7,6 +7,7 @@ GVBMR95,View Extract Process,Main Program,Performance-Engine,ASM,asm,HLASM,,LOAD
 GVBMR96,Initialization for GVBMR95,Subroutine,Performance-Engine,ASM,asm,HLASM,,OBJONLY
 GVBMRBS,BSAM Initialization for GVBMR95,Subroutine,Performance-Engine,ASM,asm,HLASM,,OBJONLY
 GVBMRSQ,Db2 I/O Handler for GVBMR95,Subroutine,Performance-Engine,ASM,asm,HLASM,Y,OBJONLY
+GVBMRSU,Db2 HPU Handler for GVBMR95,Subroutine,Performance-Engine,ASM,asm,HLASM,Y,OBJONLY
 GVBMRVK,VSAM Keyed I/O Handler for GVBMR95,Subroutine,Performance-Engine,ASM,asm,HLASM,,OBJONLY
 GVBSRCHR,Lookup routines with keylen 1 to 256,Subroutine,Performance-Engine,ASM,asm,HLASM,,OBJONLY
 GVBTP90,VSAM/QSAM I/O Handler,Subprogram,Performance-Engine,ASM,asm,HLASM,,LOADMOD
@@ -20,3 +21,4 @@ GVBUT99,User Abend Utility,Main Program,Performance-Engine,ASM,asm,HLASM,,LOADMO
 GVBUTHDR,Header format builder,Subprogram,Performance-Engine,ASM,asm,HLASM,,LOADMOD
 GVBUTMSG,Message Builder,Subprogram,Performance-Engine,ASM,asm,HLASM,,LOADMOD
 GVBUTMUE,Mixed-Case Message Table,Subroutine,Performance-Engine,ASM,asm,HLASM,,OBJONLY
+GVBMRHPU,Db2 HPU Inzexit,Main Program,Performance-Engine,ASM,asm,HLASM,,LOADMOD

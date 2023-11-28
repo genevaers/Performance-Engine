@@ -74,6 +74,7 @@ EXEC_HASHPACK DS CL1           Pack key before CHECKSUM in HASH
 EXEC_DISPHASH DS CL1           Display HASH stats
 EXEC_HASHMULT ds CL2           HASH table size multiplier
 EXEC_HASHMULTB ds CL4          HASH table size multiplier in binary
+EXEC_DB2HPU    ds CL1          DB2 high performance unload utility
 *                               STANDARD or DEBUG
 *
 EXECDLEN EQU   *-EXECDATA      PARAMETER DATA  LENGTH

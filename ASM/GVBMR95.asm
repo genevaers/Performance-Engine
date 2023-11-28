@@ -2875,11 +2875,23 @@ INITRETN   llgt R8,THRDES          LOAD "ES"  ROW ADDR
              llgf R15,GVBMRVK
 
            when   DB2SQL          DB2   EVENT  FILE  ???
-             llgf R15,MRSQADDR
-             if ltr,r15,r15,z     Not available
-               LHI r14,DB2_SQL_UNAVAILABLE
-               LHI R15,8
-               JZ ERRMSG#
+             llgt r15,execdadr    get address of exec area
+             USING EXECDATA,R15
+             if (cli,EXEC_DB2HPU,eq,c'Y')
+               llgf R15,MRSUADDR
+               if ltr,r15,r15,z   Not available
+                 LHI r14,DB2_HPU_UNAVAILABLE
+                 LHI R15,8
+                 JZ ERRMSG#
+               endif
+               drop r15
+             else
+               llgf R15,MRSQADDR
+               if ltr,r15,r15,z     Not available
+                 LHI r14,DB2_SQL_UNAVAILABLE
+                 LHI R15,8
+                 JZ ERRMSG#
+               endif
              endif
 
            when   DB2VSAM         DB2 via VSAM?
@@ -5082,6 +5094,8 @@ ZIIPADDR DC    V(GVBMRZP)
 *
          WXTRN GVBMRSQ
 MRSQADDR DC    V(GVBMRSQ)         DB2 SQL TEXT READ ROUTINE
+         WXTRN GVBMRSU
+MRSUADDR DC    V(GVBMRSU)         DB2 HPU ROUTINE
 *
          WXTRN GVBMRDV
 MRDVADDR DC    V(GVBMRDV)

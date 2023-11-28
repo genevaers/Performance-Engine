@@ -220,8 +220,15 @@ NO_DATASETS    EQU 194 NO data sets located IKJEHCIR
 CIR_OUTPUT_ERR EQU 195 IKJEHCIR error. Data length error
 POSS_DSNAMES_MISSING EQU 196 Possibility of missing DSNames
 DB2_SQL_UNAVAILABLE  EQU 197 - Source file type DB2SQL not available
+DB2_HPU_UNAVAILABLE  EQU 198 - Source file type DB2HPU not available
+DB2_HPU_FAIL EQU 199 DB2 HPU utility completed with non zero rc
 *
 GLOBAL_TOKEN_RT_FAIL EQU 200 - UNABLE TO retrieve GENEVA GLOBAL TOKEN
+*
+DB2_HPU_NAPF EQU 201 DB2 HPU requires APF authorization
+DB2_HPU_SYSI EQU 202 Unable to open SYSIN file for DB2 HPU
+DB2_HPU_PARA EQU 203 Invalid DB2 HPU parallel parameter (physical file) 
+DB2_HPU_TOKN EQU 204 Unable to create/locate token for DB2 HPU
 *
 DB2_VSAM_OPEN_FAIL EQU   300 - Unable to open Db2 base VSAM file
 MSG#301  EQU   301 (301U) - Error on Db2 base VSAM SHOWCB

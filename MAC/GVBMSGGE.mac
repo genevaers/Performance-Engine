@@ -304,11 +304,20 @@
                names',TYPE=W
  GVBMSGDF 197,'&&1 - Source file type DB2 via SQL not available',      +
                TYPE=U
+ GVBMSGDF 198,'&&1 - Source file type DB2 via HPU not available',      +
+               TYPE=U
+ GVBMSGDF 199,'&&1 - DB2 HPU has unexpected return code &&2',TYPE=U
 *
 *
 *
  GVBMSGDF 200,'&&1 - Unable to retrieve Geneva global name/token pair',+
                TYPE=S
+*
+ GVBMSGDF 201,'&&1 - DB2 HPU requires APF authorization',TYPE=U
+ GVBMSGDF 202,'&&1 - Unable to open SYSIN file for DB2 HPU',TYPE=U
+ GVBMSGDF 203,'&&1 - Invalid DB2 HPU PARALLEL parameter in physical fil+
+               e definition',TYPE=W
+ GVBMSGDF 204,'&&1 - Unable to create/locate token for DB2 HPU',TYPE=U
 *
 *  Message from GVBMRDV - Db2 via VSAM
 *

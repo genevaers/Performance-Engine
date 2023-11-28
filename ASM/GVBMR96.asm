@@ -3203,6 +3203,7 @@ STDPARMS DC    FL4'004'         LOGIC TABLE VERSION NUMBER  EXECVERS
          DC    C'N'             display hash table stats  EXEC_DISPHASH
          DC    CL2'3'           HASH table multiplier     EXEC_HASHMULT
          DC    XL4'3'          HASH table multiplier bin EXEC_HASHMULTB
+         DC    CL1'N'           DB2 HPU                  EXEC_DB2HPU
 *
 STDPARML EQU   *-STDPARMS
          ASSERT stdparml,eq,execdlen     these two MUST match
@@ -4801,7 +4802,22 @@ fiscexit        ds  0H
                   mvc  HASH_PACK,WORKAREA
                 endif 
 *                                                                
-                DROP R3 
+                DROP R3
+              case 34
+***********************************************************************
+*               DB2 HPU Utility                                       *
+*********************************************************************** 
+                llgt R14,EXECDADR                                       
+                USING EXECDATA,R14                                      
+                MVC  EXEC_DB2HPU,0(R4)                                  
+                OI   EXEC_DB2HPU,X'40'  Upper case                      
+*                                                                       
+                if CLI,EXEC_DB2HPU,ne,c'Y',and, not yes?? and          +
+               CLI,EXEC_DB2HPU,ne,c'N' not no?                          
+                  lghi R14,PARM_ERR                                     
+                  BRU PARMERR                                           
+                endif                                                   
+                DROP R14                                                
 *
             endcase
           else ,
@@ -11803,8 +11819,13 @@ code     loctr ,
                sth r15,prntrdwh
 *               rptit ,                     write to report
              endif
-
 *
+            case 34  DB2 HPU                                           
+             mvc prntline+l'parmkwrd+3(l'exec_db2hpu),exec_db2hpu value
+             la   r15,l'parmkwrd+3+l'exec_db2hpu+l'prntrdw len for RDW 
+             sth  r15,prntrdwh                                         
+             rptit ,                       write to report             
+*                                                                      
             endcase
             AHI R4,parmkwrd_l
          enddo                   End of looping through Parmkwrd_table
@@ -19003,6 +19024,7 @@ PARMKWRD_table dc 0h
          DC    CL35'HASH_MULT                          ',H'31'
          DC    CL35'DISPLAY_HASH                       ',H'32'
          DC    CL35'HASH_TABLE_LU                      ',H'33'
+         DC    CL35'UTILITY                            ',H'34'
          DC    XL4'FFFFFFFF'
 *
 * Trace parameter keywords
