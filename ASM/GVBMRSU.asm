@@ -135,6 +135,8 @@ SYSDCB   DS    (SYSFILEL)C        SYSIN        "DCB"
 WKREC    DS    Cl80
 WKEXUADR DS    A                  ADDRESS of EXUEXU table after header
 WKECBLST DS    A                  ADDRESS OF ECB LIST TO WAIT ON
+WKEXULEN DS    F                  Length of EXUEXU table including head
+WKECBLEN DS    F                  Length of ECB list
 WKR15RSA DS    F                  Special save area for R15
 WKLEN    EQU   (*-WKAREA)
 *
@@ -197,6 +199,7 @@ START    STM   R14,R12,SAVESUBR+RSA14  SAVE  CALLER'S REGISTERS
 *                                                                     *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *
+         XC    dblwork2,dblwork2  used to accumulate total getmained
          XC    workmsg(4),workmsg zero translated error msg area
 *
          TESTAUTH
@@ -221,7 +224,11 @@ A0002    EQU   *
          MVI   GPRECFMT,C'F'      INDICATE  FIXED LENGTH RECORDS
          MVI   GPRECDEL,X'00'     NO FIELD  DELIMITERS
 *
-         L     R0,STGBLKLN     ALLOCATE WORAKRA FOR THIS MR95 Thread
+         L     R0,STGBLKLN        ALLOCATE WORAKRA FOR THIS MR95 Thread
+         LY    R1,DBLWORK2
+         AR    R1,R0 
+         STY   R1,DBLWORK2
+*
          GETMAIN RU,LV=(0),LOC=(24)
          MVC   0(8,R1),PGMNAME
          USING WKAREA,R8
@@ -290,8 +297,9 @@ A0046    EQU   *
 **********************************************************************
          Lhi   R0,F10K              GET BUFFER FOR EXPANDED SQL TEXT
          lr    r15,r0
-         ay    r15,dblwork2       add to storage total
+         ay    r15,dblwork2        add to storage total
          sty   r15,dblwork2        and save it
+*
          GETMAIN R,LV=(0),LOC=(ANY)
          LR    R7,R1
          ST    R7,SQLTADDR
@@ -410,6 +418,11 @@ A0129    EQU   *
          LLGTR R0,R0
          MH    R0,WKPARALL       times number elements needed
          AHI   R0,16
+         LY    R1,DBLWORK2
+         AR    R1,R0 
+         STY   R1,DBLWORK2
+         ST    R0,WKEXULEN
+*
          GETMAIN RU,LV=(0),LOC=(ANY)
          USING EXHEXH,R1
          MVC   EXHEYE,=CL8'EXUEXU'
@@ -433,7 +446,12 @@ A0129    EQU   *
          LA    R0,4              length of ECB address
          LLGTR R0,R0
          MH    R0,WKPARALL       times number elements needed
-         AHI   R0,4              plus subtask ECB
+         AHI   R0,4              plus subtask ECB (DB2 HPU itself)
+         LY    R1,DBLWORK2
+         AR    R1,R0 
+         STY   R1,DBLWORK2
+         ST    R0,WKECBLEN
+*
          GETMAIN RU,LV=(0),LOC=(ANY)
          ST    R1,WKECBLST       connect MRSU thread area to ECBLIST
 *
@@ -465,7 +483,7 @@ A0129    EQU   *
          la    r15,8
          j     returne
 *
-* obtain blocks for recordes returned by EXUEXU subtasks and
+* obtain blocks for records returned by EXUEXU subtasks and
 *   initialize EXUEXU entries
 *
 A0128    EQU   *
@@ -474,6 +492,9 @@ A0128    EQU   *
          LGH   R9,WKPARALL
 A0130    EQU   *
          LLGT  R0,=A(BLOCKSZ)       "Block" size for DB2 rows
+         LY    R1,DBLWORK2
+         AR    R1,R0 
+         STY   R1,DBLWORK2
          GETMAIN RU,LV=(0),LOC=(ANY)
          ST    R1,EXUBLKA           address of block
          ST    R1,EXURPOS           address of (1st) record
@@ -580,6 +601,33 @@ TRACDEQ  DEQ   (GENEVA,TRACNAME,,STEP),RNL=NO
 TRACMVC  MVC   PRNTLINE+1(0),0(R3)     * * * * E X E C U T E D * * *
 *
 A0100    EQU   *
+*
+* Accumulate read buffer totals across threads
+*
+         ENQ (GENEVA,ENQSTAT,E,,STEP),RNL=NO
+         if LTR,R15,R15,nz
+*          Issue a warning message
+           GVBMSG LOG,MSGNO=STATS_ENQ_FAIL,SUBNO=1,GENENV=GENENV,      +
+               SUB1=(modname,8),                                       +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+         endif
+*
+d1       using thrdarea,r14
+         ly    r14,thrdmain          Get the initial thread area
+         ly    r1,d1.read_buffer_tot Get size of read buffers
+         ay    r1,dblwork2           Add size of buffers from above
+         sty   r1,d1.read_buffer_tot
+*
+* Increase buffer high water mark stats
+*
+         if cy,r1,gt,d1.read_buffer_hwm If current total > HWM
+           sty   r1,d1.read_buffer_hwm  save new HWM
+         endif
+         drop  d1
+*
+         DEQ (GENEVA,ENQSTAT,,STEP),RNL=NO
+*
          LAY   R15,DB2FETCH1      LOAD FETCH ROUTINE ADDRESS
          BASR  R14,R15            WAIT  FOR COMPLETION OF FIRST READ
          LLGTR R6,R6              Set top half to zero as it's 64 bit
@@ -867,13 +915,14 @@ HEXTR    DS    XL256'00'
          DC    C'0123456789ABCDEF'
          ORG   ,
 *
+ENQSTAT  DC    CL8'ENQSTAT '      MINOR  ENQ NODE  (Stats)
 TRACNAME DC    CL8'MR95TRAC'      MINOR  ENQ NODE  (MR95 TRACE FILE)
 LOGNAME  DC    CL8'MR95LOG '      MINOR  ENQ NODE  (MR95 LOG FILE)
 ZEROES   DC   8CL01'0'
 REFTBLID DC    CL03'#DD'
 *
 TOKNLVL2 DC    A(2)               NAME/TOKEN  AVAILABILITY  TASK LEVEL
-GENEVA   DC    CL8'GENEVA  '           TOKEN  NAME
+GENEVA   DC    CL8'GENEVA  '           TOKEN  and MAJ ENQ NAME
 PGMNAME  DC    CL8'GVBMRSU '
 MRSUNAME DC    CL8'MRSUEXA '          MINOR  ENQ  NODE FOR WRITE I/O
 TOKNPERS DC    F'0'
