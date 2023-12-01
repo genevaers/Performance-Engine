@@ -830,6 +830,7 @@ EVNTEOF  EQU   *
 * Free storages
 *
          USING EXUEXU,R4
+         LLGT  R4,WKEXUADR          get first EXUEXU entry
          LGH   R9,WKPARALL          Free I/O blocks
 EOF130   EQU   *
          LLGT  R0,=A(BLOCKSZ)       "Block" size for DB2 rows
@@ -876,6 +877,7 @@ d1       using thrdarea,r14
 *
          LLGT  R0,STGBLKLN           Free main workarea
          LLGT  R1,SQLWADDR
+         AHI   R1,-L'PGMNAME
          FREEMAIN RU,LV=(0),A=(1)
          XC    SQLWADDR,SQLWADDR     And zero anchor
 *
