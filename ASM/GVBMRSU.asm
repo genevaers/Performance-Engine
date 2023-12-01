@@ -600,10 +600,9 @@ TRACDEQ  DEQ   (GENEVA,TRACNAME,,STEP),RNL=NO
 *
 TRACMVC  MVC   PRNTLINE+1(0),0(R3)     * * * * E X E C U T E D * * *
 *
-A0100    EQU   *
-*
 * Accumulate read buffer totals across threads
 *
+A0100    EQU   *
          ENQ (GENEVA,ENQSTAT,E,,STEP),RNL=NO
          if LTR,R15,R15,nz
 *          Issue a warning message
@@ -827,6 +826,57 @@ EVNTEOF  EQU   *
          WAIT  1,ECB=WKECBSUB     subtask has finished altogether
 *
          DETACH WKTCBSUB
+*
+* Free storages
+*
+         LGH   R9,WKPARALL          Free I/O blocks
+EOF130   EQU   *
+         LLGT  R0,=A(BLOCKSZ)       "Block" size for DB2 rows
+         LLGT  R1,EXUBLKA           address of block
+         FREEMAIN RU,LV=(0),A=(1)
+         LA    R4,EXUEXUL(,R4)      => next EXUEXU entry
+         BRCT  R9,EOF130
+*
+         LLGT  R0,WKECBLEN          Free ECB list
+         LLGT  R1,WKECBLST
+         FREEMAIN RU,LV=(0),A=(1)
+*
+         LLGT  R0,WKEXULEN          Free EXU table including header
+         LLGT  R1,WKEXUADR
+         AGHI  R1,-16
+         FREEMAIN RU,LV=(0),A=(1)
+*
+         Lhi   R0,F10K              Free buffer for  EXPANDED SQL TEXT
+         LLGT  R1,SQLTADDR
+         FREEMAIN RU,LV=(0),A=(1)
+         XC    SQLTADDR,SQLTADDR
+*
+* Serialise to adjust buffer total
+*
+         ENQ   (GENEVA,ENQSTAT,E,,STEP),RNL=NO
+         if LTR,R15,R15,nz
+*          'GVBMRSQ - Buffer stats "ENQ" FAILED'
+*          this just means that the stats will not be correct
+*          Issue a warning message
+           GVBMSG LOG,MSGNO=STATS_ENQ_FAIL,SUBNO=1,GENENV=GENENV,      +
+               SUB1=(modname,8),                                       +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+         endif
+*
+d1       using thrdarea,r14
+         ly    r14,thrdmain          Get the initial thread area
+         ly    r1,d1.read_buffer_tot Get total size of buffers used
+         sy    r1,dblwork2           subtract freemained value
+         sty   r1,d1.read_buffer_tot
+         drop  d1
+*
+         DEQ (GENEVA,ENQSTAT,,STEP),RNL=NO
+*
+         LLGT  R0,STGBLKLN           Free main workarea
+         LLGT  R1,SQLWADDR
+         FREEMAIN RU,LV=(0),A=(1)
+         XC    SQLWADDR,SQLWADDR     And zero anchor
 *
          L     R2,EVNTDCBA        LOAD END-OF-FILE EXIT ADDRESS
          using IHADCB,r2
