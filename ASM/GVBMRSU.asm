@@ -829,6 +829,7 @@ EVNTEOF  EQU   *
 *
 * Free storages
 *
+         USING EXUEXU,R4
          LGH   R9,WKPARALL          Free I/O blocks
 EOF130   EQU   *
          LLGT  R0,=A(BLOCKSZ)       "Block" size for DB2 rows
