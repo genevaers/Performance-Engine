@@ -336,9 +336,8 @@ CTRLLPEX EQU   *
 READLOOP EQU   *
 *
 HEADLOOP EQU   *
+*
 * Check for Header record (new View)
-*         C     R0,SVVIEW#
-*         JE    EXTPROC            NO  -  BYPASS BREAK LOGIC
 *
          LR    R1,R7              POINT  TO   HEADER  RECORD (PARM)
          BRAS  R10,VALIDHDR       VERIFY THAT IT IS A HEADER RECORD
@@ -363,17 +362,9 @@ HEADLOOP EQU   *
          JE    HDR_NEXT          Yes, skip as no extr recs for previous
 *         
          MVI   EOREOFCD,C'H'      INDICATE  READING HEADERS         
-
-* Process previous record (could be header , or extract rec)
-         MVC   SAVERECA,RECADDR            SAVE  NEXT  HEADER RECORD
-         L     R7,PREVRECA                 Point to prev extract record
-         ST    R7,RECADDR
-         BRAS  R10,RPTBREAK                PROCESS BREAK  FOR PREV
 *
-         L     R7,SAVERECA                 LOAD   HEADER RECORD  BASE
-         ST    R7,RECADDR                  RESTORE  NEXT REQUEST HEADER
-*         J     HDRINIT                   PROCESS  NEXT REQUEST HEADER   
 * Process Current header record
+*
          LA    R14,HDSORTKY       COMPUTE ADDRESS OF HEADER DATA
          AH    R14,HDSORTLN
          AH    R14,HDTITLLN
@@ -386,14 +377,6 @@ HEADLOOP EQU   *
          DROP  R14
 * 
          J     HDR_NEXT   read next record
-         
-*         L     R0,HDVIEW#-HDRREC(,R1)      STRIP HEADER  INDICATOR
-*         SRL   R0,1
-*         ST    R0,HDVIEW#-HDRREC(,R1)
-*
-*         BRAS  R10,VALIDHDR                CHECK IF HEADER  RECORD
-*         LTR   R15,R15
-*         JZ    HDRSAME                     BRANCH  IF   HEADER
 *
 HDRSUM   EQU   * 
 *
@@ -421,7 +404,8 @@ HDRSUM02 EQU   *
          MVC   VWOVRIND,HDOVRIND-HDRDATA(R14)
 *
 HDRSUM03 EQU   *
-HDR_NEXT  EQU   *
+*
+HDR_NEXT EQU   *
          MVC   SVVIEW#,HDVIEW#    Save current View number
 *         
          BRAS  R10,READSUBR       READ  THE NEXT  EXTRACT FILE RECORD
@@ -432,35 +416,35 @@ HDR_NEXT  EQU   *
          SRL   R0,1               STRIP  HEADER INDICATOR
          ST    R0,HDVIEW#
 *
-         DROP  R7
-*
          J     HEADLOOP
+         DROP  R7
 *
 EXTRACTR EQU *
 *
-* Extract record following header record - process previous report
+* Extract record following header record - process previous View
 *        
          USING EXTREC,R7 
-         MVC   SAVERECA,RECADDR            SAVE    NEXT RECORD ADDRESS
-         MVC   RECADDR,PREVRECA            RESTORE LAST RECORD ADDRESS
-         MVI   EOREOFCD,C'R'               INDICATE END-OF-REQUEST
-         BRAS  R10,RPTBREAK                PROCESS BREAK
-*         
-         MVC   RECADDR,SAVERECA            RESTORE NEXT RECORD ADDRESS
-         BRAS  R10,RBRKNEW                  SET-UP  FOR  NEW    REQUEST
+         MVC   SAVERECA,RECADDR   SAVE    NEXT RECORD ADDRESS
+         MVC   RECADDR,PREVRECA   RESTORE LAST EXTRACT RECORD ADDRESS
+         MVI   EOREOFCD,C'R'      INDICATE END-OF-REQUEST
+         BRAS  R10,RPTBREAK       PROCESS BREAK
+* Set up for New View         
+         MVC   RECADDR,SAVERECA   RESTORE NEXT RECORD ADDRESS
+         BRAS  R10,RBRKNEW        SET-UP  FOR  NEW    REQUEST
 *
 * Read all extract records for this View
 * 
 EXTRLOOP EQU  *
 *
 * Change in VIEWID ?
-         CLC   EXVIEW#,SVVIEW#     SAME VIEW ID as previous
-         JNE   EXTREXIT           
-*  - exit loop
-         BRAS  R10,EXTPROC Process extract record
+*
+         CLC   EXVIEW#,SVVIEW#    SAME VIEW ID as previous
+         JNE   EXTREXIT           No, exit read extract record loop
+*        
+         BRAS  R10,EXTPROC        Process extract record
 *
 READNEXT EQU   *                  Read next sorted records
-         ST    R7,PREVRECA
+         ST    R7,PREVRECA        PREVRECA contains prev EXTRACT rec
          MVC   SVVIEW#,EXVIEW#    Save current VIEWID
 *         
          BRAS  R10,READSUBR       READ  THE NEXT  EXTRACT FILE RECORD
@@ -475,6 +459,80 @@ READNEXT EQU   *                  Read next sorted records
 EXTREXIT EQU   *
          J     READLOOP
          DROP  R7
+*         
+EXTREND  DS    0H         
+*
+* EOF processing - SORT has completed here
+*
+         MVI   EXTREOF,C'Y'       INDICATE END-OF-FILE  ON EXTRACT
+*         J     READEOF
+*
+* End of file processing
+*
+READEOF  DS    0H
+         CLI   EOREOFCD,C'H'      READING NEXT HEADERS ???
+         JE    EOFBREAK           YES -  CHECK IF  REQUEST IN-PROGRESS
+*
+         CLI   EOREOFCD,C' '      REQUEST  IN-PROGRESS (STARTED OK) ???
+         JNE   CHKCOUNT           NO  - BYPASS GRAND TOTALS
+*
+         MVI   EOREOFCD,C'F'      INDICATE END-OF-FILE
+*
+EOFBREAK BRAS  R10,RPTBREAK       PROCESS BREAK FOR LAST REQUEST
+*
+         CLI   EOREOFCD,C'H'      END-OF-FILE WHILE READING HEADERS ???
+         JNE   CHKCOUNT           NO  - BYPASS MESSAGE
+*
+*         Larl  R15,noextrec                PRINT NO EXTRACT RECORD MSG
+*         BASR  R10,R15
+*
+         MVI   EOREOFCD,C'F'      INDICATE END-OF-FILE
+*
+CHKCOUNT DS    0H
+***********************************************************************
+*  GET FINISH DATE/TIME                                               *
+***********************************************************************
+         XC    endtime,endtime    GET ENDING TIME
+         lay   R2,endtime
+         lay   R3,timelist
+         TIME  STCK,(R2),LINKAGE=SYSTEM,DATETYPE=YYYYMMDD,             +
+               MF=(E,(R3))
+*
+         Larl  R15,CTRLRPT        PRINT  CONTROL REPORT
+         BASR  R10,R15
+         larl  r15,closfile       close  files
+         BASR  R10,R15
+* Did we get any overflow? If yes write warning to log
+         if TM,STATFLG4,STATOVFL,NZ
+         L     R14,LOGDCBA
+         GVBMSG LOG,MSGNO=MSG#451,SUBNO=2,LOGDCBA=(R14),               +
+               SUB1=(MR88NAME,L'MR88NAME),                             +
+               SUB2=(OVFLCHAR,1),                                      +
+               MSGBUFFER=(UTMTBUFF,L'UTMTBUFF),                        +
+               MF=(E,MSG_AREA)
+          LA    R0,8              return an error - overflow
+          STY   R0,MR88RETC
+         ENDIF
+*
+*         DROP  R8
+*                     
+RETURNE  ds    0h
+         LY    R15,MR88RETC
+         l     r14,wksavmsk       restore callers   program  mask
+         spm   r14
+
+         lay   r14,fp_reg_savearea  Point at register save area
+         GVBLDX  fp8,0(0,r14)       restore fp8 to fp15
+         GVBLDX  fp9,16(0,r14)
+         GVBLDX  fp12,32(0,r14)
+         GVBLDX  fp13,48(0,r14)
+*
+         L     R13,savprev        RESTORE REGISTER  R13
+         L     R14,savgrs14       RESTORE REGISTER  R14
+         LM    R0,R12,savgrs0     RESTORE REGISTERS R0 - R12
+         bsm   0,r14              RETURN
+
+***********************************************************************         
 
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
@@ -508,7 +566,7 @@ RBRKNOT  equ   *
          J     RTNERROR
 *
 RBRKINIT EQU   *
-* MVC   SVVIEW#,EXVIEW#    SAVE    NEW  VIEW  NUMBER
+*
          MVI   VWPROC,C'P'        This view is processed in this run 
 *                                 (there could be views in VDP not in
 *                                  this extract file)                
@@ -519,8 +577,6 @@ RBRKINIT EQU   *
          NI    VWFLAG1,255-VWZEROSP     TURN  OFF ZERO  SUPPRESS
 *
 RBRKIN03 EQU   *
-*         L     R1,VSAMWRTA        INITIALIZE  PRINT ROUTINE ADDRESS
-*         ST    R1,PRNTSUBR
 *
          L     R0,SVSORTKY        SAVE NEW SORT KEY
          LA    R14,EXSORTKY
@@ -543,17 +599,6 @@ RBRKIN03 EQU   *
          LA    R15,X'FF'
          SLL   R15,24
          MVCL  R0,R14
-*
-*         XC    VWLINENO,VWLINENO  RESET  LINE   NUMBER
-*         XC    NEEDTITL,NEEDTITL  RESET  TITLE  LINES   COUNTER
-*         ZAP   VWPAGENO,P000      RESET  PAGE   NUMBER
-*         MVI   GTOTLIND,C' '      RESET  PRINT  GRAND   TOTALS  IND
-*
-*         SR    R0,R0              ASSUME NO SORT TITLES
-*         STH   R0,VWMAXTTL        SET    MINIMUM
-*
-*         XC    VWCENTER,VWCENTER  ASSUME NO CENTERING ADJUSTMENT
-*
 *
 *  open output file if not already open
 *
@@ -714,25 +759,22 @@ RBRKEXIT EQU   *
 *
 EXTPROC  DS    0H
          ST    R10,SAVERET Save return address
-         MVC   VWCURSEC,DETPDL      INDICATE DETAIL LINE
+         MVC   VWCURSEC,DETPDL    INDICATE DETAIL LINE (passed to exit)
 *
-***********************************************************************
-*  PROCESS FILE FORMAT OUTPUT EXTRACT RECORD                          *
-***********************************************************************
-*EXTCHKF  CLI   VWDESTYP+1,FILEFMT DATA  FILE OUTPUT ???
-*         JE    EXTCHK1            YES - CONTINUE
-*         CLI   VWDESTYP+1,CSV     COMMA SEPARATED  VARIABLES ???
-*         JNE   EXTINIT            NO  - BYPASS FILE  LOGIC
-*
-EXTCHK1  EQU   *
          CLI   VWSUMTYP+1,DETAIL  DETAIL FILE   ???
          JNE   EXTSUMF            NO  -  BRANCH TO   SUMMARY FILE
+*
+*   No aggregation          
+*         
          BRAS  R10,DETFILE        WRITE  DETAIL FILE RECORD
-*         ST    R7,PREVRECA
-*         J     READNEXT           READ  NEXT RECORD
+*         
          J     EXTR_END
 *                     
-EXTSUMF  LH    R1,EXSORTLN        LOAD  LENGTH  OF SORT KEY (ALL KEYS)
+EXTSUMF  DS    0H
+*        
+*  View with aggregation
+*
+         LH    R1,EXSORTLN        LOAD  LENGTH  OF SORT KEY (ALL KEYS)
          LTR   R15,R1             ANY   SORT KEYS  ???
          JNP   EXTNOBRK           NO  - CONTINUE   ACCUMULATION
 *
@@ -748,12 +790,17 @@ EXTSUMF  LH    R1,EXSORTLN        LOAD  LENGTH  OF SORT KEY (ALL KEYS)
          CP    SKCOUNT-SORTKEY(L'SKCOUNT,R14),P001
          JNE   EXTNOBRK           NO  - ACCUMULATE SUBTOTALS
          J     EXTSUMFF           YES - PERFORM    FIRST TIME  LOGIC
+*         
+EXTSUMFB DS    0H         
 *
-EXTSUMFB L     R7,PREVRECA        POINT TO PREVIOUS EXTRACT RECORD
+* Key break - Process previous totals
+* 
+         L     R7,PREVRECA        POINT TO PREVIOUS EXTRACT RECORD
          L     R3,SUBTOTAD        LOAD  BASE SET OF VALUES  ADDRESS
          ST    R3,CALCBASE
          LHI   R15,1              INDICATE AT LOWEST BREAK  LEVEL
          STH   R15,SVBRKCNT
+*         
          BRAS  R10,COMFILE        WRITE SUMMARY FILE RECORD
 *
 ***********************************************************************
@@ -769,6 +816,7 @@ EXTSUMFF L     R7,RECADDR         RESTORE POINTER TO CURRENT RECORD
 ***********************************************************************
 *  COPY EXTRACT RECORD "CT" COLUMNS INTO ARRAY USING COL# AS SUBSCRIPT*
 ***********************************************************************
+* R1 points to Array EXTCOLA  (=CALCBASE)
          BRAS  R9,COPY_CT
 *
          BRAS  R9,FRSTSET         INITIALIZE SPECIAL ACCUMULATORS
@@ -790,14 +838,17 @@ EXTNOBRK L     R1,EXTCOLA         LOAD ADDRESS OF CORRECT COLUMN BASE
 ***********************************************************************
 *  COPY EXTRACT RECORD "CT" COLUMNS INTO ARRAY USING COL# AS SUBSCRIPT*
 ***********************************************************************
+*    R1 points to Array EXTCOLA (=CALCBASE)
          BRAS  R9,COPY_CT
 *         
-ZEROCBRK XC    SVBRKCNT,SVBRKCNT  ZERO CURRENT BREAK LEVEL
-*
+ZEROCBRK DS    0H
+         XC    SVBRKCNT,SVBRKCNT  ZERO CURRENT BREAK LEVEL
+* VWSETLEN indicates if there are any calculations
          LH    R15,VWSETLEN       SAVE PRE-CALCULATION RESULTS
          LTR   R15,R15
          JNP   CHKDET
 *
+         j     around3
          L     R1,CALCBASE
          L     R14,EXTPCALC
          LA    R15,255(,R15)      ROUND  UP TO 256 MULTIPLE
@@ -809,6 +860,7 @@ CHKDCLCL MVC   0(256,R14),0(R1)
          LA    R14,256(,R14)
 CHKDCLCE BRCT  R0,CHKDCLCL
          EX    R15,MVCR14R1
+around3 equ  *
 *
 CHKDET   EQU   *
 *         CLI   VWSUMTYP+1,DETAIL  DETAIL  REPORT ???
@@ -838,6 +890,7 @@ code     loctr
 *
 ***********************************************************************
 *  COPY EXTRACT RECORD "CT" COLUMNS INTO ARRAY USING COL# AS SUBSCRIPT*
+*   R1 -> Accumulator array
 *   R7 -> extract record
 *   R9 -  Return address
 ***********************************************************************
@@ -875,72 +928,7 @@ COPY_CT  DS    0H
          DROP  R6,R7
 *********************************************************
 
-*
-* End of file processing
-*
-READEOF  DS    0H
-         CLI   EOREOFCD,C'H'      READING NEXT HEADERS ???
-         JE    EOFBREAK           YES -  CHECK IF  REQUEST IN-PROGRESS
-*
-         CLI   EOREOFCD,C' '      REQUEST  IN-PROGRESS (STARTED OK) ???
-         JNE   CHKCOUNT           NO  - BYPASS GRAND TOTALS
-*
-         MVI   EOREOFCD,C'F'      INDICATE END-OF-FILE
-*
-EOFBREAK BRAS  R10,RPTBREAK       PROCESS BREAK FOR LAST REQUEST
-*
-         CLI   EOREOFCD,C'H'      END-OF-FILE WHILE READING HEADERS ???
-         JNE   CHKCOUNT           NO  - BYPASS MESSAGE
-*
-*         Larl  R15,noextrec                PRINT NO EXTRACT RECORD MSG
-*         BASR  R10,R15
-*
-         MVI   EOREOFCD,C'F'      INDICATE END-OF-FILE
-*
-CHKCOUNT DS    0H
-***********************************************************************
-*  GET FINISH DATE/TIME                                               *
-***********************************************************************
-*
-         XC    endtime,endtime    GET ENDING TIME
-         lay   R2,endtime
-         lay   R3,timelist
-         TIME  STCK,(R2),LINKAGE=SYSTEM,DATETYPE=YYYYMMDD,             +
-               MF=(E,(R3))
-*
-         Larl  R15,CTRLRPT        PRINT  CONTROL REPORT
-         BASR  R10,R15
-         larl  r15,closfile       close  files
-         BASR  R10,R15
-* Did we get any overflow? If yes write warning to log
-         if TM,STATFLG4,STATOVFL,NZ
-         L     R14,LOGDCBA
-         GVBMSG LOG,MSGNO=MSG#451,SUBNO=2,LOGDCBA=(R14),               +
-               SUB1=(MR88NAME,L'MR88NAME),                             +
-               SUB2=(OVFLCHAR,1),                                      +
-               MSGBUFFER=(UTMTBUFF,L'UTMTBUFF),                        +
-               MF=(E,MSG_AREA)
-          LA    R0,8              return an error - overflow
-          STY   R0,MR88RETC
-         ENDIF
-***
-         DROP  R8
-                     EJECT
-returne  ds    0h
-         LY    R15,MR88RETC
-         l     r14,wksavmsk       restore callers   program  mask
-         spm   r14
 
-         lay   r14,fp_reg_savearea  Point at register save area
-         GVBLDX  fp8,0(0,r14)       restore fp8 to fp15
-         GVBLDX  fp9,16(0,r14)
-         GVBLDX  fp12,32(0,r14)
-         GVBLDX  fp13,48(0,r14)
-*
-         L     R13,savprev        RESTORE REGISTER  R13
-         L     R14,savgrs14       RESTORE REGISTER  R14
-         LM    R0,R12,savgrs0     RESTORE REGISTERS R0 - R12
-         bsm   0,r14              RETURN
 *
 * error message handling
 *
@@ -1107,12 +1095,14 @@ DETFILE  ST    R10,SAVER10        SAVE  RETURN ADDRESS (R10 IS REUSED)
 ***********************************************************************
 *  COPY EXTRACT RECORD "CT" COLUMNS INTO ARRAY USING COL# AS SUBSCRIPT*
 ***********************************************************************
+*        R1 points to Array
          BRAS  R9,COPY_CT
-*         
+* Save into Pre-calculation area         
          LH    R15,VWSETLEN       SAVE PRE-CALCULATION RESULTS
          LTR   R15,R15
          JNP   DETFMSTR
 *
+         j     around1 
          L     R1,CALCBASE
          L     R14,EXTPCALC
          LA    R15,255(,R15)      ROUND  UP TO 256 MULTIPLE
@@ -1124,6 +1114,7 @@ DETFCLCL MVC   0(256,R14),0(R1)
          LA    R14,256(,R14)
 DETFCLCE BRCT  R0,DETFCLCL
          EX    R15,MVCR14R1
+around1  equ   *         
 *
 DETFMSTR equ  *
          BRAS  R10,CALCCOLM       PERFORM     COLUMN   CALCULATIONS
@@ -1150,6 +1141,7 @@ COMFILE  ST    R10,SAVER10        SAVE  RETURN ADDRESS (R10 IS REUSED)
          LTR   R15,R15
          JNP   COMFCALC
 *
+         j     around2
          L     R1,CALCBASE
          L     R14,EXTPCALC
          LA    R15,255(,R15)      ROUND  UP TO 256 MULTIPLE
@@ -1161,8 +1153,9 @@ COMFCLCL MVC   0(256,R14),0(R1)
          LA    R14,256(,R14)
 COMFCLCE BRCT  R0,COMFCLCL
          EX    R15,MVCR14R1
+around2  equ  *
 *
-COMFCALC BRAS  R10,CALCCOLM       PERFORM      COLUMN   CALCULATIONS
+COMFCALC BRAS  R10,CALCCOLM       PERFORM COLUMN CALCULATIONS (group)
 *
          BRAS  R10,EXCPCHK        CHECK  FOR   EXCEPTIONS
          J     COMFSKIP           +0 =  SKIP
@@ -1181,7 +1174,7 @@ COMFKEEP DS    0H                 +4 =  PROCESS RECORD TO OUTPUT BLOCK
          JNO   COMFBLD
          AHI   R2,4               SKIP RDW
 *
-* deals with building and outputing the CSV column headers
+*** deals with building and outputing the CSV column headers ***
 *
 COMFBLD  DS    0H
          TM    VWFLAG2,VWBLDCSV   CSV format output ???
@@ -1235,6 +1228,8 @@ COMFCNT0 DS    0H
          JNO   COMCSVXT
          AHI   R2,4               SKIP RDW
 COMCSVXT EQU   *
+*
+****                  end CSV stuff             ***
 *
 * deals with building and outputting regular column data
 *
@@ -1315,7 +1310,9 @@ COMFCNT1 EQU   *
 *
 COMFK010 L     R2,FMTPRECA        --> RECORD TO WRITE
          DROP  R1
-                     SPACE 3
+*         
+* Reset accumulators
+*
 COMFSKIP LH    R0,VWCLCCOL        LOAD   CALCULATED  COLUMN COUNT
          LTR   R0,R0              ANY    USED ???
          JNP   COMFEXIT           NO  -  EXIT
@@ -2645,12 +2642,6 @@ EXTRFMT  ST    R1,EXTRRECA        SAVE  EXTRACT RECORD   ADDRESS
          MVI   LASTFILE,C'E'         ASSUME EXTRACT RECORD SELECTED
          BR    R10                RETURN         
 
-*
-EXTREND  MVI   EXTREOF,C'Y'       INDICATE END-OF-FILE  ON EXTRACT
-*
-* SORT has completed here
-*
-         J     READEOF
 *
          DROP  R7
 *         DROP  R9
