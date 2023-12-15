@@ -41,11 +41,6 @@ SAVEMR66 DS   9A                  SPECIAL  SAVE AREA FOR CRR/OSR   SUBR
 SAVErptr DS   6A                  SPECIAL  SAVE AREA FOR rptprnt   SUBR
 *
 SAVERBRK DS    A                  SAVE     AREA FOR REQUEST  BREAK SUBR
-SAVEPAGE DS    A                  SAVE     AREA FOR PAGE     BREAK SUBR
-SAVERPTP DS    A                  SAVE     AREA FOR REPORT   TITLE SUBR
-SAVEHDRP DS    A                  SAVE     AREA FOR HEADER   PRINT SUBR
-SAVETTLP DS    A                  SAVE     AREA FOR TITLE    PRINT SUBR
-SAVEWRTD DS    A                  SAVE     AREA FOR WRITE DOWNLOAD SUBR
 SAVER10  DS    A                  SAVE     AREA FOR 1ST LEVEL SUBR CALL
 SAVERET  DS    A                  SAVE     AREA FOR SUBR RETURN ADDR
 statflg1 ds    x                  status flags -- DD's missing (vwnodd)
@@ -94,10 +89,7 @@ SVPROCTM DS    CL06               PROCESS  TIME
 SVFINPDT DS    CL06               FISCAL   PERIOD  DATE
 SVRECCNT DS    PL06               EXTRACT  FILE CONTROL TOTAL
 *
-MARGIND  DS    CL1                MARGINAL UPDATE VIEWS PRESENT
-*
 SAVERECA DS    A                  NEXT RECORD ADDR FOR HEADER ROUTINE
-PAGERECA DS    A                  NEXT RECORD ADDR FOR PAGE   BREAK
 *
 SVVIEW#  DS    F                  CURRENT  VIEW   NUMBER
 *
@@ -129,8 +121,6 @@ svpg#f_next_free ds a             Next free footer page count address
 SVFILENO DS    HL2                EXTRACT  FILE   NUMBER
 *
 fiscal_default_cnt ds f
-LBCHAIN  DS    HL2                THESE    TWO LINES MUST REMAIN
-         DS    AL4                TOGETHER  TO MATCH THE  BUFFER PREFIX
 *
 VDP_MR88_View_list ds a           Address of list of format views
 *                                 counter, followed by view numbers
@@ -164,72 +154,44 @@ CLCDEFCR DS    A                  COL CALC DEFN PARAMETER TABLE  CURR
 VIEWCNT  DS    PL6                VIEW     COUNT
 *
 EXTRCNT  DS    PL6                EXTRACT  FILE  RECORD COUNT
-MSTRCNT  DS    PL6                MASTER   FILE  RECORD COUNT
 DATACNT  DS    PL6                DATA     FILE  RECORD COUNT
-MARGCNT  DS    PL6                MARGINAL FILE  RECORD COUNT
-DOWNCNT  DS    PL6                DOWNLOAD FILE  RECORD COUNT
-*
-LKUPfnd  ds    PL6                Count of found lookups
-LKUPnot  ds    PL6                Count of lookups not found
-LKUPcnt  ds    PL6                Total count of lookups attmpted
 VWoutfcnt ds   PL6                View files written
 VWoutftot ds   PL6                View files records written
 *
                      EJECT
 EXTRDCBA DS    A                  EXTRACT    FILE DCB ADDRESS
-MSTRDCBA DS    A                  MASTER     FILE DCB ADDRESS
-MARGDCBA DS    A                  MARGINAL UPDATE DCB ADDRESS
-DOWNDCBA DS    A                  DOWNLOAD   FILE DCB ADDRESS
-PRNTDCBA DS    A                  PRINT      FILE DCB ADDRESS
 CTRLDCBA DS    A                  CONTROL  REPORT DCB ADDRESS
 LOGDCBA  DS    A                  MR88LOG         DCB ADDRESS
 VDPDCBA  DS    A                  VIEW DEFN PARAMETER FILE    DCB  ADDR
-HDRDCBA  DS    A                  LOOK-UP  HEADER DCB ADDRESS
-LKUPDCBA DS    A                  LOOK-UP    DATA DCB ADDRESS
 SYSINDCB DS    A                  SORT      SYSIN DCB ADDRESS
 *
-VDFACBA  DS    A                  VDF  ACB            ADDRESS
-VDFRPLA  DS    A                  VDF  RPL            ADDRESS
 *
 PARMDCBA DS    A                  REQUEST    PARM DCB ADDRESS
 *
-*READSUBR DS    A                  EXTRACT  REC  READ  ROUTINE  ADDRESS
 EXTRDECB DS    A                  EXTRACT  FILE DECB  CURRENT  ADDRESS
 EXTREOD  DS    A                  EXTRACT  FILE BUFFER ENDING  ADDRESS
 EXTRRECA DS    A                  EXTRACT  FILE RECORD         ADDRESS
 EXTRGETA DS    A                  EXTRACT  FILE READ  ROUTINE  ADDRESS
 EXTRCHKA DS    A                  EXTRACT  FILE CHECK ROUTINE  ADDRESS
-MSTRDECB DS    A                  MASTER   FILE DECB  CURRENT  ADDRESS
-MSTREOD  DS    A                  MASTER   FILE BUFFER ENDING  ADDRESS
-MSTRRECA DS    A                  MASTER   FILE RECORD         ADDRESS
-MSTRGETA DS    A                  MASTER   FILE READ  ROUTINE  ADDRESS
-MSTRCHKA DS    A                  MASTER   FILE CHECK ROUTINE  ADDRESS
 DATAPUTA DS    A                  DATA     FILE PUT   ROUTINE  ADDRESS
-MARGPUTA DS    A                  MARGINAL FILE PUT   ROUTINE  ADDRESS
-DOWNPUTA DS    A                  DOWNLOAD FILE PUT   ROUTINE  ADDRESS
-PRNTSUBR DS    A                  OSR/CRR  REC  WRITE ROUTINE  ADDRESS
 CTRLPUTA DS    A                  CONTROL  FILE PUT   ROUTINE  ADDRESS
 HDRGETA  DS    A                  HEADER   FILE READ  ROUTINE  ADDRESS
-DATAGETA DS    A                  TBL DATA FILE READ  ROUTINE  ADDRESS
 *
 RECADDR  DS    A                  CURRENT  RECORD ADDRESS
 PREVRECA DS    A                  PREVIOUS RECORD ADDRESS
-                     EJECT
-CURSRTKY DS    A                  CURRENT  SORT KEY DEFINITION ADDRESS
-LSTSRTKY DS    A                  LAST     SORT KEY DEFINITION ADDRESS
 *
 OUTPCURR DS    A                  CURRENT  OUTPUT   POSITION ("CSV")
 *
 SVBRKCNT DS    HL2                CURRENT  SORT  BREAK COUNT (LEVEL)
-PREVROW# DS   0HL2                PREVIOUS REPORT TITLE  ROW  NBR
 NOTNULL  DS    HL2                NULL     COLUMN VALUE     COUNT
 *
 EXTCOLA  DS    A                  EXTRACT  COLUMN   VALUES ADDRESS
 SUBTOTAD DS    A                  SORT KEY SUBTOTAL ARRAY  ADDRESS
 EXTCNTA  DS    A                  EXTRACT  COLUMN   COUNT  VALUES
-EXTPCALC DS    A                  PRE-CALCULATION   VALUES ADDRESS
-EXTFRSTA DS    A                  FIRST    COLUMN   VALUES ADDRESS
-EXTLASTA DS    A                  LAST     COLUMN   VALUES ADDRESS
+EXTAVEA  DS    A                  Average column values address
+*EXTPCALC DS    A                  PRE-CALCULATION   VALUES ADDRESS
+*EXTFRSTA DS    A                  FIRST    COLUMN   VALUES ADDRESS
+*EXTLASTA DS    A                  LAST     COLUMN   VALUES ADDRESS
 EXTMAXA  DS    A                  MAXIMUM  COLUMN   VALUES ADDRESS
 EXTMINA  DS    A                  MINIMUM  COLUMN   VALUES ADDRESS
 EXTPREVA DS    A                  PREVIOUS COLUMN   VALUES ADDRESS
@@ -240,7 +202,6 @@ CLCOFFTB DS    A                  CALCULATED   COLUMN OFFSET       TBL
 *
 EXCPTBLA DS    A                  EXCEPTION    TABLE  ADDRESS
 CALCBASE DS    A                  CURRENT CALCULATION BASE  SET OF VALU
-CURTTLOF DS    H                  CURRENT TITLE   KEY VALUE OFFSET
 CURRLVL  DS    H                  CURRENT INDENTATION LEVEL
 *
 VWRECCNT DS    PL6                REPORT  REQUEST CONTROL   COUNT
@@ -249,8 +210,6 @@ VW0C7IND DS    CL1                0C7     ABEND   INDICATOR
 VWOVRIND DS    CL1                EXTRACT LIMIT   EXCEEDED  INDICATOR
 *
 EXTREOF  DS    CL1                EXTRACT  FILE EOF INDICATOR
-MSTREOF  DS    CL1                MASTER   FILE EOF INDICATOR
-VDFOPENF DS    CL1                VDF      FILE     OPEN   FLAG
 LASTFILE DS    CL1                LAST INPUT RECORD SOURCE  FILE (E,M)
 EOREOFCD DS    CL1                END  OF  REQUEST/FILE  CODE
 *
@@ -268,73 +227,24 @@ ACCUMWRK DS   5PL(AccumDFPl)      ACCUMULATOR     STACK
 SVLBPREV DS    A                  SAVE PREVIOUS RECORD BUFFER ADDRESS
 SVVIEWTP DS    CL1                VIEW   TYPE ("B" - BASE VIEW)
 *
-PRINTIND DS    CL1                USE  PRINT AREA      INDICATOR
 COLMFRST DS    CL1                FIRST DISPAYABLE COL INDICATOR
          DS    CL1
          DS    CL1
          DS    CL1
 GTOTLIND DS    CL1                PRINT  GRAND TOTALS  INDICATOR
-NEEDDASH DS    CL1                DASH LINE  UNDER  COLUMNS NEEDED
-NEEDTITL DS    HL2                SORT TITLE LINES  NEEDED (DEFERRED)
-CRLF     DS    CL2
 *
 MAXCOL   DS    HL2                MAXIMUM  NO. OF COLUMNS (ALL REPORTS)
 MAXBRK   DS    HL2                MAXIMUM  NO. OF SUBTOTAL BREAKS  (+1)
 MAXRPT   DS    HL2                MAXIMUM  NO. OF REPORT   TITLE LINES
 MAXFOOTR DS    HL2                MAXIMUM  NO. OF REPORT  FOOTER LINES
 *
-RTITLEA  DS    A                  REPORT   TITLE    AREA   ADDRESS
-RFOOTRA  DS    A                  REPORT   FOOTER   AREA   ADDRESS
-*
-VDFRECA  DS    A                  VDF      RECORD   ADDRESS
-VDFKEY   DS    CL07               VDF KEY: REQUEST  NO.
-         DS    CL02                        RECORD TYPE
-         DS    CL03                        COLUMN NUMBER
-         DS    CL05                        SEQUENCE NO.
-VDFKEYLN EQU   *-VDFKEY
 *
 LRGNUM   DS    CL01               LARGE  NUMBER  MODE (20,3)
-OUTASCII DS    CL01               OUTPUT ASCII DRILLDOWN
 *
 MSG_AREA GVBMSG PREFIX=MMM,MF=L
 *
 ERRDATA  DS    CL54               INDICATIVE   ERROR DATA
                      EJECT
-RPHEADR1 DS   0CL137              COLUMN   HEADER LINE   1
-H1RECLEN DS    HL02               LINE     LENGTH
-         DS    XL02
-H1CC     DS    CL01               CARRIAGE CONTROL
-H1TEXT   DS    CL256              COLUMN   HEADER TEXT   LINE
-         DS    XL01               (FILLER)
-                     SPACE 2
-RPHEADR2 DS   0CL137              COLUMN   HEADER LINE   2
-H2RECLEN DS    HL02               LINE     LENGTH
-         DS    XL02
-H2CC     DS    CL01               CARRIAGE CONTROL
-H2TEXT   DS    CL256              COLUMN   HEADER TEXT   LINE
-         DS    XL01               (FILLER)
-                     SPACE 2
-RPHEADR3 DS   0CL137              COLUMN   HEADER LINE   3
-H3RECLEN DS    HL02               LINE     LENGTH
-         DS    XL02
-H3CC     DS    CL01               CARRIAGE CONTROL
-H3TEXT   DS    CL256              COLUMN   HEADER TEXT   LINE
-         DS    XL01               (FILLER)
-                     SPACE 2
-DASHLINE DS   0CL137              COLUMN   HEADER DASH   LINE
-DASHLEN  DS    HL02               LINE     LENGTH
-         DS    XL02
-DASHCC   DS    CL01               CARRIAGE CONTROL
-DASHTEXT DS    CL256              DASH     LINE
-         DS    XL01               (FILLER)
-                     SPACE 2
-TITLLINE DS   0CL137              SORT BREAK TITLE LINE
-TITLRDW  DS    HL02               SORT BREAK TITLE LENGTH
-         DS    XL02
-TITLCC   DS    CL01               CARRIAGE CONTROL
-TITLTEXT DS    CL256              SORT     TITLE  TEXT   LINE
-         DS    XL01               (FILLER)
-                     SPACE 2
 PRNTRDW  ds    0CL4               RDW for printing to VB output
 PRNTRDWH ds    HL02               High RDW
 PRNTRDWL ds    HL02               Low RDW
@@ -368,40 +278,6 @@ refddn       ds cl8              Reference file DDN GREFnnn
 refrect      ds f                Reference file record total
 refmemt      ds d                Reference file memory total
 *
-                     EJECT
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-*                                                                     *
-* "STGTP90" -  PARAMETER AREA DEFINITION                              *
-*                                                                     *
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-*
-TP90AREA DS   0A               FIELD SPECIFICATION ENTRY DEFINITION
-*
-PAANCHOR DS    AL04            TP90   WORK  AREA ANCHOR
-PADDNAME DS    CL08            FILE DDNAME
-PAFUNC   DS    CL02            FUNCTION CODE
-PAFTYPE  DS    CL01            FILE TYPE (V  = VSAM,  S = SEQUENTIAL)
-PAFMODE  DS    CL02            FILE MODE (I  = INPUT, O = OUTPUT    )
-*                                        (IO = BOTH                 )
-PARTNC   DS    CL01            RETURN CODE
-PAVSAMRC DS    HL02            VSAM   RETURN CODE
-PARECLEN DS    HL02            RECORD LENGTH
-PARECFMT DS    CL01            RECORD FORMAT (F=FIXED, V=VARIABLE)
-PARESDS  DS    CL01            ESDS direct access
-*
-PALEN    EQU   *-TP90AREA      PARAMETER AREA LENGTH
-                     SPACE 3
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-*                                                                     *
-*  "STGTP90" PARAMETER LIST DEFINITION                                *
-*                                                                     *
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-*
-TP90LIST DS   0A               PARAMETER LIST FOR "STGTP90"
-TP90PA   DS    A
-TP90RECA DS    A
-TP90KEYA DS    A
-                     EJECT
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
 * "GVBDL96" -  DATA CONVERSION PARAMETERS                             *

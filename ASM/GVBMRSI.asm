@@ -24,8 +24,6 @@
 *                                                                     *
 *  GVBMRSI - LOADS THE VIEW DEFINITION PARAMETER TABLES               *
 *          - OPENS REQUIRED INPUT FILES                               *
-*          - LOADS MEMORY RESIDENT TITLE LOOK-UP TABLES               *
-*          - INITIALIZES  BINARY  SEARCH PATHS                        *
 *                                                                     *
 *  FUNCTION CODES:                                                    *
 *                                                                     *
@@ -108,14 +106,6 @@
          COPY  GVB1000A
          COPY  GVB1200A
          COPY  GVB1210A
-         COPY  GVB1300A
-*
-VDP1300LN EQU  *-VDP1300_TITLE_LINES_RECORD
-*
-         COPY  GVB1400A
-*
-VDP1400LN EQU  *-VDP1400_FOOTER_LINES_RECORD
-*
          COPY  GVB1600A
          COPY  GVB2000A
          COPY  GVB2200A
@@ -316,31 +306,7 @@ ALLOCDYN LHI   R0,SVSORTLN
 ALLOC00  GVBSTX   fp8,0(,R1) storage with DFP zero
          AHI   R1,AccumDFPl
          BRCT  R0,ALLOC00
-                     SPACE 3
-***********************************************************************
-*  ALLOCATE AND INITIALIZE PRE-CALCULATION "CT" COLUMN SAVE AREA      *
-***********************************************************************
-         LR    R0,R2              OBTAIN  MEMORY FOR PRE-CALC VALUES
-         GETMAIN R,LV=(0),LOC=(ANY)
-         ST    R1,EXTPCALC        SAVE    AREA   ADDRESS
 *
-         LH    R0,MAXCOL          INITIALIZE
-ALLOC01  GVBSTX   fp8,0(,R1) storage with DFP zero
-         AHI   R1,AccumDFPl
-         BRCT  R0,ALLOC01
-                     SPACE 3
-***********************************************************************
-*  ALLOCATE AND INITIALIZE LAST  VALUE "CT" COLUMN SAVE AREA          *
-***********************************************************************
-         LR    R0,R2              OBTAIN  MEMORY FOR LAST     VALUES
-         GETMAIN R,LV=(0),LOC=(ANY)
-         ST    R1,EXTLASTA        SAVE    AREA   ADDRESS
-*
-         LH    R0,MAXCOL          INITIALIZE
-ALLOC03  GVBSTX   fp8,0(,R1) storage with DFP zero
-         AHI   R1,AccumDFPl
-         BRCT  R0,ALLOC03
-                     SPACE 3
 ***********************************************************************
 *  ALLOCATE AND INITIALIZE PREVIOUS RECORD "CT" COLUMN SAVE AREA      *
 ***********************************************************************
@@ -352,19 +318,28 @@ ALLOC03  GVBSTX   fp8,0(,R1) storage with DFP zero
 ALLOC04  GVBSTX   fp8,0(,R1) storage with DFP zero
          AHI   R1,AccumDFPl
          BRCT  R0,ALLOC04
-                     SPACE 3
 ***********************************************************************
-*  ALLOCATE AND INITIALIZE SUBTOTAL BREAK LEVEL COUNTS                *
+*  ALLOCATE AND INITIALIZE BREAK LEVEL average                        *
 ***********************************************************************
          LR    R0,R2              OBTAIN  MEMORY FOR COUNTS
+         GETMAIN R,LV=(0),LOC=(ANY)
+         ST    R1,EXTAVEA         SAVE    AREA   ADDRESS
+*
+         LH    R0,MAXCOL          INITIALIZE
+ALLOC03  GVBSTX   fp8,0(,R1) storage with DFP zero
+         AHI   R1,AccumDFPl
+         BRCT  R0,ALLOC03
+***********************************************************************
+*  ALLOCATE AND INITIALIZE SUBTOTAL BREAK LEVEL COUNT                 *
+***********************************************************************
+         LHI   R0,AccumDFPl         OBTAIN  MEMORY FOR COUNT
          GETMAIN R,LV=(0),LOC=(ANY)
          ST    R1,EXTCNTA         SAVE    AREA   ADDRESS
 *
          LH    R0,MAXCOL          INITIALIZE
 ALLOC05  GVBSTX   fp8,0(,R1) storage with DFP zero
          AHI   R1,AccumDFPl
-         BRCT  R0,ALLOC05
-                     EJECT
+         BRCT  R0,ALLOC05         
 ***********************************************************************
 *  COMPUTE MAXIMUM NO. OF CELLS FOR ALL BREAK LEVEL ACCUMULATORS      *
 ***********************************************************************
@@ -420,21 +395,6 @@ ALLOC08  GVBSTX   fp8,0(,R1) storage with DFP zero
          BRCT  R0,ALLOC08
                      SPACE 3
 ***********************************************************************
-*  ALLOCATE AND INITIALIZE FIRST VALUE "CT" COLUMN SAVE AREA          *
-***********************************************************************
-         LR    R1,R2              LOAD  NUMBER  OF CELLS
-         LHI   R0,AccumDFPl       LOAD  SIZE    OF CELL
-         MR    R0,R0
-         LR    R0,R1
-         GETMAIN R,LV=(0),LOC=(ANY)
-         ST    R1,EXTFRSTA        SAVE  AREA    ADDRESS
-*
-         LR    R0,R2              INITIALIZE
-ALLOC09  GVBSTX   fp8,0(,R1) storage with DFP zero
-         AHI   R1,AccumDFPl
-         BRCT  R0,ALLOC09
-                     SPACE 3
-***********************************************************************
 *                                                                     *
 ***********************************************************************
 
@@ -460,9 +420,10 @@ OPENOUT  L     R8,VWCHAIN         LOAD FIRST  REPORT REQUEST ADDRESS
 *
          USING VIEWREC,R8
 OPLOOP   TM    VWFLAG2,VWOUTDCB   OUTPUT  DCB  USED  ???
-         JO    OPDDINIT           YES -   GET  DCB   AREA
-         TM    VWFLAG2,VWPRINT    OUTPUT  DCB  USED  ???
-         JNO   OPNEXTVW           NO - BYPASS  OPENING OF OUTPUT  FILE
+         JNO   OPNEXTVW           No - bypass opening of output file
+*         JO    OPDDINIT           YES -   GET  DCB   AREA
+*         TM    VWFLAG2,VWPRINT    OUTPUT  DCB  USED  ???
+*         JNO   OPNEXTVW           NO - BYPASS  OPENING OF OUTPUT  FILE
                      SPACE 3
 ***********************************************************************
 *  SCAN OTHER VIEWS TO CHECK IF OUTPUT DCB SHARED (ALREADY ALLOCATED) *
@@ -537,16 +498,16 @@ OPLRECL  LH    R1,JFCLRECL            LRECL AVAILABLE FROM JCL  ???
          JH    OPNEXTVW
 *
          LH    R1,VWOUTLEN            LOAD  RECORD  LENGTH
-         TM    VWFLAG2,VWPRINT        PRINT OUTPUT  ???
-         JNO   OPLRECLQ               NO  - BYPASS  LENGTH CHECK
-         CH    R1,VWLINSIZ
-         JH    OPLRECLQ
-         LH    R1,VWLINSIZ
+*         TM    VWFLAG2,VWPRINT        PRINT OUTPUT  ???
+*         JNO   OPLRECLQ               NO  - BYPASS  LENGTH CHECK
+*         CH    R1,VWLINSIZ
+*         JH    OPLRECLQ
+*         LH    R1,VWLINSIZ
 *
-OPLRECLQ EQU   *
-         If    cli,vwdestyp+1,eq,batch  If the output is hardcopy
-           ahi r1,1                   add one to account for cc
-         endif
+*OPLRECLQ EQU   *
+*         If    cli,vwdestyp+1,eq,batch  If the output is hardcopy
+*           ahi r1,1                   add one to account for cc
+*         endif
          STH   R1,DCBLRECL            SET   LOGICAL RECORD LENGTH
          TM    JFCRECFM,X'40'         VARIABLE      LENGTH ???
          JNO   OPBLKSIZ               NO  - BYPASS  RDW    ADDITION
@@ -879,7 +840,6 @@ SYSINERR LHI   R14,MSG#450          LOAD  ERROR MESSAGE NUMBER
 *
          USING VIEWREC,R8
          USING COLDEFN,R7
-         USING VDP1300_TITLE_LINES_RECORD,R5
 *
 CSVMSKMV MVC   CDDETMSK(0),0(R1)    * * * *  E X E C U T E D  * * * * *
 MASKBLNK CLC   VDP2000_REPORT_MASK-VDP2000_COLUMN_RECORD(0,R5),SPACES
@@ -891,7 +851,6 @@ MVCGRAND MVC   SKTITLE-SORTKEY(0,R6),GRANDTOT  * * * EXECUTED * * * * *
 *
 TRASCII  TR    0(0,R14),0(R15)    * * * *  E X E C U T E D  * * * * *
 *
-         DROP  R5
          DROP  R7
          DROP  R8
          DROP  R13
@@ -947,8 +906,8 @@ REFRXXX  DC    CL8'REFRXXX '      REFERENCE   TABLE  DATA   DDNAME
 PARMEYEB DC    CL8'MR88PARM'      EXEC   PARAMETERS  AREA  "EYEBALL"
 DCBEYEB  DC    CL8'MR88DCBS'      DCB    AREA              "EYEBALL"
 VDPEYEB  DC    CL8'MR88VDP '      VDP    AREA              "EYEBALL"
-TITLEYEB DC    CL8'MR88TITL'      REPORT TITLE       AREA  "EYEBALL"
-FOOTEYEB DC    CL8'MR88FOOT'      REPORT FOOTER      AREA  "EYEBALL"
+*TITLEYEB DC    CL8'MR88TITL'      REPORT TITLE       AREA  "EYEBALL"
+*FOOTEYEB DC    CL8'MR88FOOT'      REPORT FOOTER      AREA  "EYEBALL"
 FLDSEYEB DC    CL8'MR88FLDS'      FIELD  DEFINITION  AREA  "EYEBALL"
 COLSEYEB DC    CL8'MR88COLS'      COLUMN DEFINITION  AREA  "EYEBALL"
 SORTEYEB DC    CL8'MR88SORT'      SORT   KEY   DEFN  AREA  "EYEBALL"
@@ -1053,7 +1012,7 @@ SYSINADR DC    A(SYSIN)
 SORTREC  DC    C' RECORD TYPE=V,LENGTH=8192 '
 *
 SPACES   DC    Cl256' '
-ZEROES   DC    XL32'00'
+*ZEROES   DC    XL32'00'
                         EJECT
 ***********************************************************************
 *  JUSTIFICATION CONVERSION TABLE                                     *
@@ -1245,25 +1204,25 @@ PGMINIT  ds    0h
          ZAP   SVRECCNT,P000      INITIALIZE PACKED   FIELDS
          ZAP   VIEWCNT,P000
          ZAP   EXTRCNT,P000
-         ZAP   MSTRCNT,P000
+*         ZAP   MSTRCNT,P000
          ZAP   DATACNT,P000
-         ZAP   MARGCNT,P000
-         ZAP   DOWNCNT,P000
-         ZAP   LKUPcnt,P000
-         ZAP   LKUPfnd,P000
-         ZAP   LKUPnot,P000
+*         ZAP   MARGCNT,P000
+*         ZAP   DOWNCNT,P000
+*         ZAP   LKUPcnt,P000
+*         ZAP   LKUPfnd,P000
+*         ZAP   LKUPnot,P000
          ZAP   VWoutftot,P000
          ZAP   VWoutfcnt,P000
 *
-         MVI   CRLF+0,X'0D'
-         MVI   CRLF+1,X'25'
+*         MVI   CRLF+0,X'0D'
+*         MVI   CRLF+1,X'25'
 
-         MVI   ZEROES+0,C'0'
+*         MVI   ZEROES+0,C'0'
 *
          MVC   ERRDATA,SPACES
 *
          XC    vdpcnt_real,vdpcnt_real     initialise count of VDP recs
-         XC    rthcount,rthcount           initialise count of RTH recs
+*         XC    rthcount,rthcount          initialise count of RTH recs
 *
 ***********************************************************************
 *  LOCATE "TIOT"                                                      *
@@ -1295,10 +1254,10 @@ PGMINIT  ds    0h
          LA    R0,EXTRDCBE-EXTRFILE(,R14)
          ST    R0,DCBDCBE-IHADCB(,R14)
 *
-         L     R14,PRNTADDR
-         S     R14,DCBAREAA
-         AR    R14,R1
-         ST    R14,PRNTDCBA
+*         L     R14,PRNTADDR
+*         S     R14,DCBAREAA
+*         AR    R14,R1
+*         ST    R14,PRNTDCBA
 *
          L     R14,logADDR
          S     R14,DCBAREAA
@@ -1415,10 +1374,10 @@ PGMOPEN  MVC   CTRLPUTA+1(3),DCBPUTA-IHADCB(R2)
          MVI   EOREOFCD,C' '
          MVI   LASTFILE,C'E'        READ  EXTRACT FILE FIRST IN GVBMRSM
 *
-         LA    R14,TP90AREA       INITIALIZE "GVBTP90" PARAMETER LIST
-         ST    R14,TP90PA
-         LA    R14,LKUPKEY
-         ST    R14,TP90KEYA
+*         LA    R14,TP90AREA       INITIALIZE "GVBTP90" PARAMETER LIST
+*         ST    R14,TP90PA
+*         LA    R14,LKUPKEY
+*         ST    R14,TP90KEYA
 *
          MVI   SALEAD0,C'0'
          MVC   SALEAD0+1(L'SALEAD0-1),SALEAD0
@@ -2336,15 +2295,6 @@ rp1      using irunrept,prntline     dsect for IRUN section data
          mvc   rp1.iruncrby,0(r15)
          rptit ,
 *
-         mvc   rp1.irundd,=cl8'MR88RTH'
-         ly    R0,rthcount
-         cvd   r0,dblwork
-         mvc   rp1.irunrcnt,countmsk
-         ed    rp1.irunrcnt,dblwork+3
-         mvc   rp1.irundate(irunrept_len-(irundate-irunrept)),spaces
-         rptit ,
-         drop  rp1
-*
          rptit msg=vb_blankl
 *
          BR    R10                RETURN
@@ -2359,9 +2309,6 @@ rp1      using irunrept,prntline     dsect for IRUN section data
          USING IHADCB,R2
 *
 OPENSTD  ds    0h
-*  NOTE: PRNTDCBA is allocated to allow for other code to work
-*        that relies on the DCB address being valid
-*        DO NOT OPEN this DCB
 * 
 * Set source of records to data from Exit E35 of SORT
 * SORTINIT will call SORT and set SORTE35 as the sort exit.
@@ -3101,8 +3048,8 @@ VDPCOPY2       DS   0H
                    BRAS R9,FLAGCALC ASSIGN CALCULATED COLUMN NUMBERS
                    BRAS R9,LINKSKEY SORT SORT KEYS, LINK THEM TO COLS
                    BRAS R9,OFFCALC COMPUTE COLUMN OUTPUT   OFFSETS
-                   BRAS R9,OFFRPTTL COMPUTE REPORT TITLE   OFFSETS
-                   BRAS R9,OFFFOOTR COMPUTE REPORT FOOTER  OFFSETS
+*                   BRAS R9,OFFRPTTL COMPUTE REPORT TITLE   OFFSETS
+*                   BRAS R9,OFFFOOTR COMPUTE REPORT FOOTER  OFFSETS
                  endif
                  L R8,0(,R8)      INITIALIZE CURRENT CHAIN ELEMENT ADDR
                  USING VIEWREC,R8
@@ -3153,27 +3100,26 @@ VDPCOPY2       DS   0H
                  MVC VWDHDR,VDP1000_GEN_DELIM_HEADER Header Ind for CSV
 *
                  XC VWFLAGS,VWFLAGS          INITIALIZE   FLAGS
-                 OI VWFLAG1,VWNOMIN+VWNOFRST
 *
-                 OI VWFLAG2,VWPRINT          ASSUME USING PRINT AREA
+*                 OI VWFLAG2,VWPRINT          ASSUME USING PRINT AREA
 *
-                 CLI VWDESTYP+1,PVITTBL
-                 JE  PVITFLAG
-                 CLI VWDESTYP+1,EXECINF
-                 JNE  DESTFILE
+*                 CLI VWDESTYP+1,PVITTBL
+*                 JE  PVITFLAG
+*                 CLI VWDESTYP+1,EXECINF
+*                 JNE  DESTFILE
 *
-                 L R14,PARMDADR   LOAD  PARAMETER  AREA  ADDRESS
-                 USING PARMDATA,R14
+                  L R14,PARMDADR   LOAD  PARAMETER  AREA  ADDRESS
+                  USING PARMDATA,R14
 *
-                 CLI XIOPTCD,C'C'
-                 JE  PVITFLAG
-                 OI VWFLAG2,VWEXEC
-                 J  PVITFLAG0010
-PVITFLAG         OI VWFLAG2,VWPVIT
-                 OI VWFLAG2,VWBLDCSV
+*                 CLI XIOPTCD,C'C'
+*                 JE  PVITFLAG
+*                 OI VWFLAG2,VWEXEC
+*                 J  PVITFLAG0010
+*PVITFLAG         OI VWFLAG2,VWPVIT
+*                 OI VWFLAG2,VWBLDCSV
 *
-PVITFLAG0010     EQU *
-                 NI VWFLAG2,255-VWPRINT
+*PVITFLAG0010     EQU *
+*                 NI VWFLAG2,255-VWPRINT
 *
 DESTFILE         cli   FIXWDDEL,C'Y'
                  jne   FXWSKIP
@@ -3184,30 +3130,30 @@ DESTFILE         cli   FIXWDDEL,C'Y'
 FXWSKIP          CLI VWDESTYP+1,FILEFMT
                  JNE  FXWSKIP0010
                  OI VWFLAG2,VWOUTDCB
-                 NI VWFLAG2,255-VWPRINT
+*                 NI VWFLAG2,255-VWPRINT
 *
 FXWSKIP0010      EQU *
                  CLI VWDESTYP+1,CSV
                  JNE FXWSKIP0012
                  OI VWFLAG2,VWBLDCSV
                  OI VWFLAG2,VWOUTDCB
-                 NI VWFLAG2,255-VWPRINT
+*                 NI VWFLAG2,255-VWPRINT
 *
 FXWSKIP0012      EQU *
-                 CLI VWDESTYP+1,XML
-                 JNE FXWSKIP0014
-                 OI VWFLAG2,VWBLDCSV
-                 OI VWFLAG2,VWOUTDCB
-                 NI VWFLAG2,255-VWPRINT
+*                 CLI VWDESTYP+1,XML
+*                 JNE FXWSKIP0014
+*                 OI VWFLAG2,VWBLDCSV
+*                 OI VWFLAG2,VWOUTDCB
+*                 NI VWFLAG2,255-VWPRINT
 *
-FXWSKIP0014      EQU *
-                 XR R0,R0                    OUTPUT DETAIL IND
-                 IC R0,VDP1000_OUTPUT_DETAIL_IND
-                 CHI R0,PRNTDET
-                 JNE FXWSKIP0016
-                 OI VWFLAG1,VWPRTDET
+*FXWSKIP0014      EQU *
+*                 XR R0,R0                    OUTPUT DETAIL IND
+*                 IC R0,VDP1000_OUTPUT_DETAIL_IND
+*                CHI R0,PRNTDET
+*                 JNE FXWSKIP0016
+*                OI VWFLAG1,VWPRTDET
 *
-FXWSKIP0016      EQU *
+*FXWSKIP0016      EQU *
                  MVC VWCOMPNM,SPACES         REPORT TITLE - COMPANY
                  MVC VWFINPDT,SPACES         FISCAL PERIOD  DATE
                  L R1,VDP1000_CONTROL_ID
@@ -3265,11 +3211,11 @@ FXWSKIP0022      EQU *
                  ZAP VWOUTCNT,P000          OUTPUT COUNT
                  ZAP VWMRGCNT,P000          MERGED RECORD COUNT
 *
-                 TM VWFLAG2,VWCRPIND  USE   PRINTER   AS    FILE ???
-                 JO FXWSKIP0024       NO  - BYPASS    SPECIAL    LOGIC
-                 MVC VWDDNAME,VWDESPTR YES - SET-UP   AS    FILE
+*                 TM VWFLAG2,VWCRPIND  USE   PRINTER   AS    FILE ???
+*                 JO FXWSKIP0024       NO  - BYPASS    SPECIAL    LOGIC
+*                 MVC VWDDNAME,VWDESPTR YES - SET-UP   AS    FILE
 *
-FXWSKIP0024      EQU *
+*FXWSKIP0024      EQU *
                  L R1,VWVIEW#
                  BRAS R9,LOCFILE
                  LTR R15,R15      OUTPUT  FILE FOUND  ???
@@ -3286,10 +3232,10 @@ FXWSKIP0026    EQU *
 *
                XC VWMAXCOL,VWMAXCOL INITIALIZE MAXIMUM COLUMN NUMBER
                XC VWCLCCOL,VWCLCCOL INITIALIZE CALC    COLUMN COUNT
-               XC VWRTADDR,VWRTADDR INITIALIZE REPORT  TITLE  ADDRESS
-               XC VWRFADDR,VWRFADDR INITIALIZE REPORT  FOOTER ADDRESS
-               XC VWMAXRPT,VWMAXRPT INITIALIZE REPORT  TITLE  COUNT
-               XC VWMAXFTR,VWMAXFTR INITIALIZE REPORT  FOOTER COUNT
+*               XC VWRTADDR,VWRTADDR INITIALIZE REPORT  TITLE  ADDRESS
+*               XC VWRFADDR,VWRFADDR INITIALIZE REPORT  FOOTER ADDRESS
+*               XC VWMAXRPT,VWMAXRPT INITIALIZE REPORT  TITLE  COUNT
+*               XC VWMAXFTR,VWMAXFTR INITIALIZE REPORT  FOOTER COUNT
                LHI R0,L'GRANDTOT  INITIALIZE   MAXIMUM TITLE  LENGTH
                STH R0,VWMAXTTL
                XC VWSETLEN,VWSETLEN INITIALIZE SIZE OF ONE SUBTOTAL SET
@@ -3684,83 +3630,7 @@ VDP1210X       ds  0h
                DROP R5
                DROP R6
                endif
-                         EJECT
-             when 1300            REPORT  TITLE  LINES  ???
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-*                                                                     *
-*              V D P T I T L E L I N E S R E C O R D                  *
-*                                                                     *
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-*              Need to check that this view is in the list of format
-*              views
-
-               bras r9,check_view_list
-               if ltr,r15,r15,nz      Format view found
-
-               USING VDP1300_TITLE_LINES_RECORD,R5
 *
-               LH R0,VDP1300_ROW_NBR
-*
-               CH R0,MAXRPT
-               JNH VDP1300X012
-               STH R0,MAXRPT
-*
-VDP1300X012    EQU *
-               CH R0,VWMAXRPT
-               JNH VDP1300X014
-               STH R0,VWMAXRPT
-*
-VDP1300X014    EQU *
-               XC VDP1300_TITLE_AREA_OFFSET,VDP1300_TITLE_AREA_OFFSET
-               XC VDP1300_SORT_TITLE_ADDRESS,VDP1300_SORT_TITLE_ADDRESS
-*
-               OC VWRTADDR,VWRTADDR
-               JNZ VDP1300X
-               MVC VWRTADDR,VDPCURR
-*
-VDP1300X       J   VDPCOPY
-*
-               DROP R5
-               endif
-                         EJECT
-             when 1400            REPORT  FOOTER LINES  ???
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-*                                                                     *
-*              V D P F O O T E R L I N E S R E C O R D                *
-*                                                                     *
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-*              Need to check that this view is in the list of format
-*              views
-
-               bras r9,check_view_list
-               if ltr,r15,r15,nz      Format view found
-
-               USING VDP1400_FOOTER_LINES_RECORD,R5
-*
-               LH R0,VDP1400_ROW_NBR
-*
-               CH R0,MAXFOOTR
-               JNH VDP1400X012
-               STH R0,MAXFOOTR
-*
-VDP1400X012    EQU *
-               CH R0,VWMAXFTR
-               JNH VDP1400X014
-               STH R0,VWMAXFTR
-*
-VDP1400X014    EQU *
-               XC VDP1400_FOOTER_AREA_OFFSET,VDP1400_FOOTER_AREA_OFFSET
-               XC VDP1400_SORT_TITLE_ADDRESS,VDP1400_SORT_TITLE_ADDRESS
-*
-               OC VWRFADDR,VWRFADDR
-               JNZ VDP1400X
-               MVC VWRFADDR,VDPCURR
-*
-VDP1400X       J   VDPCOPY
-*
-               DROP R5
-               endif
-                         EJECT
              when 1600            SUMMARY OUTPUT FILE   ???
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
@@ -4907,10 +4777,10 @@ VDP2300X022      EQU *
                  XC SKTTLTOT,SKTTLTOT TOTAL SORT KEY LENGTH
                  XC SKCOLDEF,SKCOLDEF COLUMN DEFINITION ADDRESS
                  XC SKLBADDR,SKLBADDR SORT TITLE RECORD BUFFER ADDRESS
-                XC SK1300VL,SK1300VL SORT KEY VALUE VDP1300 REC ADDRESS
-                 XC SK1300DS,SK1300DS SORT TITLE VDP1300   REC ADDRESS
-                XC SK1400VL,SK1400VL SORT KEY VALUE VDP1400 REC ADDRESS
-                 XC SK1400DS,SK1400DS SORT TITLE VDP1400   REC ADDRESS
+*               XC SK1300VL,SK1300VL SORT KEY VALUE VDP1300 REC ADDRESS
+*               XC SK1300DS,SK1300DS SORT TITLE VDP1300   REC ADDRESS
+*               XC SK1400VL,SK1400VL SORT KEY VALUE VDP1400 REC ADDRESS
+*               XC SK1400DS,SK1400DS SORT TITLE VDP1400   REC ADDRESS
                  ZAP SKCOUNT,P000 SORT     BREAK RECORD COUNT
                  MVC SKTITLE,SPACES SORT   TITLE
 *
@@ -4994,29 +4864,27 @@ FLAGLOOP CLC   CDCLCCOL,HEXFF
          AHI   R15,AccumDFPl
          STH   R15,VWSETLEN
 *
-         CLI   CDSUBOPT+1,MIN     MINIMUM  VALUE  ???
+         CLI   CDSUBOPT+1,BCOUNT  Record count at key break?
          JNE   FLAGLOO1
-         NI    VWFLAG1,255-VWNOMIN
+         OI    VWFLAG1,VWBCNT
+FLAGLOO1 EQU   *         
 *
-FLAGLOO1 EQU   *
          CLI   CDSUBOPT+1,DETMIN  MINIMUM  VALUE  ???
          JNE   FLAGLOO2
-         NI    VWFLAG1,255-VWNOMIN
+         OI    VWFLAG1,VWMIN
 *
 FLAGLOO2 EQU   *
-         CLI   CDSUBOPT+1,MAX     MAXIMUM  VALUE  ???
-         JNE   FLAGLOO3
-         NI    VWFLAG1,255-VWNOMIN
 *
-FLAGLOO3 EQU   *
+         CLI   CDSUBOPT+1,BAVERAGE Average value at key break?
+         JNE   FLAGLOO3
+         OI    VWFLAG1,VWBAVE
+FLAGLOO3 EQU   *         
+*
          CLI   CDSUBOPT+1,DETMAX  MAXIMUM  VALUE  ???
          JNE   FLAGLOO4
-         NI    VWFLAG1,255-VWNOMIN
+         OI    VWFLAG1,VWMAX
 *
 FLAGLOO4 EQU   *
-         CLI   CDSUBOPT+1,FIRST   FIRST    VALUE  ???
-         JNE   FLAGNEXT
-         NI    VWFLAG1,255-VWNOFRST
 *
 FLAGNEXT AHI   R7,CDENTLEN
          BRCT  R2,FLAGLOOP        CONTINUE SEARCH FOR REFERENCED  COL
@@ -5199,244 +5067,6 @@ LINKCOL3 OC    SKLBLLEN-SORTKEY(L'SKLBLLEN,R14),SKLBLLEN-SORTKEY(R14)
 LINKCOL4 AHI   R0,1               ADD  ADJUSTMENT FOR " "
 LINKCOL5 STH   R0,SKPREFXL-SORTKEY(,R14)
 *
-***********************************************************************
-*  FIND MATCHING REPORT TITLE (IF ANY)                                *
-***********************************************************************
-         USING VDP1300_TITLE_LINES_RECORD,R15
-         L     R15,VWRTADDR
-         LTR   R15,R15
-         JNP   LINKFTR
-*
-LINKTTL0 L     R0,VDP1300_FUNCTION
-*
-         CHI   R0,TTLSTTL1
-         JE    LINKTTL1
-         CHI   R0,TTLSTTL2
-         JE    LINKTTL2
-         CHI   R0,TTLSTTL3
-         JE    LINKTTL3
-         CHI   R0,TTLSTTL4
-         JE    LINKTTL4
-         CHI   R0,TTLSTTL5
-         JE    LINKTTL5
-*
-         CHI   R0,TTLSVAL1
-         JE    LINKTTL1
-         CHI   R0,TTLSVAL2
-         JE    LINKTTL2
-         CHI   R0,TTLSVAL3
-         JE    LINKTTL3
-         CHI   R0,TTLSVAL4
-         JE    LINKTTL4
-         CHI   R0,TTLSVAL5
-         JE    LINKTTL5
-*
-         CHI   R0,TTLSLBL1
-         JE    LINKTTL1
-         CHI   R0,TTLSLBL2
-         JE    LINKTTL2
-         CHI   R0,TTLSLBL3
-         JE    LINKTTL3
-         CHI   R0,TTLSLBL4
-         JE    LINKTTL4
-         CHI   R0,TTLSLBL5
-         JE    LINKTTL5
-*
-         j     LINKTTL9
-*
-LINKTTL1 CLI   SKINDCNT-SORTKEY+1(R14),1-1
-         JNE   LINKTTL9
-         ST    R14,VDP1300_SORT_TITLE_ADDRESS
-         MVI   SKHDRBRK+1-SORTKEY(R14),TITLEL1
-         CHI   R0,TTLSVAL1
-         JNE   LINKTTLA
-         ST    R15,SK1300VL-SORTKEY(,R14)
-LINKTTLA EQU   *
-         CHI   R0,TTLSTTL1
-         JNE   LINKTTL9
-         ST    R15,SK1300DS-SORTKEY(,R14)
-         J     LINKTTL9
-*
-LINKTTL2 CLI   SKINDCNT-SORTKEY+1(R14),2-1
-         JNE   LINKTTL9
-         ST    R14,VDP1300_SORT_TITLE_ADDRESS
-         MVI   SKHDRBRK+1-SORTKEY(R14),TITLEL2
-         CHI   R0,TTLSVAL2
-         JNE   LINKTTLB
-         ST    R15,SK1300VL-SORTKEY(,R14)
-LINKTTLB EQU   *
-         CHI   R0,TTLSTTL2
-         JNE   LINKTTL9
-         ST    R15,SK1300DS-SORTKEY(,R14)
-         J     LINKTTL9
-*
-LINKTTL3 CLI   SKINDCNT-SORTKEY+1(R14),3-1
-         JNE   LINKTTL9
-         ST    R14,VDP1300_SORT_TITLE_ADDRESS
-         MVI   SKHDRBRK+1-SORTKEY(R14),TITLEL3
-         CHI   R0,TTLSVAL3
-         JNE   LINKTTLC
-         ST    R15,SK1300VL-SORTKEY(,R14)
-LINKTTLC EQU   *
-         CHI   R0,TTLSTTL3
-         JNE   LINKTTL9
-         ST    R15,SK1300DS-SORTKEY(,R14)
-         J     LINKTTL9
-*
-LINKTTL4 CLI   SKINDCNT-SORTKEY+1(R14),4-1
-         JNE   LINKTTL9
-         ST    R14,VDP1300_SORT_TITLE_ADDRESS
-         MVI   SKHDRBRK+1-SORTKEY(R14),TITLEL4
-         CHI   R0,TTLSVAL4
-         JNE   LINKTTLD
-         ST    R15,SK1300VL-SORTKEY(,R14)
-LINKTTLD EQU   *
-         CHI   R0,TTLSTTL4
-         JNE   LINKTTL9
-         ST    R15,SK1300DS-SORTKEY(,R14)
-         J     LINKTTL9
-*
-LINKTTL5 CLI   SKINDCNT-SORTKEY+1(R14),5-1
-         JNE   LINKTTL9
-         ST    R14,VDP1300_SORT_TITLE_ADDRESS
-         MVI   SKHDRBRK+1-SORTKEY(R14),TITLEL5
-         CHI   R0,TTLSVAL5
-         JNE   LINKTTLE
-         ST    R15,SK1300VL-SORTKEY(,R14)
-LINKTTLE EQU   *
-         CHI   R0,TTLSTTL5
-         JNE   LINKTTL9
-         ST    R15,SK1300DS-SORTKEY(,R14)
-         J     LINKTTL9
-*
-LINKTTL9 AH    R15,VDP1300_REC_LEN     ADVANCE TO NEXT VDP 1300 RECORD
-         lg    r15,0(,r15)             load pointer
-         LH    R0,VDP1300_RECORD_TYPE  STILL WITHIN 1300'S ???
-         CHI   R0,1300
-         JNE   LINKFTR                 NO  - EXIT
-         CLC   VWVIEW#,VDP1300_VIEWID  SAME  VIEW ???
-         JE    LINKTTL0                YES - LOOP
-         DROP  R15
-*
-***********************************************************************
-*  FIND MATCHING REPORT FOOTER (IF ANY)                               *
-***********************************************************************
-         USING VDP1400_FOOTER_LINES_RECORD,R15
-LINKFTR  L     R15,VWRFADDR
-         LTR   R15,R15
-         JNP   LINKCOL8
-*
-LINKFTR0 L     R0,VDP1400_FUNCTION
-*
-         CHI   R0,TTLSTTL1
-         JE    LINKFTR1
-         CHI   R0,TTLSTTL2
-         JE    LINKFTR2
-         CHI   R0,TTLSTTL3
-         JE    LINKFTR3
-         CHI   R0,TTLSTTL4
-         JE    LINKFTR4
-         CHI   R0,TTLSTTL5
-         JE    LINKFTR5
-*
-         CHI   R0,TTLSVAL1
-         JE    LINKFTR1
-         CHI   R0,TTLSVAL2
-         JE    LINKFTR2
-         CHI   R0,TTLSVAL3
-         JE    LINKFTR3
-         CHI   R0,TTLSVAL4
-         JE    LINKFTR4
-         CHI   R0,TTLSVAL5
-         JE    LINKFTR5
-*
-         CHI   R0,TTLSLBL1
-         JE    LINKFTR1
-         CHI   R0,TTLSLBL2
-         JE    LINKFTR2
-         CHI   R0,TTLSLBL3
-         JE    LINKFTR3
-         CHI   R0,TTLSLBL4
-         JE    LINKFTR4
-         CHI   R0,TTLSLBL5
-         JE    LINKFTR5
-*
-         J     LINKFTR9
-*
-LINKFTR1 CLI   SKINDCNT-SORTKEY+1(R14),1-1
-         JNE   LINKFTR9
-         ST    R14,VDP1400_SORT_TITLE_ADDRESS
-         MVI   SKHDRBRK+1-SORTKEY(R14),TITLEL1
-         CHI   R0,TTLSVAL1
-         JNE   LINKFTRA
-         ST    R15,SK1400VL-SORTKEY(,R14)
-LINKFTRA EQU   *
-         CHI   R0,TTLSTTL1
-         JNE   LINKFTR9
-         ST    R15,SK1400DS-SORTKEY(,R14)
-         J     LINKFTR9
-*
-LINKFTR2 CLI   SKINDCNT-SORTKEY+1(R14),2-1
-         JNE   LINKFTR9
-         ST    R14,VDP1400_SORT_TITLE_ADDRESS
-         MVI   SKHDRBRK+1-SORTKEY(R14),TITLEL2
-         CHI   R0,TTLSVAL2
-         JNE   LINKFTRB
-         ST    R15,SK1400VL-SORTKEY(,R14)
-LINKFTRB EQU   *
-         CHI   R0,TTLSTTL2
-         JNE   LINKFTR9
-         ST    R15,SK1400DS-SORTKEY(,R14)
-         J     LINKFTR9
-*
-LINKFTR3 CLI   SKINDCNT-SORTKEY+1(R14),3-1
-         JNE   LINKFTR9
-         ST    R14,VDP1400_SORT_TITLE_ADDRESS
-         MVI   SKHDRBRK+1-SORTKEY(R14),TITLEL3
-         CHI   R0,TTLSVAL3
-         JNE   LINKFTRC
-         ST    R15,SK1400VL-SORTKEY(,R14)
-LINKFTRC EQU   *
-         CHI   R0,TTLSTTL3
-         JNE   LINKFTR9
-         ST    R15,SK1400DS-SORTKEY(,R14)
-         J     LINKFTR9
-*
-LINKFTR4 CLI   SKINDCNT-SORTKEY+1(R14),4-1
-         JNE   LINKFTR9
-         ST    R14,VDP1400_SORT_TITLE_ADDRESS
-         MVI   SKHDRBRK+1-SORTKEY(R14),TITLEL4
-         CHI   R0,TTLSVAL4
-         JNE   LINKFTRD
-         ST    R15,SK1400VL-SORTKEY(,R14)
-LINKFTRD EQU   *
-         CHI   R0,TTLSTTL4
-         JNE   LINKFTR9
-         ST    R15,SK1400DS-SORTKEY(,R14)
-         J     LINKFTR9
-*
-LINKFTR5 CLI   SKINDCNT-SORTKEY+1(R14),5-1
-         JNE   LINKFTR9
-         ST    R14,VDP1400_SORT_TITLE_ADDRESS
-         MVI   SKHDRBRK+1-SORTKEY(R14),TITLEL5
-         CHI   R0,TTLSVAL5
-         JNE   LINKFTRE
-         ST    R15,SK1400VL-SORTKEY(,R14)
-LINKFTRE EQU   *
-         CHI   R0,TTLSTTL5
-         JNE   LINKFTR9
-         ST    R15,SK1400DS-SORTKEY(,R14)
-         J     LINKFTR9
-*
-LINKFTR9 AH    R15,VDP1400_REC_LEN     ADVANCE TO NEXT VDP 1400 RECORD
-         lg    r15,0(,r15)             load pointer
-         LH    R0,VDP1400_RECORD_TYPE  STILL WITHIN 1400'S ???
-         CHI   R0,1400
-         JNE   LINKCOL8                NO  - EXIT
-         CLC   VWVIEW#,VDP1400_VIEWID  SAME  VIEW ???
-         JE    LINKFTR0                YES - LOOP
-         DROP  R15
-*
 *
 LINKCOL8 CLI   SKHDRBRK-SORTKEY+1(R14),SUPPRESS SUPPRESS SORT BREAK ???
          JE    LINKCOL9
@@ -5575,678 +5205,6 @@ OFFCEXIT BR    R9
 *
          DROP  R7
          DROP  R8
-                     EJECT
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-*                                                                     *
-*        R E P O R T   T I T L E   F I E L D   O F F S E T S          *
-*                                                                     *
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-         USING VIEWREC,R8
-*
-OFFRPTTL L     R14,VWRTADDR       LOAD FIRST REPORT TITLE FIELD ADDRESS
-         USING VDP1300_TITLE_LINES_RECORD,R14
-         LTR   R14,R14            ANY  CUSTOM TITLE FIELDS  ???
-         JNP   OFFREXIT           NO  -  EXIT
-*
-         SR    R0,R0
-         ST    R0,DBLWORK+0       ZERO CURRENT ROW/JUSTIFICATION
-         ST    R0,DBLWORK+4       ZERO CURRENT AREA OFFSET
-*
-***********************************************************************
-*  "BUBBLE SORT" REPORT TITLE FIELDS (ROW/COLUMN NUMBER)              *
-***********************************************************************
-OFFRSRT1 LR    R15,R14            LOAD NEXT  REPORT TITLE FIELD ADDRESS
-         AH    R15,0(,R15)
-         lg    r15,0(,r15)
-*
-         DROP  R14
-         USING VDP1300_TITLE_LINES_RECORD,R15
-*
-         LH    R1,VDP1300_RECORD_TYPE  STILL WITHIN 1300'S ???
-         CHI   R1,1300
-         JNE   OFFRSRT5                NO  - ADJUST LAST   AREA OFFSETS
-*
-OFFRSRT2 CLC   VDP1300_ROW_NBR,VDP1300_ROW_NBR-VDP1300_REC_LEN(R14)
-         JH    OFFRSRT4
-         JL    OFFRSRTX
-         CLC   VDP1300_COL_NBR,VDP1300_COL_NBR-VDP1300_REC_LEN(R14)
-         JNL   OFFRSRT4
-*
-OFFRSRTX EQU   *
-         LA    R1,WORKAREA             LOAD "TEMPORARY ENTRY"   ADDRESS
-         AHI   R1,JFCB-WORKAREA
-*
-         MVC   0(256,R1),0(R14)        SWAP  ENTRIES
-         MVC   256(VDP1300LN-256,R1),256(R14)
-         MVC   0(256,R14),0(R15)
-         MVC   256(VDP1300LN-256,R14),256(R15)
-         MVC   0(256,R15),0(R1)
-         MVC   256(VDP1300LN-256,R15),256(R1)
-*
-         L     R1,VDP1300_SORT_TITLE_ADDRESS-VDP1300_REC_LEN(,R14)
-         LTR   R1,R1
-         JNP   OFFRSRT3
-*
-         L     R0,SK1300VL-SORTKEY(,R1)
-         CR    R0,R15
-         JNE   OFFRSRTY
-         ST    R14,SK1300VL-SORTKEY(,R1)
-*
-OFFRSRTY EQU   *
-         L     R0,SK1300DS-SORTKEY(,R1)
-         CR    R0,R15
-         JNE   OFFRSRT3
-         ST    R14,SK1300DS-SORTKEY(,R1)
-*
-OFFRSRT3 L     R1,VDP1300_SORT_TITLE_ADDRESS-VDP1300_REC_LEN(,R15)
-         LTR   R1,R1
-         JNP   OFFRSRT4
-*
-         L     R0,SK1300VL-SORTKEY(,R1)
-         CR    R0,R14
-         JNE   OFFRSRTZ
-         ST    R15,SK1300VL-SORTKEY(,R1)
-*
-OFFRSRTZ EQU   *
-         L     R0,SK1300DS-SORTKEY(,R1)
-         CR    R0,R14
-         JNE   OFFRSRT4
-         ST    R15,SK1300DS-SORTKEY(,R1)
-*
-OFFRSRT4 AH    R15,0(,R15)             ADVANCE INNER LOOP
-         lg    r15,0(,r15)
-         LH    R1,VDP1300_RECORD_TYPE  STILL WITHIN 1300'S ???
-         CHI   R1,1300
-         JE    OFFRSRT2                YES - LOOP
-*
-         DROP  R15
-         USING VDP1300_TITLE_LINES_RECORD,R14
-*
-OFFRSRT5 LH    R0,VDP1300_ROW_NBR        LOAD  ROW    NUMBER
-         L     R1,VDP1300_JUSTIFICATION  LOAD  JUSTIFICATION AREA CODE
-         CH    R0,DBLWORK+0              SAME  ROW    ???
-         JNE   OFFRSRT6                  NO  - RESET
-         CH    R1,DBLWORK+2              SAME  JUSTIFICATION AREA ???
-         JE    OFFRSRT7                  YES - BYPASS  RESET
-*
-OFFRSRT6 STH   R0,DBLWORK+0              NO  - UPDATE  ROW#
-         STH   R1,DBLWORK+2                  - UPDATE  JUSTIFICATION
-         XC    DBLWORK+4(4),DBLWORK+4        - RESET   AREA   OFFSET
-*
-OFFRSRT7 L     R15,DBLWORK+4             LOAD  PREVIOUS    OFFSET
-         ST    R15,VDP1300_TITLE_AREA_OFFSET
-*
-         L     R0,VDP1300_FUNCTION       LOAD  FUNCTION    CODE
-*
-         CHI   R0,TTLDATE                PROCESSING DATE
-         JNE   OFFRSRTA
-         AHI   R15,8
-         j     OFFRSRT8
-*
-OFFRSRTA EQU   *
-         CHI   R0,TTLTIME                PROCESSING TIME
-         JNE   OFFRSRTB
-         AHI   R15,5
-         j     OFFRSRT8
-*
-OFFRSRTB EQU   *
-         CHI   R0,TTLPAGE                PAGE NUMBER
-         JNE   OFFRSRTC
-         AHI   R15,L'VALUMSK1
-         j     OFFRSRT8
-*
-OFFRSRTC EQU   *
-         CHI   R0,TTLVIEW                VIEW NUMBER
-         JNE   OFFRSRTD
-         AHI   R15,L'VALUMSK1
-         j     OFFRSRT8
-*
-OFFRSRTD EQU   *
-         CHI   R0,TTLRDATE               RUN  DATE
-         JNE   OFFRSRTE
-         AHI   R15,8
-         j     OFFRSRT8
-*
-OFFRSRTE EQU   *
-         CHI   R0,TTLRUN#                RUN  NUMBER
-         JNE   OFFRSRTF
-         AHI   R15,L'VALUMSK1
-         j     OFFRSRT8
-*
-OFFRSRTF EQU   *
-         CHI   R0,TTLFDATE               FINANCIAL PERIOD DATE
-         JNE   OFFRSRTG
-         AHI   R15,7
-         j     OFFRSRT8
-*
-OFFRSRTG EQU   *
-         CHI   R0,TTLOWNER               VIEW OWNER
-         JNE   OFFRSRTH
-         AHI   R15,8
-         j     OFFRSRT8
-*
-OFFRSRTH EQU   *
-         CHI   R0,TTLTEXT                TEXT
-         JNE   OFFRSRTI
-         AH    R15,VDP1300_TITLE_LENGTH
-         j     OFFRSRT8
-*
-OFFRSRTI EQU   *
-         CHI   R0,TTLCONAM
-         JNE   OFFRCKVW
-*
-         LHI   R0,L'VWCOMPNM
-         LA    R1,VWCOMPNM+L'VWCOMPNM      ENDING ADDRESS  (+1)
-OFFRCOMP BCTR  R1,0               BACKUP   TO PREVIOUS CHARACTER
-         CLI   0(R1),C' '         TRAILING BLANK  ???
-         JNE   OFFRSRTJ           NO - EXIT
-         BRCT  R0,OFFRCOMP
-         LHI   R0,L'VWCOMPNM
-*
-OFFRSRTJ EQU   *
-         AR    R15,R0
-         j     OFFRSRT8
-*
-OFFRCKVW CHI   R0,TTLVWNAM
-         JNE   OFFRCKSK
-*
-         LHI   R0,L'VWTITLE
-         LA    R1,VWTITLE+L'VWTITLE      ENDING  ADDRESS  (+1)
-OFFRVIEW BCTR  R1,0               BACKUP TO PREVIOUS CHARACTER
-         CLI   0(R1),C' '         TRAILING BLANK ???
-         JNE   OFFRSRTK           NO - EXIT
-         BRCT  R0,OFFRVIEW
-         LHI   R0,L'VWTITLE
-*
-OFFRSRTK EQU   *
-         AR    R15,R0
-         j     OFFRSRT8
-*
-OFFRCKSK L     R1,VDP1300_SORT_TITLE_ADDRESS
-*
-         CHI   R0,TTLSLBL1        SORT KEY  LABEL
-         JE    OFFRLABL
-         CHI   R0,TTLSLBL2
-         JE    OFFRLABL
-         CHI   R0,TTLSLBL3
-         JE    OFFRLABL
-         CHI   R0,TTLSLBL4
-         JE    OFFRLABL
-         CHI   R0,TTLSLBL5
-         JNE   OFFRCKVL
-*
-OFFRLABL AH    R15,SKLBLLEN-SORTKEY(,R1)
-         j     OFFRSRT8
-*
-OFFRCKVL CHI   R0,TTLSVAL1        SORT KEY  VALUE
-         JE    OFFRVAL
-         CHI   R0,TTLSVAL2
-         JE    OFFRVAL
-         CHI   R0,TTLSVAL3
-         JE    OFFRVAL
-         CHI   R0,TTLSVAL4
-         JE    OFFRVAL
-         CHI   R0,TTLSVAL5
-         JNE   OFFRCKDS
-*
-OFFRVAL  AH    R15,SKFLDLEN-SORTKEY(,R1)
-         j     OFFRSRT8
-*
-OFFRCKDS CHI   R0,TTLSTTL1        SORT KEY  VALUE DESCRIPTION ???
-         JE    OFFRDESC
-         CHI   R0,TTLSTTL2
-         JE    OFFRDESC
-         CHI   R0,TTLSTTL3
-         JE    OFFRDESC
-         CHI   R0,TTLSTTL4
-         JE    OFFRDESC
-         CHI   R0,TTLSTTL5
-         JNE   OFFRSRT8
-*
-OFFRDESC CLI   SKDSPOPT+1-SORTKEY(R1),INCLDESC VALUE AS-DATA ???
-         JE    OFFRSRT8                        YES - IGNORE
-*
-         AH    R15,SKDESCLN-SORTKEY(,R1)
-*
-OFFRSRT8 ST    R15,DBLWORK+4           UPDATE CURENT OFFSET
-         STH   R15,VDP1300_AREA_TOTAL_LENGTH
-*
-         AH    R14,0(,R14)             ADVANCE OUTER LOOP
-         lg    r14,0(,r14)
-         LH    R1,VDP1300_RECORD_TYPE  REPORT  TITLE FIELD ???
-         CHI   R1,1300
-         JE    OFFRSRT1                YES - LOOP
-*
-***********************************************************************
-*  ADJUST OFFSETS FOR RIGHT JUSTIFICATION AREAS                       *
-***********************************************************************
-OFFRIGHT L     R14,VWRTADDR
-         ST    R14,DBLWORK+4                         SAVE AREA    BEGIN
-*
-         LH    R0,VDP1300_ROW_NBR                    INIT PREVIOUS ROW#
-         STH   R0,DBLWORK+0
-         L     R1,VDP1300_JUSTIFICATION              INIT PREVIOUS JUST
-         STH   R1,DBLWORK+2
-*
-         j     OFFRGHT5
-*
-OFFRGHT1 LH    R0,VDP1300_ROW_NBR                    LOAD  CURRENT ROW#
-         L     R1,VDP1300_JUSTIFICATION              LOAD  CURRENT AREA
-         CH    R0,DBLWORK+0                          SAME  ROW ???
-         JNE   OFFRGHTA
-         CH    R1,DBLWORK+2                          SAME  JUST ??
-         JE    OFFRGHT5                              YES - ADVANCE
-*
-OFFRGHTA EQU   *
-         STH   R0,DBLWORK+0
-         STH   R1,DBLWORK+2
-*
-         L     R1,DBLWORK+4                          1ST  AREA FIELD
-         ST    R14,DBLWORK+4
-*
-         L     R0,VDP1300_JUSTIFICATION-VDP1300_REC_LEN(,R15)
-         LH    R15,VDP1300_AREA_TOTAL_LENGTH-VDP1300_REC_LEN(,R15)
-*
-         CHI   R0,TTLRIGHT                           RIGHTMOST AREA ??
-         JNE   OFFRGHT3
-*
-OFFRGHT2 LR    R0,R15
-         S     R0,VDP1300_TITLE_AREA_OFFSET-VDP1300_REC_LEN(,R1)
-         ST    R0,VDP1300_TITLE_AREA_OFFSET-VDP1300_REC_LEN(,R1)
-*
-         STH   R15,VDP1300_AREA_TOTAL_LENGTH-VDP1300_REC_LEN(,R1)
-*
-         AH    R1,0(,R1)
-         lg    R1,0(,r1)               load pointer
-         CR    R1,R14
-         JL    OFFRGHT2
-*
-         j     OFFRGHT5
-*
-OFFRGHT3 STH   R15,VDP1300_AREA_TOTAL_LENGTH-VDP1300_REC_LEN(,R1)
-*
-         AH    R1,0(,R1)
-         lg    R1,0(,r1)               load pointer
-         CR    R1,R14
-         JL    OFFRGHT3
-*
-*
-OFFRGHT5 LR    R15,R14                 SAVE  PREVIOUS/LAST AREA FIELD
-*
-         AH    R14,VDP1300_REC_LEN     ADVANCE TO NEXT VDP 1300 RECORD
-         lg    R14,0(,r14)             load pointer
-         LH    R0,VDP1300_RECORD_TYPE  STILL WITHIN 1300'S ???
-         CHI   R0,1300
-         JE    OFFRGHT1                YES - LOOP
-*
-OFFRLAST L     R1,DBLWORK+4            FIRST LAST AREA FIELD
-*
-         LH    R15,VDP1300_AREA_TOTAL_LENGTH-VDP1300_REC_LEN(,R15)
-*
-         LH    R0,DBLWORK+2            LOAD LAST AREA CODE
-         CHI   R0,TTLRIGHT             RIGHTMOST AREA ???
-         JNE   OFFRGHT9                NO  -  NO ADJUSTMENT NEEDED
-*
-OFFRGHT8 LR    R0,R15
-         S     R0,VDP1300_TITLE_AREA_OFFSET-VDP1300_REC_LEN(,R1)
-         ST    R0,VDP1300_TITLE_AREA_OFFSET-VDP1300_REC_LEN(,R1)
-*
-         STH   R15,VDP1300_AREA_TOTAL_LENGTH-VDP1300_REC_LEN(,R1)
-*
-         AH    R1,0(,R1)
-         lg    R1,0(,r1)               load pointer
-         CR    R1,R14
-         JL    OFFRGHT8
-*
-         j     OFFREXIT
-*
-OFFRGHT9 STH   R15,VDP1300_AREA_TOTAL_LENGTH-VDP1300_REC_LEN(,R1)
-*
-         AH    R1,0(,R1)
-         lg    R1,0(,r1)               load pointer
-         CR    R1,R14
-         JL    OFFRGHT9
-*
-OFFREXIT BR    R9                 RETURN
-*
-         DROP  R8
-         DROP  R14
-                     EJECT
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-*                                                                     *
-*        R E P O R T   F O O T E R   F I E L D   O F F S E T S        *
-*                                                                     *
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-         USING VIEWREC,R8
-*
-OFFFOOTR L     R14,VWRFADDR       LOAD FIRST  REPORT FOOTER  FIELD ADDR
-         USING VDP1400_FOOTER_LINES_RECORD,R14
-         LTR   R14,R14            ANY  CUSTOM FOOTER FIELDS  ???
-         JNP   OFFFEXIT           NO  -  EXIT
-*
-         SR    R0,R0
-         ST    R0,DBLWORK+0       ZERO CURRENT ROW/JUSTIFICATION
-         ST    R0,DBLWORK+4       ZERO CURRENT AREA OFFSET
-*
-***********************************************************************
-*  "BUBBLE SORT" REPORT FOOTER FIELDS (ROW/COLUMN NUMBER)             *
-***********************************************************************
-OFFFSRT1 LR    R15,R14            LOAD NEXT  REPORT  FOOTER  FIELD ADDR
-         AH    R15,0(,R15)
-         lg    r15,0(,r15)
-*
-         DROP  R14
-         USING VDP1400_FOOTER_LINES_RECORD,R15
-*
-         LH    R1,VDP1400_RECORD_TYPE  STILL WITHIN 1400'S ???
-         CHI   R1,1400
-         JNE   OFFFSRT5                NO  - ADJUST LAST   AREA OFFSETS
-*
-OFFFSRT2 CLC   VDP1400_ROW_NBR,VDP1400_ROW_NBR-VDP1400_REC_LEN(R14)
-         JH    OFFFSRT4
-         JL    OFFFSRTX
-         CLC   VDP1400_COL_NBR,VDP1400_COL_NBR-VDP1400_REC_LEN(R14)
-         JNL   OFFFSRT4
-*
-OFFFSRTX EQU   *
-         LA    R1,WORKAREA             LOAD "TEMPORARY ENTRY"   ADDRESS
-         AHI   R1,JFCB-WORKAREA
-*
-         MVC   0(256,R1),0(R14)        SWAP  ENTRIES
-         MVC   256(VDP1400LN-256,R1),256(R14)
-         MVC   0(256,R14),0(R15)
-         MVC   256(VDP1400LN-256,R14),256(R15)
-         MVC   0(256,R15),0(R1)
-         MVC   256(VDP1400LN-256,R15),256(R1)
-*
-         L     R1,VDP1400_SORT_TITLE_ADDRESS-VDP1400_REC_LEN(,R14)
-         LTR   R1,R1
-         JNP   OFFFSRT3
-*
-         L     R0,SK1400VL-SORTKEY(,R1)
-         CR    R0,R15
-         JNE   OFFFSRTY
-         ST    R14,SK1400VL-SORTKEY(,R1)
-*
-OFFFSRTY EQU   *
-         L     R0,SK1400DS-SORTKEY(,R1)
-         CR    R0,R15
-         JNE   OFFFSRT3
-         ST    R14,SK1400DS-SORTKEY(,R1)
-*
-OFFFSRT3 L     R1,VDP1400_SORT_TITLE_ADDRESS-VDP1400_REC_LEN(,R15)
-         LTR   R1,R1
-         JNP   OFFFSRT4
-*
-         L     R0,SK1400VL-SORTKEY(,R1)
-         CR    R0,R14
-         JNE   OFFFSRTW
-         ST    R15,SK1400VL-SORTKEY(,R1)
-*
-OFFFSRTW EQU   *
-         L     R0,SK1400DS-SORTKEY(,R1)
-         CR    R0,R14
-         JNE   OFFFSRT4
-         ST    R15,SK1400DS-SORTKEY(,R1)
-*
-OFFFSRT4 AH    R15,0(,R15)             ADVANCE INNER LOOP
-         lg    r15,0(,r15)
-         LH    R1,VDP1400_RECORD_TYPE  STILL WITHIN 1400'S ???
-         CHI   R1,1400
-         JE    OFFFSRT2                YES - LOOP
-*
-         DROP  R15
-         USING VDP1400_FOOTER_LINES_RECORD,R14
-*
-OFFFSRT5 LH    R0,VDP1400_ROW_NBR        LOAD  ROW    NUMBER
-         L     R1,VDP1400_JUSTIFY        LOAD  JUSTIFICATION AREA CODE
-         CH    R0,DBLWORK+0              SAME  ROW    ???
-         JNE   OFFFSRT6                  NO  - RESET
-         CH    R1,DBLWORK+2              SAME  JUSTIFICATION AREA ???
-         JE    OFFFSRT7                  YES - BYPASS  RESET
-*
-OFFFSRT6 STH   R0,DBLWORK+0              NO  - UPDATE  ROW#
-         STH   R1,DBLWORK+2                  - UPDATE  JUSTIFICATION
-         XC    DBLWORK+4(4),DBLWORK+4        - RESET   AREA   OFFSET
-*
-OFFFSRT7 L     R15,DBLWORK+4             LOAD  PREVIOUS    OFFSET
-         ST    R15,VDP1400_FOOTER_AREA_OFFSET
-*
-         L     R0,VDP1400_FUNCTION       LOAD  FUNCTION    CODE
-*
-         CHI   R0,TTLDATE                PROCESSING DATE
-         JNE   OFFFSRTV
-         AHI   R15,8
-         j     OFFFSRT8
-*
-OFFFSRTV EQU   *
-         CHI   R0,TTLTIME                PROCESSING TIME
-         JNE   OFFFSRTU
-         AHI   R15,5
-         j     OFFFSRT8
-*
-OFFFSRTU EQU   *
-         CHI   R0,TTLPAGE                PAGE NUMBER
-         JNE   OFFFSRTT
-         AHI   R15,L'VALUMSK1
-         j     OFFFSRT8
-*
-OFFFSRTT EQU   *
-         CHI   R0,TTLVIEW                VIEW NUMBER
-         JNE   OFFFSRTS
-         AHI   R15,L'VALUMSK1
-         j     OFFFSRT8
-*
-OFFFSRTS EQU   *
-         CHI   R0,TTLRDATE               RUN  DATE
-         JNE   OFF1SRTS
-         AHI   R15,8
-         j     OFFFSRT8
-*
-OFF1SRTS EQU   *
-         CHI   R0,TTLRUN#                RUN  NUMBER
-         JNE   OFF2SRTS
-         AHI   R15,L'VALUMSK1
-         j     OFFFSRT8
-*
-OFF2SRTS EQU   *
-         CHI   R0,TTLFDATE               FINANCIAL PERIOD DATE
-         JNE   OFF3SRTS
-         AHI   R15,7
-         j     OFFFSRT8
-*
-OFF3SRTS EQU   *
-         CHI   R0,TTLOWNER               VIEW OWNER
-         JNE   OFF4SRTS
-         AHI   R15,8
-         j     OFFFSRT8
-*
-OFF4SRTS EQU   *
-         CHI   R0,TTLTEXT                TEXT
-         JNE   OFF5SRTS
-         AH    R15,VDP1400_FOOTER_LENGTH
-         j     OFFFSRT8
-*
-OFF5SRTS EQU   *
-         CHI   R0,TTLCONAM
-         JNE   OFFFCKVW
-*
-         LHI   R0,L'VWCOMPNM
-         LA    R1,VWCOMPNM+L'VWCOMPNM      ENDING ADDRESS  (+1)
-OFFFCOMP BCTR  R1,0               BACKUP   TO PREVIOUS CHARACTER
-         CLI   0(R1),C' '         TRAILING BLANK  ???
-         JNE   OFF6SRTS           NO - EXIT
-         BRCT  R0,OFFFCOMP
-         LHI   R0,L'VWCOMPNM
-*
-OFF6SRTS EQU   *
-         AR    R15,R0
-         j     OFFFSRT8
-*
-OFFFCKVW CHI   R0,TTLVWNAM
-         JNE   OFFFCKSK
-*
-         LHI   R0,L'VWTITLE
-         LA    R1,VWTITLE+L'VWTITLE      ENDING  ADDRESS  (+1)
-OFFFVIEW BCTR  R1,0               BACKUP TO PREVIOUS CHARACTER
-         CLI   0(R1),C' '         TRAILING BLANK ???
-         JNE   OFF7SRTS           NO - EXIT
-         BRCT  R0,OFFFVIEW
-         LHI   R0,L'VWTITLE
-*
-OFF7SRTS EQU   *
-         AR    R15,R0
-         j     OFFFSRT8
-*
-OFFFCKSK L     R1,VDP1400_SORT_TITLE_ADDRESS
-*
-         CHI   R0,TTLSLBL1        SORT KEY  LABEL
-         JE    OFFFLABL
-         CHI   R0,TTLSLBL2
-         JE    OFFFLABL
-         CHI   R0,TTLSLBL3
-         JE    OFFFLABL
-         CHI   R0,TTLSLBL4
-         JE    OFFFLABL
-         CHI   R0,TTLSLBL5
-         JNE   OFFFCKVL
-*
-OFFFLABL AH    R15,SKLBLLEN-SORTKEY(,R1)
-         j     OFFFSRT8
-*
-OFFFCKVL CHI   R0,TTLSVAL1        SORT KEY  VALUE
-         JE    OFFFVAL
-         CHI   R0,TTLSVAL2
-         JE    OFFFVAL
-         CHI   R0,TTLSVAL3
-         JE    OFFFVAL
-         CHI   R0,TTLSVAL4
-         JE    OFFFVAL
-         CHI   R0,TTLSVAL5
-         JNE   OFFFCKDS
-*
-OFFFVAL  AH    R15,SKFLDLEN-SORTKEY(,R1)
-         j     OFFFSRT8
-*
-OFFFCKDS CHI   R0,TTLSTTL1        SORT KEY  VALUE DESCRIPTION ???
-         JE    OFFFDESC
-         CHI   R0,TTLSTTL2
-         JE    OFFFDESC
-         CHI   R0,TTLSTTL3
-         JE    OFFFDESC
-         CHI   R0,TTLSTTL4
-         JE    OFFFDESC
-         CHI   R0,TTLSTTL5
-         JNE   OFFFSRT8
-*
-OFFFDESC CLI   SKDSPOPT+1-SORTKEY(R1),INCLDESC VALUE AS-DATA ???
-         JE    OFFFSRT8                        YES - IGNORE
-*
-         AH    R15,SKDESCLN-SORTKEY(,R1)
-*
-OFFFSRT8 ST    R15,DBLWORK+4           UPDATE CURENT OFFSET
-         STH   R15,VDP1400_AREA_TOTAL_LENGTH
-*
-         AH    R14,0(,R14)             ADVANCE OUTER LOOP
-         lg    r14,0(,r14)
-         LH    R1,VDP1400_RECORD_TYPE  REPORT FOOTER FIELD ???
-         CHI   R1,1400
-         JE    OFFFSRT1                YES - LOOP
-*
-***********************************************************************
-*  ADJUST OFFSETS FOR RIGHT JUSTIFICATION AREAS                       *
-***********************************************************************
-OFFFRGHT L     R14,VWRFADDR
-         ST    R14,DBLWORK+4                         SAVE AREA    BEGIN
-*
-         LH    R0,VDP1400_ROW_NBR                    INIT PREVIOUS ROW#
-         STH   R0,DBLWORK+0
-         L     R1,VDP1400_JUSTIFY                    INIT PREVIOUS JUST
-         STH   R1,DBLWORK+2
-*
-         j     OFFFRHT5
-*
-OFFFRHT1 LH    R0,VDP1400_ROW_NBR                    LOAD  CURRENT ROW#
-         L     R1,VDP1400_JUSTIFY                    LOAD  CURRENT AREA
-         CH    R0,DBLWORK+0                          SAME  ROW ???
-         JNE   OFFFRHTJ
-         CH    R1,DBLWORK+2                          SAME  JUST ??
-         JE    OFFFRHT5                              YES - ADVANCE
-*
-OFFFRHTJ EQU   *
-         STH   R0,DBLWORK+0
-         STH   R1,DBLWORK+2
-*
-         L     R1,DBLWORK+4                          1ST  AREA FIELD
-         ST    R14,DBLWORK+4
-*
-         L     R0,VDP1400_JUSTIFY-VDP1400_REC_LEN(,R15)
-         LH    R15,VDP1400_AREA_TOTAL_LENGTH-VDP1400_REC_LEN(,R15)
-*
-         CHI   R0,TTLRIGHT                           RIGHTMOST AREA ??
-         JNE   OFFFRHT3
-*
-OFFFRHT2 LR    R0,R15
-         S     R0,VDP1400_FOOTER_AREA_OFFSET-VDP1400_REC_LEN(,R1)
-         ST    R0,VDP1400_FOOTER_AREA_OFFSET-VDP1400_REC_LEN(,R1)
-*
-         STH   R15,VDP1400_AREA_TOTAL_LENGTH-VDP1400_REC_LEN(,R1)
-*
-         AH    R1,0(,R1)
-         lg    R1,0(,r1)               load pointer
-         CR    R1,R14
-         JL    OFFFRHT2
-*
-         j     OFFFRHT5
-*
-OFFFRHT3 STH   R15,VDP1400_AREA_TOTAL_LENGTH-VDP1400_REC_LEN(,R1)
-*
-         AH    R1,0(,R1)
-         lg    R1,0(,r1)               load pointer
-         CR    R1,R14
-         JL    OFFFRHT3
-*
-*
-OFFFRHT5 LR    R15,R14                 SAVE  PREVIOUS/LAST AREA FIELD
-*
-         AH    R14,VDP1400_REC_LEN     ADVANCE TO NEXT VDP 1400 RECORD
-         lg    R14,0(,r14)             load pointer
-         LH    R0,VDP1400_RECORD_TYPE  STILL WITHIN 1400'S ???
-         CHI   R0,1400
-         JE    OFFFRHT1                YES - LOOP
-*
-OFFFLAST L     R1,DBLWORK+4            FIRST LAST AREA FIELD
-*
-         LH    R15,VDP1400_AREA_TOTAL_LENGTH-VDP1400_REC_LEN(,R15)
-*
-         LH    R0,DBLWORK+2            LOAD LAST AREA CODE
-         CHI   R0,TTLRIGHT             RIGHTMOST AREA ???
-         JNE   OFFFRHT9                NO  -  NO ADJUSTMENT NEEDED
-*
-OFFFRHT8 LR    R0,R15
-         S     R0,VDP1400_FOOTER_AREA_OFFSET-VDP1400_REC_LEN(,R1)
-         ST    R0,VDP1400_FOOTER_AREA_OFFSET-VDP1400_REC_LEN(,R1)
-*
-         STH   R15,VDP1400_AREA_TOTAL_LENGTH-VDP1400_REC_LEN(,R1)
-*
-         AH    R1,0(,R1)
-         lg    R1,0(,r1)               load pointer
-         CR    R1,R14
-         JL    OFFFRHT8
-*
-         j     OFFFEXIT
-*
-OFFFRHT9 STH   R15,VDP1400_AREA_TOTAL_LENGTH-VDP1400_REC_LEN(,R1)
-*
-         AH    R1,0(,R1)
-         lg    R1,0(,r1)               load pointer
-         CR    R1,R14
-         JL    OFFFRHT9
-*
-OFFFEXIT BR    R9                 RETURN
-*
-         DROP  R8
-         DROP  R14
                      EJECT
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *

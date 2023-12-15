@@ -57,22 +57,22 @@ VWDESTYP DS    HL02               VIEW      DESTINATION    TYPE (O,B,F)
 VWFLAGS  DS   0XL02               PROCESSING  FLAGS
 *
 VWFLAG1  DS    XL01     BYTE 1
-VWPRTDET EQU   X'80'  1--- ----   PRINT      DETAIL      IND
+*VWPRTDET EQU   X'80'  1--- ----   PRINT      DETAIL      IND
 VWZEROSP EQU   X'40'  -1-- ----   ZERO  LINE SUPPRESSION IND
-VWDWNIND EQU   X'20'  --1- ----   DOWNLOAD   FILE        IND
-VWDWNONL EQU   X'10'  ---1 ----   DOWNLOAD   ONLY        IND
-VWNOMIN  EQU   X'08'  ---- 1---   NO MIN/MAX COLUMNS
-VWNOFRST EQU   X'04'  ---- -1--   NO 1ST/LST COLUMNS
-*        EQU   X'02'  ---- --1-
-*        EQU   X'01'  ---- ---1
+*VWDWNIND EQU   X'20'  --1- ----   DOWNLOAD   FILE        IND
+*VWDWNONL EQU   X'10'  ---1 ----   DOWNLOAD   ONLY        IND
+VWMIN    EQU   X'08'  ---- 1---    MIN COLUMNS
+VWMAX    EQU   X'04'  ---- -1--    MAX COLUMNS
+VWBCNT   EQU   X'02'  ---- --1-    COUNT at sort key break
+VWBAVE   EQU   X'01'  ---- ---1    AVERAGE at sort key break
 *
 VWFLAG2  DS    XL01     BYTE 2
-VWPRINT  EQU   X'80'  1--- ----   USE   PRINT  AREA
+*VWPRINT  EQU   X'80'  1--- ----   USE   PRINT  AREA
 VWOUTDCB EQU   X'40'  -1-- ----   USE   OUTPUT DCB
-VWCRPIND EQU   X'20'  --1- ----   USE   CONSOLIDATED  REPORTING
+*VWCRPIND EQU   X'20'  --1- ----   USE   CONSOLIDATED  REPORTING
 VWBLDCSV EQU   X'10'  ---1 ----   BUILD CSV FORMATTED OUTPUT
-VWEXEC   EQU   X'08'  ---- 1---   USE   EXEC   INFO   OUTPUT ROUTINE
-VWPVIT   EQU   X'04'  ---- -1--   USE   PIVOT  TABLE  OUTPUT ROUTINE
+*VWEXEC   EQU   X'08'  ---- 1---   USE   EXEC   INFO   OUTPUT ROUTINE
+*VWPVIT   EQU   X'04'  ---- -1--   USE   PIVOT  TABLE  OUTPUT ROUTINE
 VWNODD   EQU   X'02'  ---- --1-   RDJFCB FAILED: NO OUTPUT DD
 VWFXWDTH EQU   X'01'  ---- ---1   Use Fix Width Cols 4 Delimited Out
 *
@@ -528,7 +528,7 @@ ZERODIV  DS    CL1                ZERO    DIVIDE ABEND       ("N", "Y")
          DS    CL1                Spare
 EXTKEYL  DS    CL3                EXTRACT RECORD SORT KEY LENGTH
 VDPTBLMX DS    CL6                MISC    VDP  RECORD TABLE MAXIMUM
-XIOPTCD  DS    CL1                EXECUTIVE INFORMATION OPTION CODE
+XIOPTCD  DS    CL1  obsolete      EXECUTIVE INFORMATION OPTION CODE
 ASCII    DS    CL1                OUTPUT ASCII DRILLDOWN ("A","E")
 MARGMODE DS    CL1                MARGINAL OR HISTORY MODE ("M","H")
 FIXWDDEL DS    CL1                Fixed Width with Delimiters("N","Y")
@@ -593,7 +593,7 @@ DESCEND  EQU   02                       SORT       DESCENDING
 *
 SUMMARY  EQU   01                       SUMMARY    VIEW
 DETAIL   EQU   02                       DETAIL     VIEW
-MERGESUM EQU   03                       MERGE-SUMMARY     VIEW
+*MERGESUM EQU   03    obsolete           MERGE-SUMMARY     VIEW
 COPY     EQU   04                       COPY       VIEW
 EXTONLY  EQU   05                       EXTRACT    ONLY   VIEW
 *
@@ -630,6 +630,8 @@ FIRST    EQU   05  (B)                  FIRST      COLUMN VALUE (BEG )
 LAST     EQU   06  (E)                  LAST       COLUMN VALUE (END )
 DETMAX   EQU   10  (X)                  DETAIL LEVEL  MAXIMUM   VALUE
 DETMIN   EQU   11  (M)                  DETAIL LEVEL  MINIMUM   VALUE
+BCOUNT   EQU   12                       Record Count at break
+BAVERAGE EQU   13                       Average Col value (break level)
 *
 *  COLUMN CALCULATION OPTIONS ("CDCALOPT")
 DETCALC  EQU   07  (D)                  CALCULATIONS  AT DETAIL LEVEL
@@ -652,39 +654,6 @@ CSV      EQU   07                       COMMA SEPARATED VARIABLES
 PVITTBL  EQU   08                       EXCEL PIVOT     TABLE
 XML      EQU   09                       XML
 *
-*  TITLE AREA JUSTIFICATION CODES
-TTLLEFT  EQU   01                       LEFT   AREA
-TTLCENTR EQU   02                       CENTER AREA
-TTLRIGHT EQU   03                       RIGHT  AREA
-*
-*  TITLE AREA KEYWORD CODES
-TTLDATE  EQU   001                      PROCESS DATE
-TTLTIME  EQU   002                      PROCESS TIME
-TTLPAGE  EQU   003                      PAGE   NUMBER
-TTLVIEW  EQU   004                      VIEW   ID
-TTLTEXT  EQU   005                      TEXT
-TTLCONAM EQU   006                      COMPANY NAME
-TTLVWNAM EQU   007                      VIEW    NAME
-TTLOWNER EQU   008                      VIEW OWNER USER ID
-TTLSLBL1 EQU   011                      SORT KEY 1 LABEL
-TTLSVAL1 EQU   012                      SORT KEY 1 VALUE
-TTLSTTL1 EQU   013                      SORT KEY 1 TITLE
-TTLSLBL2 EQU   021                      SORT KEY 2 LABEL
-TTLSVAL2 EQU   022                      SORT KEY 2 VALUE
-TTLSTTL2 EQU   023                      SORT KEY 2 TITLE
-TTLSLBL3 EQU   031                      SORT KEY 3 LABEL
-TTLSVAL3 EQU   032                      SORT KEY 3 VALUE
-TTLSTTL3 EQU   033                      SORT KEY 3 TITLE
-TTLSLBL4 EQU   041                      SORT KEY 4 LABEL
-TTLSVAL4 EQU   042                      SORT KEY 4 VALUE
-TTLSTTL4 EQU   043                      SORT KEY 4 TITLE
-TTLSLBL5 EQU   051                      SORT KEY 5 LABEL
-TTLSVAL5 EQU   052                      SORT KEY 5 VALUE
-TTLSTTL5 EQU   053                      SORT KEY 5 TITLE
-TTLRUN#  EQU   501                      RUN NUMBER
-TTLRDATE EQU   502                      RUN DATE
-TTLFDATE EQU   503                      FISCAL DATE
-*
 ***********************************************************************
 * RECORD FORMAT TYPES (RECFM)                                         *
 ***********************************************************************
@@ -702,21 +671,6 @@ DSORGPS  EQU   01                 PHYSICAL SEQUENTIAL
 DSORGDA  EQU   02                 DIRECT ACCESS
 DSORGVS  EQU   03                 VSAM
 DSORGPO  EQU   04                 PARTITIONED
-*
-***********************************************************************
-*  FIELD DELIMITERS        ("VWFLDDEL")
-***********************************************************************
-COMMADEL EQU   01
-PIPEDEL  EQU   02
-TABDEL   EQU   03
-CRDEL    EQU   04
-*
-***********************************************************************
-*  STRING DELIMITERS
-***********************************************************************
-NOSTRDEL EQU   00       NO STRING DELIMITER
-SQSTRDEL EQU   01       SINGLE QUOTE
-DQSTRDEL EQU   02       DOUBLE QUOTE
 *
 ***********************************************************************
 * SAVE SORT KEY AREA LENGTH                                           *

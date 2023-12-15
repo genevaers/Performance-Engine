@@ -778,15 +778,14 @@ EXTSUMF  DS    0H
          LTR   R15,R1             ANY   SORT KEYS  ???
          JNP   EXTNOBRK           NO  - CONTINUE   ACCUMULATION
 *
-         L     R14,VWLOWSKY       LOAD  SORT KEY   COUNTER   ADDRESS
-         AP    SKCOUNT-SORTKEY(L'SKCOUNT,R14),P001 INCREMENT ROW COUNT
-*
          LA    R0,EXSORTKY        LOAD  ADDRESS OF CURRENT  SORT KEY
          L     R14,SVSORTKY       LOAD  ADDRESS OF PREVIOUS SORT KEY
          CLCL  R0,R14             SORT  KEY  BREAK ???
          JNE   EXTSUMFB           YES - OUTPUT  SUMMARY REC
 *
          L     R14,VWLOWSKY       LOAD  SORT KEY   COUNTER   ADDRESS
+         AP    SKCOUNT-SORTKEY(L'SKCOUNT,R14),P001 INCREMENT ROW COUNT
+*
          CP    SKCOUNT-SORTKEY(L'SKCOUNT,R14),P001
          JNE   EXTNOBRK           NO  - ACCUMULATE SUBTOTALS
          J     EXTSUMFF           YES - PERFORM    FIRST TIME  LOGIC
@@ -801,7 +800,7 @@ EXTSUMFB DS    0H
          LHI   R15,1              INDICATE AT LOWEST BREAK  LEVEL
          STH   R15,SVBRKCNT
 *         
-         BRAS  R10,COMFILE        WRITE SUMMARY FILE RECORD
+         BRAS  R10,SUMFILE        WRITE SUMMARY FILE RECORD
 *
 ***********************************************************************
 *  NORMALIZE FIRST RECORD AFTER SUMMARY FILE SORT KEY BREAK           *
@@ -825,7 +824,6 @@ EXTSUMFF L     R7,RECADDR         RESTORE POINTER TO CURRENT RECORD
          ZAP   SKCOUNT-SORTKEY(L'SKCOUNT,R14),P001
 *
          J     ZEROCBRK
-*
 ***********************************************************************
 *  CONTINUE EXTRACT RECORD PROCESSING                                 *
 ***********************************************************************
@@ -842,36 +840,12 @@ EXTNOBRK L     R1,EXTCOLA         LOAD ADDRESS OF CORRECT COLUMN BASE
          BRAS  R9,COPY_CT
 *         
 ZEROCBRK DS    0H
-         XC    SVBRKCNT,SVBRKCNT  ZERO CURRENT BREAK LEVEL
-* VWSETLEN indicates if there are any calculations
-         LH    R15,VWSETLEN       SAVE PRE-CALCULATION RESULTS
-         LTR   R15,R15
-         JNP   CHKDET
-*
-         j     around3
-         L     R1,CALCBASE
-         L     R14,EXTPCALC
-         LA    R15,255(,R15)      ROUND  UP TO 256 MULTIPLE
-         LR    R0,R15             LENGTH OF RECORD TO  MOVE
-         SRL   R0,8
-         J     CHKDCLCE
-CHKDCLCL MVC   0(256,R14),0(R1)
-         LA    R1,256(,R1)
-         LA    R14,256(,R14)
-CHKDCLCE BRCT  R0,CHKDCLCL
-         EX    R15,MVCR14R1
-around3 equ  *
-*
-CHKDET   EQU   *
-*         CLI   VWSUMTYP+1,DETAIL  DETAIL  REPORT ???
-*         JE    DETPRNT            YES - PRINT DATA
-*
 ***********************************************************************
 *  SUMMARY REPORT:  ADD DETAIL COLUMN VALUES TO SUMMARY ACCUMULATORS  *
 ***********************************************************************
-         BRAS  R10,CALCCOLM       PERFORM DETAIL COLUMN CALCULATIONS
+         XC    SVBRKCNT,SVBRKCNT  ZERO CURRENT BREAK LEVEL
+         BRAS  R10,CALCCOLM       PERFORM ANY DETAIL COLUMN CALC
 *
-*CHKDET01 EQU   *
          BRAS  R10,SUM            ACCUMULATE  SUM
 *
 EXTR_END DS    0H
@@ -887,7 +861,6 @@ DETPDL   DC    CL2'DL'
 code     loctr
 *
          DROP  R7
-*
 ***********************************************************************
 *  COPY EXTRACT RECORD "CT" COLUMNS INTO ARRAY USING COL# AS SUBSCRIPT*
 *   R1 -> Accumulator array
@@ -926,16 +899,12 @@ COPY_CT  DS    0H
 *
          BR    R9
          DROP  R6,R7
-*********************************************************
-
-
 *
 * error message handling
 *
 RTNERROR DS    0H
          C     R14,=A(MSG#499)    Recursive error ?
          JE    RTNERRORX
-*
 *************************************
 *  CHECK FOR MESSAGE NUMBER ROW ABEND
 *************************************
@@ -1102,20 +1071,6 @@ DETFILE  ST    R10,SAVER10        SAVE  RETURN ADDRESS (R10 IS REUSED)
          LTR   R15,R15
          JNP   DETFMSTR
 *
-         j     around1 
-         L     R1,CALCBASE
-         L     R14,EXTPCALC
-         LA    R15,255(,R15)      ROUND  UP TO 256 MULTIPLE
-         LR    R0,R15             LENGTH OF RECORD TO  MOVE
-         SRL   R0,8
-         J     DETFCLCE
-DETFCLCL MVC   0(256,R14),0(R1)
-         LA    R1,256(,R1)
-         LA    R14,256(,R14)
-DETFCLCE BRCT  R0,DETFCLCL
-         EX    R15,MVCR14R1
-around1  equ   *         
-*
 DETFMSTR equ  *
          BRAS  R10,CALCCOLM       PERFORM     COLUMN   CALCULATIONS
 *
@@ -1128,40 +1083,23 @@ DETFMSTR equ  *
                      EJECT
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
-*        C O M M O N   F I L E   O U T P U T   R O U T I N E          *
+*        SUMMARY output R O U T I N E                                 *
 *                                                                     *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *
          USING EXTREC,R7
          USING VIEWREC,R8
 *
-COMFILE  ST    R10,SAVER10        SAVE  RETURN ADDRESS (R10 IS REUSED)
+SUMFILE  ST    R10,SAVER10        SAVE  RETURN ADDRESS (R10 IS REUSED)
 *
-         LH    R15,VWSETLEN       SAVE PRE-CALCULATION RESULTS
-         LTR   R15,R15
-         JNP   COMFCALC
-*
-         j     around2
-         L     R1,CALCBASE
-         L     R14,EXTPCALC
-         LA    R15,255(,R15)      ROUND  UP TO 256 MULTIPLE
-         LR    R0,R15             LENGTH OF RECORD TO  MOVE
-         SRL   R0,8
-         J     COMFCLCE
-COMFCLCL MVC   0(256,R14),0(R1)
-         LA    R1,256(,R1)
-         LA    R14,256(,R14)
-COMFCLCE BRCT  R0,COMFCLCL
-         EX    R15,MVCR14R1
-around2  equ  *
-*
-COMFCALC BRAS  R10,CALCCOLM       PERFORM COLUMN CALCULATIONS (group)
+         BRAS  R10,CALCCOLM       PERFORM COLUMN CALCULATIONS (group)
 *
          BRAS  R10,EXCPCHK        CHECK  FOR   EXCEPTIONS
          J     COMFSKIP           +0 =  SKIP
-*
 ***********************************************************************
-*  GET BUFFER FOR OUTPUT FILE RECORD                                  *
+* The following is common code for DETFILE and SUMFILE
+***********************************************************************
+*  GET BUFFER FOR OUTPUT FILE RECORD - AND WRITE ANY PREVIOUS RECORD  *
 ***********************************************************************
 COMFKEEP DS    0H                 +4 =  PROCESS RECORD TO OUTPUT BLOCK
          L     R1,VWDCBADR        LOAD  DCB    ADDRESS
@@ -1173,10 +1111,11 @@ COMFKEEP DS    0H                 +4 =  PROCESS RECORD TO OUTPUT BLOCK
          TM    DCBRECFM-IHADCB(R1),X'40'  NO - BYPASS  RDW    BUILD
          JNO   COMFBLD
          AHI   R2,4               SKIP RDW
-*
-*** deals with building and outputing the CSV column headers ***
-*
+*         
 COMFBLD  DS    0H
+*
+*** build and write the CSV column headers if specified ***
+*
          TM    VWFLAG2,VWBLDCSV   CSV format output ???
          JNO   COMFBLD1           NO  - bypass this
          CP    VWOUTCNT,P000      First record
@@ -1218,6 +1157,7 @@ COMCSVLP DS    0H
          XC    2(2,R9),2(R9)
 *
 COMFCNT0 DS    0H
+*   Write the header record, get next buffer pointer 
          L     R1,VWDCBADR        LOAD  DCB    ADDRESS
          L     R15,DATAPUTA       LOAD  SUBROUTINE     ADDRESS (31-BIT)
          BASR  R14,R15            GET   FIXED  LENGTH  BUFFER
@@ -1231,10 +1171,10 @@ COMCSVXT EQU   *
 *
 ****                  end CSV stuff             ***
 *
-* deals with building and outputting regular column data
+* build and write regular column data
 *
 COMFBLD1 DS    0H
-         XC    CURSRTKY,CURSRTKY  INDICATE  AT LOWEST  DETAIL LEVEL
+*     
          BRAS  R9,COLBUILD        BUILD COLUMN OUTPUT
 *
          L     R1,VWDCBADR            VARIABLE LENGTH  ???
@@ -1321,30 +1261,12 @@ COMFSKIP LH    R0,VWCLCCOL        LOAD   CALCULATED  COLUMN COUNT
 COMFZERO GVBSTX   fp8,0(,r3)                RESET   TOTAL
          AHI   R3,AccumDFPl              ADVANCE TO  NEXT  COLUMN
          BRCT  R0,COMFZERO        LOOP   THROUGH ALL COLUMNS
-                     SPACE 3
-         CLI   VWSUMTYP+1,DETAIL  DETAIL FILE  ???
-         JE    COMFEXIT           YES -  EXIT  (NO SUBTOTALS)
 *
-         LH    R0,VWBRKCNT        LOAD  SORT BREAK COUNT
-         CHI   R0,2               AT   LEAST TWO   SORT KEYS  ???
-         JL    COMFEXIT           NO  - SKIP CHECK FOR  BREAK
+COMFEXIT DS    0H
 *
-         L     R6,VWSKADDR        LOAD ADDRESS OF SORT KEY DEFINITIONS
-         USING SORTKEY,R6
-         LA    R0,EXSORTKY        INITIALIZE SORT KEY  POSITIONS
-         L     R14,SVSORTKY
-         LH    R15,SKFLDLEN       LOAD  SORT KEY  LENGTH
-         LR    R1,R15             DECREMENT  FOR "EX"
-         CLCL  R0,R14             CHECK  FOR CONTROL BREAK ???
-         JE    COMFEXIT           BRANCH  IF SAME
+* Save new sort key
 *
-         LH    R0,VWCLCCOL        LOAD  CALCULATED  COLUMN COUNT
-         L     R3,EXTPREVA        LOAD  BASE    ADDRESS
-COMFRSET GVBSTX   fp8,0(,r3)                RESET   TOTAL
-         AHI   R3,AccumDFPl             ADVANCE TO  NEXT   COLUMN
-         BRCT  R0,COMFRSET        LOOP  THROUGH ALL COLUMNS
-                     SPACE 3
-COMFEXIT L     R7,RECADDR         LOAD  CURRENT RECORD'S ADDRESS
+         L     R7,RECADDR         LOAD  CURRENT RECORD'S ADDRESS
 *
          LA    R1,EXSORTKY        SAVE NEW SORT KEY
          L     R14,SVSORTKY
@@ -1362,7 +1284,7 @@ COMFKEYE BRCT  R0,COMFKEYL
 COMFRTRN L     R10,SAVER10
          BR    R10                RETURN
 *
-         DROP  R6
+*         DROP  R6
          DROP  R7
          DROP  R8
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -1387,13 +1309,14 @@ COLBUILD ST    R2,OUTPCURR        SAVE OUTPUT  AREA ADDRESS
          L     R6,VWCOLADR        LOAD ADDRESS OF COLUMN SPECS
          USING COLDEFN,R6
 *
-COLBLOOP LH    R14,SVBRKCNT       DETAIL RECORD ???
-         LTR   R14,R14
-         JNP   COLBCHKS           YES -  IGNORE SUBTOTAL CALC OPTIONS
+COLBLOOP DS    0H
+*         LH    R14,SVBRKCNT       DETAIL RECORD ???
+*         LTR   R14,R14
+*         JNP   COLBCHKS           YES -  IGNORE SUBTOTAL CALC OPTIONS
 *
-         BRAS  R10,CALCCOLM       PERFORM COLUMN CALCULATIONS IF  ANY
+*         BRAS  R10,CALCCOLM       PERFORM COLUMN CALCULATIONS IF  ANY
 *
-COLBCHKS EQU   * 
+*COLBCHKS EQU   * 
 *
          CLI   CDPRTIND,C'Y'      PRINT   THIS  COLUMN ???
          JE    COLBPRNT           YES -   CONTINUE
@@ -1406,36 +1329,6 @@ COLBNULL LH    R0,NOTNULL         DECREMENT NOT NULL COUNT
 COLBPRNT LA    R0,CDDETMSK        ASSUME  DETAIL  MASK
          ST    R0,SAMSKADR
 *
-         L     R14,CURSRTKY       LOWEST  BREAK   LEVEL(DETAIL OR FILE)
-         LTR   R14,R14
-         JNP   COLBCSV            YES -   IGNORE  SUBTOTAL OPTION
-*
-         CLI   VWSUMTYP+1,DETAIL  DETAIL  REQUEST ???
-         JE    COLBSUBC           YES -   BRANCH (MUST  BE SUMMARY LVL)
-         C     R14,VWLOWSKY       LOWEST  BREAK   LEVEL ???
-         JNL   COLBCSV            YES -   BYPASS SWITCH TO SUBTOTAL VAL
-*
-***********************************************************************
-*  AT SUMMARY LEVELS ABOVE LOWEST PRINT LEVEL ONLY PRINT SUBTOTALS    *
-***********************************************************************
-COLBSUBC TM    VWFLAG2,VWPVIT     PIVOT TABLE ???
-         JNO   COLBSUBT
-*
-         CLI   CDEXAREA+1,DTAREA  SOURCE FROM "DT" AREA ???
-         JNE   COLBSUBT           NO  -  CHECK SUBTOTAL OPTION
-*
-         L     R14,PARMDADR       CHECK PARAMETER  OPTION
-         CLI   DISPXIDT-PARMDATA(R14),C'Y' DISPLAY DT AREA VALUES ???
-         JE    COLBCSV            YES - INCLUDE COLUMN
-*
-COLBSUBT CLI   CDSUBOPT+1,NOSUBTOT  SUBTOTAL OPTION=NONE ???
-         JNE   COLBCSV            NO  -    PROCESS  THIS SUBTOTAL
-*
-         LH    R0,NOTNULL         DECREMENT NOT NULL COUNT
-         BCTR  R0,0
-         STH   R0,NOTNULL
-         J     COLBNEXT           ADVANCE TO NEXT COLUMN SPECIFICATION
-                     EJECT
 ***********************************************************************
 *  BUILD COMMA DELIMITED OUTPUT STRING IF OUTPUT DEST TYPE = "CSV"    *
 ***********************************************************************
@@ -1443,12 +1336,6 @@ COLBCSV  TM    VWFLAG2,VWBLDCSV   COMMA SEPARATED  ???
          JZ    COLBGAP            NO  - PROCESS INTERCOLUMN GAP
 *
          L     R14,OUTPCURR       LOAD  CURRENT OUTPUT POSITION
-*
-***********************************************************************
-*  INSERT XML COLUMN TAG IF SPECIFIED                                 *
-***********************************************************************
-*        CLI   VWDESTYP+1,XML
-*        BRNE
 *
 ***********************************************************************
 *  INSERT COMMA IF NOT FIRST COLUMN                                   *
@@ -1649,10 +1536,9 @@ COLPmvEND BRCT  R0,COLPmvLP
 ***********************************************************************
 *  FORMAT CALCULATED COLUMNS ("CT")                                   *
 ***********************************************************************
-COLBCTAR MVI   SAVALFMT+1,FM_float SET    decimal float
-*
+COLBCTAR DS    0H
+         MVI   SAVALFMT+1,FM_float SET    decimal float
          MVHHI SAVALDEC,0         SET    NO. OF  DECIMALS
-*
          MVHHI SAVALRND,0         SET    ROUNDING FACTOR
 *
          LA    R0,ACCUMWRK        SET    VALUE   ADDRESS
@@ -1660,6 +1546,57 @@ COLBCTAR MVI   SAVALFMT+1,FM_float SET    decimal float
          STG   R0,SAVALADR
          LHI   R0,AccumDFPl       SET    VALUE   LENGTH (BYTES)
          STH   R0,SAVALLEN
+*
+         LR    R1,R3              ASSUME CURRENT SET OF ACCUMULATORS
+*
+* For COUNT and AVERAGE funcs we need to get the sort key break count
+*
+         CLI   CDSUBOPT+1,BCOUNT
+         JE    COLBCOUNT
+         CLI   CDSUBOPT+1,BAVERAGE
+         JNE   COLBCT10
+COLBCOUNT DS   0H
+         STM   r2,r3,SAVEMR66     Save registers just for dfp stuff
+* Get count from the lowest sort key area
+         L     R10,VWLOWSKY       LOAD  SORT KEY   COUNTER   ADDRESS
+         USING SORTKEY,R10
+*         eextr r12,fp9            get the biased exponent set in MRI
+         S     R1,SUBTOTAD        COMPUTE SET    OFFSET FROM BEG
+         A     R1,EXTCNTA 
+*         AH    R1,CDCLCOFF         ADD  CALC COLUMN OFFSET  TO BASE        
+*
+         ZAP   0(AccumDFPl,R1),SKCOUNT MOVE packed count into accum 
+         lmg r2,r3,0(r1)       get the packed value into a gpr pair
+         cxstr fp1,r2          convert to dfp
+*         iextr fp1,fp1,r12     insert the biased exponent
+         GVBSTX fp1,0(,r1)       and save back in accumlator
+         DROP  R10
+*
+         LM    r2,r3,SAVEMR66     Restore registers 
+*
+         CLI   CDSUBOPT+1,BCOUNT         
+         JE    COLBCOF2 
+*         
+* Calculate average value for this sort break 
+*
+COLBAVGE DS    0H
+*
+* R1 -> count /fp1 contains count
+* R3 -> subtotal array of accumulators
+         AH    R3,CDCLCOFF           ADD  CALC COLUMN OFFSET  TO BASE
+         GVBLDX  fp0,0(,r3)          load the break total
+*         GVBLDX  fp1,0(,r4)           the count is in fp1
+         dxtr  fp0,fp0,fp1             divide them
+*
+         LR    R1,R3                 
+         S     R1,SUBTOTAD            
+         A     R1,EXTAVEA            Address break average array
+*                                      at the correct col offset         
+         GVBSTX   fp0,0(,r1)           save result 
+         J     COLBCOF2        
+*        
+*
+COLBCT10 DS    0h
 *
 ***********************************************************************
 *  SELECT SET OF ACCUMULATORS                                         *
@@ -1678,46 +1615,11 @@ COLBMIN  CLI   CDSUBOPT+1,DETMIN  DETAILED MIN   ???
          A     R1,EXTMINA
          J     COLBCOFF
 *
-COLBDET2 L     R0,CURSRTKY        AT  A  BREAK   LEVEL ???
-         LTR   R0,R0
-         JNP   COLBCOFF           NO  -  IGNORE  SUBTOTAL  OPTION
-*
-         CLI   VWSUMTYP+1,DETAIL  DETAIL VIEW   ???
-         JE    COLBCHKF           YES - SKIP LOWEST SUMMARY LEVEL CHECK
-*
-         CLI   VWDESTYP+1,FILEFMT DATA  FILE OUTPUT ???
-         JE    COLBCHKF           YES - SKIP LOWEST SUMMARY LEVEL CHECK
-*
-         C     R0,VWLOWSKY        LOWEST SUMMARY VIEW BREAK LEVEL ???
-         JNL   COLBCOFF           YES -
-*
-COLBCHKF TM    VWFLAG1,VWNOMIN+VWNOFRST  SPECIAL FUNCTIONS  ???
-         JO    COLBCOFF           NO  -  BYPASS
-*
-         CLI   CDSUBOPT+1,FIRST   FIRST  VALUE  (BEGINNING) ???
-         JNE   COLBCHKL
-         S     R1,SUBTOTAD        COMPUTE SET    OFFSET FROM BEG
-         A     R1,EXTFRSTA
-         J     COLBCOFF
-*
-COLBCHKL CLI   CDSUBOPT+1,LAST    LAST   VALUE  (ENDING)    ???
-         JNE   COLBCHKM
-         L     R1,EXTLASTA
-         J     COLBCOFF
-*
-COLBCHKM CLI   CDSUBOPT+1,MAX     MAXIMUM VALUE (HIGHEST)   ???
-         JNE   COLBCHKN
-         S     R1,SUBTOTAD        COMPUTE SET    OFFSET FROM BEG
-         A     R1,EXTMAXA
-         J     COLBCOFF
-*
-COLBCHKN CLI   CDSUBOPT+1,MIN     MINIMUM VALUE (LOWEST)    ???
-         JNE   COLBCOFF
-         S     R1,SUBTOTAD
-         A     R1,EXTMINA
-         J     COLBCOFF
-*
-COLBCOFF AH    R1,CDCLCOFF           ADD  CALC COLUMN OFFSET  TO BASE
+COLBDET2 EQU   *
+
+COLBCOFF DS    0H
+         AH    R1,CDCLCOFF           ADD  CALC COLUMN OFFSET  TO BASE
+COLBCOF2 DS    0H         
          MVC   ACCUMWRK(AccumDFPl),0(R1)  COPY VALUE
          GVBLDX  fp0,0(,r1)         get the dfp value
 *
@@ -1932,42 +1834,22 @@ CALCCOL  L     R2,0(,R6)          LOAD  COLUMN DEFINITION ADDRESS
          L     R5,CDCALCTB        LOAD  ADDRESS OF CALCULATION TABLE
          USING CALCTBL,R5
 *
+         CLI   VWSUMTYP+1,DETAIL  DETAIL REQUEST ???
+         JE    CALCLOOP           YES -  PERFORM CALCULATIONS
+* Is this a calculation at group/break level?
+*    and is this called at group/break level time ?
+         CLI   CDCALOPT+1,BRKCALC CHECK IF Break LEVEL CALCULATION?
+         JNE   CALCDETL           No - detail level calc
          CLC   SVBRKCNT,H000      DETAIL EXTRACT  RECORD LEVEL ???
-         JNE   CALCCHKS           NO  -  CHECK  SUBTOTAL OPTIONS
-         CLI   VWSUMTYP+1,DETAIL  DETAIL REQUEST ???
-         JE    CALCLOOP           YES -  PERFORM CALCULATIONS
-         CLI   CDCALOPT+1,DETCALC CHECK  IF DETAIL LEVEL CALCULATIONS
-         JE    CALCLOOP           YES -  PERFORM CALCULATIONS
-         CLI   CDCALOPT+1,RECALC
-         JE    CALCLOOP
-*
-CALCCHKS DS    0H
-         CLI   VWSUMTYP+1,DETAIL  DETAIL REQUEST ???
-         JE    CALCCHKR           YES -  CHECK   FOR  REPEAT CALC
-*
-         L     R9,CURSRTKY        FIRST  BREAK  LEVEL (SUMMARY REQUEST)
-         LTR   R9,R9
-         JNP   CALCCHKD
-         C     R9,VWLOWSKY
-         JNE   CALCCHKR           NO  -  CHECK  FOR REPEAT  CALC
-*
-CALCCHKD DS    0H
-         CLI   CDCALOPT+1,DETCALC HAVE CALCULATIONS ALREADY BEEN DONE
-         JE    CALCADV            YES - DON'T  NEED TO REDO
-         CLI   CDCALOPT+1,RECALC  HAVE CALCULATIONS ALREADY BEEN DONE
-         JE    CALCADV            YES - DON'T  NEED TO REDO
-         J     CALCRSET           NO  - DO THEM FOR FIRST  TIME
-*
-CALCCHKR DS    0H
-         CLI   CDCALOPT+1,BRKCALC CHECK  IF REPEAT CALCULATIONS ???
-         JE    CALCRSET           YES -  REPEAT    CALCULATIONS
-         CLI   CDCALOPT+1,RECALC
+         JNE   CALCLOOP           NO - go do calculation 
+CALCDETL DS    0H
+* This is a detail level calculation
+*   so is this a detail level record ?
+         CLC   SVBRKCNT,H000      DETAIL EXTRACT RECORD LEVEL ???
          JNE   CALCADV            NO  -  BYPASS    CALCULATIONS
+*        JE    CALCLOOP           Yes - go do calculation          
 *
          DROP  R2
-*
-CALCRSET L     R3,CALCTGTA        LOAD TARGET ADDRESS
-         GVBSTX   fp8,0(,r3)                RESET   TOTAL
 *
 CALCLOOP LM    R2,R4,calcfunc     LOAD CALCULATION   ADDRESSES
          LTR   R2,R2              REACHED   MARKER   ???
@@ -2100,7 +1982,7 @@ RPBLANK  DS   0CL06               REPORT   BLANK LINE
 *
 GVBMRSIA DC    V(GVBMRSI)         ADDRESS OF "GVBMRSI"
 GVBDL96A DC    V(GVBDL96)         ADDRESS OF "GVBDL96"
-GVBTP90A DC    V(GVBTP90)         ADDRESS OF "GVBTP90"
+*GVBTP90A DC    V(GVBTP90)         ADDRESS OF "GVBTP90"
 *
 MASKNEG  DC    XL3'402160'
 MASKPARN DC    XL3'40214D'
@@ -2159,35 +2041,6 @@ CONDTBL  DS   0CL06               EXCEPTION CONDITION TABLE
          DC    CL2'NE',XL4'00000072'
 CONDCNT  EQU   ((*-CONDTBL)/(L'CONDTBL))
 *
-DISPTBL  DS   0CL17               DISPOSITION  TABLE
-         DC    CL3'SHR',CL7'KEEP   ',CL7'KEEP   '
-         DC    CL3'NEW',CL7'CATLG  ',CL7'DELETE '
-         DC    CL3'NEW',CL7'CATLG  ',CL7'CATLG  '
-         DC    CL3'OLD',CL7'DELETE ',CL7'DELETE '
-DISPCNT  EQU   ((*-DISPTBL)/(L'DISPTBL))
-*
-RECFMTBL DS   0CL2                RECORD FORMAT
-         DC    CL2'  '            0 - UNDEFINED
-         DC    CL2'FB'            1 - FB
-         DC    CL2'VB'            2 - VB
-         DC    CL2'FA'            3 - FBA
-         DC    CL2'VA'            4 - VBA
-RECFMCNT EQU   ((*-RECFMTBL)/(L'RECFMTBL))
-*
-DSORGTBL DS   0CL4                DATASET  ORGANIZATION
-         DC    CL4'PS  '
-         DC    CL4'PO  '
-         DC    CL4'VSAM'
-         DC    CL4'DA  '
-DSORGCNT EQU   ((*-DSORGTBL)/(L'DSORGTBL))
-*
-VSAMTBL  DS   0CL4                VSAM  ORGANIZATION
-         DC    CL4'KSDS'
-         DC    CL4'ESDS'
-         DC    CL4'RRDS'
-         DC    CL4'LSDS'
-VSAMCNT  EQU   ((*-VSAMTBL)/(L'VSAMTBL))
-*
 ***********************************************************************
 *  DATA FORMAT                                                        *
 ***********************************************************************
@@ -2209,30 +2062,19 @@ code     loctr
                      EJECT
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
-*        C H E C K   F O R   L O W E S T   P R I N T   L E V E L      *
+*        Initialise Max and Min values                                *
 *                                                                     *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *
          USING VIEWREC,R8
 *
-FRSTSET  TM    VWFLAG1,VWNOMIN+VWNOFRST
-         JO    FRSTEXIT
+FRSTSET  TM    VWFLAG1,VWMIN+VWMAX   +VWBCNT+VWBAVE
+*                                    Any special acc in this View?
+         JZ    FRSTEXIT
 *
          LH    R15,VWSETLEN
          LTR   R15,R15
          JNP   FRSTEXIT
-*
-         L     R1,CALCBASE        COPY  FIRST ROW'S VALUES TO FRST AREA
-         L     R14,EXTFRSTA
-         LA    R15,255(,R15)      ROUND  UP TO 256 MULTIPLE
-         LR    R0,R15             LENGTH OF RECORD TO  MOVE
-         SRL   R0,8
-         J     FRSTMVC2
-FRSTMVC1 MVC   0(256,R14),0(R1)
-         LA    R1,256(,R1)
-         LA    R14,256(,R14)
-FRSTMVC2 BRCT  R0,FRSTMVC1
-         EX    R15,MVCR14R1
 *
          L     R1,CALCBASE        COPY  FIRST ROW'S VALUES TO MAX  AREA
          L     R14,EXTMAXA
@@ -2273,9 +2115,9 @@ FRSTEXIT BR    R9                       RETURN
          USING EXTREC,R7
          USING VIEWREC,R8
 *
-SUM      LH    R0,VWCLCCOL        LOAD  NO. OF CALCULATED  COLUMNS USED
-         LTR   R0,R0              ANY   USED   ???
-         JNP   SUMMERGE           NO  - CHECK  FOR "DT" AREA MERGE
+SUM      LH    R0,VWCLCCOL        LOAD NO. OF CALCULATED  COLUMNS USED
+         LTR   R0,R0              ANY USED ?
+         JNP   SUMEXIT            NO - exit
 *
          L     R9,CLCCOLTB        LOAD  ADDRESS OF CALC COL  DEFN
 *
@@ -2316,8 +2158,8 @@ SUMMOVE  GVBSTX   fp0,0(,r14)                      NO  - MOVE
 SUMSUM   axtr  fp1,fp1,fp0                      ADD  RESULTS TO  TOTALS
          GVBSTX   fp1,0(,r14)                      and save it
 *
-SUMMAX   TM    VWFLAG1,VWNOMIN                  SPECIAL FUNCTIONS ??
-         JO    SUMADV
+SUMMAX   TM    VWFLAG1,VWMIN+VWMAX+VWBCNT+VWBAVE SPECIAL FUNCTIONS ?
+         JZ    SUMADV
 *
 ***********************************************************************
 *  UPDATE MAXIMUM DETAIL LEVEL VALUE                                  *
@@ -2349,42 +2191,6 @@ SUMADV   GVBSTX   fp8,0(,r1)                RESET   TOTAL
 ***********************************************************************
          AHI   R9,4                      ADVANCE DEFN   ADDRESS
          BRCT  R0,SUMADD                 LOOP   THROUGH ALL    COLUMNS
-*
-***********************************************************************
-*  MERGE PRIOR "DT" AREA VALUES INTO CURRENT "DT" AREA                *
-***********************************************************************
-SUMMERGE CLI   VWSUMTYP+1,MERGESUM DATA  AREA MERGE  OPTION ???
-         JNE   SUMEXIT
-*
-         LH    R0,VWCOLCNT
-         L     R6,VWCOLADR
-         USING COLDEFN,R6
-*
-         L     R15,PREVRECA       LOCATE PREVIOUS "DT" AREA
-         LA    R2,EXSORTKY-EXTREC(,R15)
-         AH    R2,EXSORTLN-EXTREC(,R15)
-         AH    R2,EXTITLLN-EXTREC(,R15)
-*
-         LA    R3,EXSORTKY        LOCATE CURRENT  "DT" AREA
-         AH    R3,EXSORTLN
-         AH    R3,EXTITLLN
-*
-SUMMERG2 CLI   CDEXAREA+1,DTAREA
-         JNE   SUMMERG8
-*
-***********************************************************************
-*  KEEP FIRST NON-BLANK "DT" AREA FIELD VALUE IN PREVIOUS RECORD      *
-***********************************************************************
-         LH    R15,CDDATOFF       LOAD  FIELD   OFFSET IN "DT" AREA
-         LA    R1,0(R2,R15)       LOAD  PREVIOUS VALUE ADDRESS
-         LA    R14,0(R3,R15)      LOAD  CURRENT  VALUE ADDRESS
-         LH    R15,CDDATLEN       LOAD  FIELD   LENGTH
-         EX    R15,SUMBLNK        VALUE PRESENT ???
-         JNE   SUMMERG8           YES - DON'T  OVERLAY
-         EX    R15,MVCR14R1       NO  - COPY
-*
-SUMMERG8 AHI   R6,CDENTLEN
-         BRCT  R0,SUMMERG2
 *
 SUMEXIT  BR    R10                RETURN
 *
@@ -2720,7 +2526,7 @@ RPTBREA1 EQU   *
          LHI   R15,1              INDICATE AT LOWEST BREAK LEVEL
          STH   R15,SVBRKCNT
 *
-         BRAS  R10,COMFILE        WRITE SUMMARY FILE RECORD
+         BRAS  R10,SUMFILE        WRITE SUMMARY FILE RECORD
 *
          L     R3,SUBTOTAD        LOAD  BASE SET OF  VALUES ADDRESS
 *         J     RBRKRSET
@@ -2746,14 +2552,6 @@ RBRKRSET EQU   *
          A     R10,EXTMINA
 *
 RBRKZERO LR    R14,R3                  LOAD   GRAND TOTALS BASE ADDRESS
-         AR    R14,R15                 ADD    OFFSET
-         GVBSTX   fp8,0(,r14)               reset   grand totals
-*
-         L     R14,EXTFRSTA            LOAD   FIRST VALUE  BASE ADDRESS
-         AR    R14,R15                 ADD    OFFSET
-         GVBSTX   fp8,0(,r14)               reset   grand totals
-*
-         L     R14,EXTLASTA            LOAD   LAST  VALUE  BASE ADDRESS
          AR    R14,R15                 ADD    OFFSET
          GVBSTX   fp8,0(,r14)               reset   grand totals
 *
@@ -2926,7 +2724,7 @@ rp2      using isrcrept,prntline
 *
          mvc   rp2.isrcddn,TOTAL
          mvc   tempwork(6),extrcnt
-         ap    tempwork(6),mstrcnt    calculate total
+*         ap    tempwork(6),mstrcnt    calculate total
          MVC   rp2.isrcrcnt,PATTERN1
          ED    rp2.isrcrcnt,tempwork
          rptit ,
@@ -3012,13 +2810,13 @@ rp2      using execrept,prntline
          ED    rp2.execcnt,VIEWCNT
          rptit ,
 *
-         mvc   rp2.exectext,exectxt2 Lookups performed
-         ap    LKUPcnt,LKUPfnd
-         ap    LKUPcnt,LKUPnot
-         MVC   rp2.execcnt,PATTERN1
-         ED    rp2.execcnt,LKUPcnt
-         rptit ,
-         rptit msg=vb_blankl      blank line
+*         mvc   rp2.exectext,exectxt2 Lookups performed
+*         ap    LKUPcnt,LKUPfnd
+*         ap    LKUPcnt,LKUPnot
+*         MVC   rp2.execcnt,PATTERN1
+*         ED    rp2.execcnt,LKUPcnt
+*         rptit ,
+*         rptit msg=vb_blankl      blank line
 *
          lhi   r0,execrept_len+4
          sth   r0,prntrdwh           Set length in VB record
@@ -3149,29 +2947,6 @@ CLOSFILE ds    0h
          MVC   RENTPARM(STATCLOSL),0(R6)
 *
 ***********************************************************************
-*  CLOSE TITLE LOOK-UP FILES                                          *
-***********************************************************************
-         L     R6,LBCHAIN+(LBNEXT-LKUPBUFR)
-         USING LKUPBUFR,R6
-         J     CLEND
-*
-CLLOOP   TM    LBFLAGS,LBMEMRES   MEMORY RESIDENT TABLE ???
-         JO    CLNEXT
-*
-         MVC   PADDNAME,LBDDNAME  INITIALIZE DDNAME
-         MVI   PAFTYPE,C'V'       INITIALIZE FILE     TYPE
-         MVC   PAFMODE,I          INITIALIZE FILE     MODE
-         MVC   PAFUNC,CL          INITIALIZE FUNCTION CODE
-*
-         LA    R1,TP90LIST        POINT R1 TO PARAMETER LIST
-         llgf  R15,GVBTP90A       LOAD  ADDRESS OF "GVBTP90"
-         bassm R14,R15            CALL  I/O ROUTINE
-*
-CLNEXT   L     R6,LBNEXT          ADVANCE  TO NEXT BUFFER ON THE CHAIN
-CLEND    LTR   R6,R6              ANY MORE BUFFERS ???
-         JP    CLLOOP             YES - CONTINUE  LOOPING
-                     SPACE 3
-***********************************************************************
 *  CLOSE INPUT EXTRACT FILE                                           *
 ***********************************************************************
          MVI   PRNTLINE,C' '      BLANK OUT   PRINT   LINE
@@ -3217,10 +2992,7 @@ CLOSCTRL L     R2,CTRLDCBA        CLOSE CONTROL  REPORT    FILE
 *        CLOSE SNAPDCB,MODE=31    CLOSE SNAP     DATASET
 *
          BSM   0,R10              RETURN
-         DROP  R6
-         EJECT
-         USING VIEWREC,R8
-                     EJECT
+*
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
 *        C O N V E R S I O N   R O U T I N E S (COLUMN FORMATTING)    *
@@ -3273,6 +3045,7 @@ CLOSCTRL L     R2,CTRLDCBA        CLOSE CONTROL  REPORT    FILE
 *                 so tempwork+4 is often used
 *
          USING COLDEFN,R6
+         USING VIEWREC,R8
 COLBPTOP LH    R14,SAOUTDEC       COMPUTE  DECIMAL SHIFT  LENGTH
          SH    R14,SAVALDEC
          SH    R14,SAVALRND
@@ -4428,6 +4201,8 @@ COLBMLCP L     R1,DL96TGTA               LOAD TARGET  ADDRESS
          LR    R2,R0                     RESTORE   REGISTER
          BR    R10                       RETURN
                      SPACE 3
+         DROP  R8
+*         
 static   loctr
 *
 COLBZAP  ZAP   0(0,R14),tempwork         * * * * E X E C U T E D * * *
