@@ -109,35 +109,111 @@ SQLBUFFR DS    HL2,CL10238        SQL STATEMENT LENGTH, STATEMENT TEXT
 SQLTEXT  DS    CL10238
          ORG
 *
-WKAREA   DSECT
-WKSAVE1  DS    18F
-WKSAVE2  DS    18F
-WKPARM0  DS    XL4                *subtask*
-WKPARM1  DS    XL4                *subtask*
-WKPARM   DS    CL100              *subtask*
-WKPARMX  DS    CL100              *NOT*
-WKRENT   DS    XL128              RE-ENTRANT  PARAMETER  LIST *NOT*
-WKEXUCUR DS    A                  EXU last send to MR95 *last blk*
-WKECBSUB DS    XL4                ECB subtask *subtask*
-WKTCBSUB DS    XL4                TCB subtask *subtask*
-WKPARALL DS    XL2                *subtask*
-         DS    XL2
-WKPLISTA DS    A                  *NOT*
-WKPL6    DS    PL6                *NOT*
-WKDBL1   DS    D                  *subtask*
+*        Adabas dsects
 *
-WKSUBERR DS    F                  Subtask return code *subtask*
-WKTOKNRC DS    A                  NAME/TOKEN  SERVICES RETURN CODE *NO*
-WKTOKNAM DS    XL16               TOKEN NAME
-WKTOKN   DS    XL16               TOKEN
-REENTWK  DS    XL128              RE-ENTRANT PARAMETER   LIST
-SYSDCB   DS    (SYSFILEL)C        SYSIN        "DCB"
-WKREC    DS    Cl80
-WKEXUADR DS    A                  ADDRESS of EXUEXU table after header
-WKECBLST DS    A                  ADDRESS OF ECB LIST TO WAIT ON
-WKEXULEN DS    F                  Length of EXUEXU table including head
-WKECBLEN DS    F                  Length of ECB list
-WKR15RSA DS    F                  Special save area for R15
+         ADACBX DSECT=YES
+*
+         ADABDX TYPE=EQ
+*
+         ADABDX TYPE=FB
+         ADABDX TYPE=RB
+         ADABDX TYPE=SB
+         ADABDX TYPE=VB
+         ADABDX TYPE=IB
+         ADABDX TYPE=MB
+*
+*        Multifetch buffer segment
+*
+MBDSECT  DSECT
+MBRECL   DS    F
+MBRESP   DS    F
+MBISN    DS    F
+MBISNQ   DS    F
+*
+*        Workarea
+*
+WKAREA   DSECT
+         ds    Xl(SAVF4SA_LEN)
+WKSAVSUB DS  18fd                 INTERNAL  SUBROUTINE  REG  SAVE  AREA
+WKSAB    DS  18fd                 Sub savearea
+WKSUBADA DS  18fd                 Savearea for calling ADABAS
+WKREG10  DS    A                  Preserve R10 (return address)
+*
+WKTIMWRK DS   0XL16
+WKDBLWRK DS    D                  TEMPORARY DOUBLEWORD  WORK AREA
+WKDBLWK2 DS    D                  TEMPORARY DOUBLEWORD  WORK AREA
+WKDBLWK3 DS    D                  TEMPORARY DOUBLEWORD  WORK AREA
+*
+WKPRINT  DS    XL131              Print line
+WKTRACE  DS    CL1                Tracing
+         DS   0F
+WKREENT  DS    XL256              Reentrant workarea
+WKDBLWK  DS    XL08               Double work workarea
+*
+WKEOF    DS    CL1
+         DS    XL1
+WKTHRDNO DS    H
+*
+         DS    0F
+WKRECCNT DS    F                  NUMBER OF RECORDS READ
+WKRECBUF DS    F                  NUMBER OF RECORDS IN BUFFER
+WKBUFRET DS    F                  NUMBER OF BUFFERS RETURNED
+WKCALLRL DS    F                  RETURNED RECORD LENGTH
+*
+WKRPTDCB DS    A                  CONTROL   REPORT      "DCB"
+*
+         DS    0F
+OUTDCB   DS    XL(outfilel)    Reentrant DCB and DCBE areas
+*
+WKWTOPRM WTO   TEXT=(R2),MF=L
+WKWTOLEN EQU   *-WKWTOPRM
+*
+*WK_MSG   GVBMSG PREFIX=WMSG,MF=L
+*
+         DS   0A
+WKTXTBUF DS    CL135              Message buffer
+WKTXTLEN DS    0HL002
+WKPRTTXT DS    CL133
+*
+ADAPAL   DS   0F
+         DS  11F
+*
+LINKWORK DS    XL256
+APLXLINK DS    F
+WKCID    DS   0F
+WKCID1   DS    X
+WKCID23  DS    XL2
+WKCID4   DS    X
+WKAADA   DS    F
+WKRETC   DS    F
+*
+CB       DS    XL(ACBXQLL)
+*
+FB       DS    XL(FBDXQLL)
+         DS    CL56
+*
+SB       DS    XL(SBDXQLL)
+         DS    CL56
+*
+VB       DS    XL(VBDXQLL)
+         DS    CL56
+*
+IB       DS    XL(IBDXQLL)
+         DS    XL100
+*
+MB       DS    XL(MBDXQLL)
+MBCOUNT  DS    F
+MBAREA   DS (NREC)CL(MISN)        100 * 16 byte ISN areas
+*
+RB       DS    XL(RBDXQLL)
+RBAREA   DS (NREC)CL(LREC)        100 * 96 byte records
+*
+WORKLEN  EQU   (*-WORKAREA)
+*
+LREC     EQU   96
+NREC     EQU   100
+MISN     EQU   16
+
 WKLEN    EQU   (*-WKAREA)
 *
          YREGS
@@ -202,19 +278,8 @@ START    STM   R14,R12,SAVESUBR+RSA14  SAVE  CALLER'S REGISTERS
          XC    dblwork2,dblwork2  used to accumulate total getmained
          XC    workmsg(4),workmsg zero translated error msg area
 *
-         TESTAUTH
-         LTR   R15,R15
-         JZ    A0002
-         GVBMSG LOG,MSGNO=DB2_HPU_NAPF,SUBNO=1,                        +
-               SUB1=(PGMNAME,8),                                       +
-               GENENV=GENENV,                                          +
-               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
-               MF=(E,MSG_AREA)
-         la    r15,8
-         J     RETURNE
-*
 A0002    EQU   *
-         LAY   R0,DB2FETCH        INITIALIZE READ ROUTINE ADDRESS
+         LAY   R0,ADAFETCH        INITIALIZE READ ROUTINE ADDRESS
          O     R0,MODE31
          ST    R0,EVNTREAD
 *
@@ -229,7 +294,7 @@ A0002    EQU   *
          AR    R1,R0 
          STY   R1,DBLWORK2
 *
-         GETMAIN RU,LV=(0),LOC=(24)
+         GETMAIN RU,LV=(0),LOC=(31)
          MVC   0(8,R1),PGMNAME
          USING WKAREA,R8
          LA    R8,L'PGMNAME(,R1)
@@ -244,28 +309,6 @@ A0002    EQU   *
          XR    R15,R15
          MVCL  R0,R14
 *
-**********************************************************************
-* GET SQL TEXT FROM VDP                                              *
-**********************************************************************
-*
-INITSQL  DS    0H
-         LAY   R14,SYSFILE       SYSIN
-         MVC   SYSDCB(SYSFILEL),0(R14)
-         LAY   R0,SYSDCB+SYSEOFF
-         ST    R0,SYSDCB+DCBDCBE-IHADCB
-*
-         LAY   R14,STATOPEN
-         MVC   WKREENT(STATOPENL),0(R14)
-         OPEN  (SYSDCB,OUTPUT),MODE=31,MF=(E,WKREENT)
-         TM    SYSDCB+48,X'10'   SUCCESSFUL  OPEN ???
-         JO    A0046
-         GVBMSG LOG,MSGNO=DB2_HPU_SYSI,SUBNO=1,                        +
-               SUB1=(PGMNAME,8),                                       +
-               GENENV=GENENV,                                          +
-               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
-               MF=(E,MSG_AREA)
-         la    r15,8
-         J     RETURNE
 **********************************************************************
 * PERFORM SYMBOLIC VARIABLE SUBSTITUTION FOR DB2 SUBSYSTEM NAME      *
 **********************************************************************
@@ -334,205 +377,139 @@ INITLOOP BCTR  R1,0               BACKUP  TO PRECEEDING BYTE
 *
 INITLEN  STH   R9,SQLBUFFR        SAVE  ACTUAL  TEXT LENGTH
 *
-*        write SYSIN cards ********************************************
+***********************************************************************
+*  OPEN INPUT FILE (ADABAS)                                           *
+***********************************************************************
 *
-         XR    R4,R4
-         LLGTR R5,R9
-         D     R4,=A(37)
-         LA    R9,SQLTEXT
-         MVC   WKREC,SPACES
-A0110    EQU   *
-         MVC   WKREC(37),0(R9)
-         PUT   SYSDCB,WKREC
-         LA    R9,37(,R9)
-         BRCT  R5,A0110
+         LAY   R3,CB
+         USING ADACBX,CB
+         LAY   R4,FB
+         USING FBBDX,FB
+         LAY   R5,RB
+         USING RBBDX,R5
+         LAY   R6,SB
+         USING SBBDX,SB
+         LAY   R7,VB
+         USING VBBDX,VB
+         LAY   R8,IB
+         USING IBBDX,IB
+         LAY   R9,MB
+         USING MBBDX,MB
 *
-         LTR   R4,R4
-         JZ    A0114
-         BCTR  R4,0
-         MVC   WKREC,SPACES
-         EXRL  R4,MVCREC
-         PUT   SYSDCB,WKREC
-         J     A0114
-MVCREC   MVC   WKREC(0),0(R9)
-A0114    EQU   *
+         ST    R3,ADAPAL+00
+         LA    R0,APLXLINK
+         ST    R0,ADAPAL+04
+         LA    R0,LINKWORK
+         ST    R0,ADAPAL+08
+         STM   R4,R9,ADAPAL+12
+         OI    ADAPAL+32,X'80'
 *
-         LAY   R14,STATCLOS
-         MVC   WKREENT(STATCLOSL),0(R14)
-         CLOSE (SYSDCB),MODE=31,MF=(E,WKREENT)
 *
-**********************************************************************
-* Examine for parallelism parameter                                  *
-**********************************************************************
-         LGH   R5,SQLBUFFR
-         AFI   R5,-L'PARALLEL
-         CHI   R5,2
-         JL    A0121
-         LA    R9,SQLTEXT
-A0120    EQU   *
-         CLC   0(L'PARALLEL,R9),PARALLEL
-         JE    A0122
-         LA    R9,1(,R9)
-         BRCT  R5,A0120
+         LOAD  EPLOC=LINKNAME,ERRET=A0010
+         OILH  R0,MODE31
+         ST    R0,WKAADA
+         J     A0011
+A0010    EQU   *
+         WTO 'GVBXRA: ADABAS LINK MODULE NOT LOADED'
+A0011    EQU   *
 *
-A0121    EQU   *                       Parallelism not found
-         MVC   WKPARALL,=H'1'
-         J     A0129
-A0121A   EQU   *
-         GVBMSG WTO,MSGNO=DB2_HPU_PARA,SUBNO=1,                        +
-               SUB1=(PGMNAME,8),                                       +
-               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
-               MF=(E,MSG_AREA)
-         MVC   WKPARALL,=H'1'
-         J     A0129
 *
-A0122    EQU   *                       Parallelism found
-         LA    R9,L'PARALLEL(,R9)
-         LR    R0,R9
-A0123    EQU   *
-         CLI   0(R9),C'0'
-         JL    A0124
-         CLI   0(R9),C'9'
-         JH    A0124
-         LA    R9,1(,R9)
-         J     A0123
-A0124    EQU   *
-         SR    R9,R0                   Length of digits
-         LTR   R9,R9
-         JNP   A0121A                  invalid, go
-         BCTR  R9,0
+         MVI   ACBXVERT,ACBXVERE
+         MVI   ACBXVERN,ACBXVERC
+         MVC   ACBXLEN,=Y(ACBXQLL)
+         MVC   ACBXDBID,DBID300
+         MVC   ACBXFNR,FNR0047
 *
-         LR    R1,R0                   First digit of number
-         LR    R2,R9                   Number length - 1 =L2
-         OY    R2,=Xl4'00000070'       Set L1 in pack's L1L2
-         EXRL  R2,EXEPACK
-         CVB   R0,WKDBL1
-         STH   R0,WKPARALL
-         J     A0129                   subtasks will be executing
-EXEPACK  PACK  WKDBL1(0),0(0,R1)
+         MVI   WKCID1,C'F'
+         MVC   WKCID23,=X'0001'
+         MVI   WKCID4,C'S'
 *
-* obtain EXEXU table and 16 byte header
+         MVI   FBDXLOC,C' '
+         MVC   FBDXLEN,=Y(FBDXQLL)
+         MVI   FBDXVERT,ABDXVERE
+         MVI   FBDXVERN,ABDXVERC
+         MVI   FBDXID,ABDXQFB
+         MVC   FBDXSIZE+4(4),=F'50'
 *
-A0129    EQU   *
-         LA    R0,EXUEXUL        element size in table
-         LLGTR R0,R0
-         MH    R0,WKPARALL       times number elements needed
-         AHI   R0,16
-         LY    R1,DBLWORK2
-         AR    R1,R0 
-         STY   R1,DBLWORK2
-         ST    R0,WKEXULEN
+         MVI   RBDXLOC,C' '
+         MVC   RBDXLEN,=Y(RBDXQLL)
+         MVI   RBDXVERT,ABDXVERE
+         MVI   RBDXVERN,ABDXVERC
+         MVI   RBDXID,ABDXQRB
+         MVC   RBDXSIZE+4(4),=A(LREC*NREC)
 *
-         GETMAIN RU,LV=(0),LOC=(ANY)
-         USING EXHEXH,R1
-         MVC   EXHEYE,=CL8'EXUEXU'
-         MVC   EXHPARLL,WKPARALL  insert number entries in header
-         XC    10(6,R1),10(R1)
-         DROP  R1
-         AHI   R1,16
-         ST    R1,WKEXUADR       connect MRAD thread area to 1st EXUEXU
-         LR    R4,R1             table of DB2 HPU sub threads
+         MVI   MBDXLOC,C' '
+         MVC   MBDXLEN,=Y(MBDXQLL)
+         MVI   MBDXVERT,ABDXVERE
+         MVI   MBDXVERN,ABDXVERC
+         MVI   MBDXID,ABDXQMB
+         MVC   MBDXSIZE+4(4),=A(4+MISN*NREC)  QUANTITY THEN MISN AREA
 *
-         LR    R0,R1             Clear storage
-         LA    R1,EXUEXUL        element size in table
-         LLGTR R1,R1
-         MH    R1,WKPARALL       times number elements needed
-         XR    R14,R14
-         XR    R15,R15
-         MVCL  R0,R14
+         MVI   SBDXLOC,C' '
+         MVC   SBDXLEN,=Y(SBDXQLL)
+         MVI   SBDXVERT,ABDXVERE
+         MVI   SBDXVERN,ABDXVERC
+         MVI   SBDXID,ABDXQSB
+         MVC   SBDXSIZE+4(4),=F'50'
 *
-* obtain ECBLIST array
+         MVI   VBDXLOC,C' '
+         MVC   VBDXLEN,=Y(VBDXQLL)
+         MVI   VBDXVERT,ABDXVERE
+         MVI   VBDXVERN,ABDXVERC
+         MVI   VBDXID,ABDXQVB
+         MVC   VBDXSIZE+4(4),=F'50'
 *
-         LA    R0,4              length of ECB address
-         LLGTR R0,R0
-         MH    R0,WKPARALL       times number elements needed
-         AHI   R0,4              plus subtask ECB (DB2 HPU itself)
-         LY    R1,DBLWORK2
-         AR    R1,R0 
-         STY   R1,DBLWORK2
-         ST    R0,WKECBLEN
+         MVI   IBDXLOC,C' '
+         MVC   IBDXLEN,=Y(IBDXQLL)
+         MVI   IBDXVERT,ABDXVERE
+         MVI   IBDXVERN,ABDXVERC
+         MVI   IBDXID,ABDXQIB
+         MVC   IBDXSIZE+4(4),=F'100'
 *
-         GETMAIN RU,LV=(0),LOC=(ANY)
-         ST    R1,WKECBLST       connect MRAD thread area to ECBLIST
 *
-         LR    R0,R1             Clear storage
-         LA    R1,4              element size in list
-         LLGTR R1,R1
-         MH    R1,WKPARALL       times number elements needed
-         XR    R14,R14
-         XR    R15,R15
-         MVCL  R0,R14
+         MVC   ACBXCMD,=CL2'OP'
+         MVC   ACBXCID,WKCID
+         MVC   ACBXADD3,SPACES
+         MVC   ACBXADD4,SPACES
+         MVC   ACBXADD5,SPACES
+         MVC   RBDXDATA(07),=CL7'ACC=47.'
+         MVC   RBDXSEND+4(4),=F'7'
+         LA    R1,ADAPAL
+         L     R15,WKAADA
+         LR    R11,R13
+         LAY   R13,WKSUBADA
+         BASR  R14,R15
+         LR    R13,R11
 *
-* communicate EXUEXU table to DB2 HPU sub tasks
+         CLC   ACBXRSP,=H'0'
+         JE    A0012
+*        DC    H'0'
+         MVC   WKPRINT,SPACES
+         wto 'open error'
+         MVC   WKPRINT(30),=CL30'GVBXRA: Open Error xxxx/xxxx  '
+         LH    R15,ACBXRSP
+         CVD   R15,WKDBLWK
+         MVC   WKPRINT+19(4),NUMMSK+8
+         MVI   WKPRINT+19,C' '
+         ED    WKPRINT+19(4),WKDBLWK+6
+         LH    R15,ACBXERRC
+         CVD   R15,WKDBLWK
+         MVC   WKPRINT+24(4),NUMMSK+8
+         MVI   WKPRINT+24,C' '
+         ED    WKPRINT+24(4),WKDBLWK+6
+         LA    R2,OUTDCB
+         LA    R0,WKPRINT
+*         PUT   (R2),(R0)
+         MVC   WKRETC,=F'16'
+         J     I0099
 *
-         MVC   WKTOKNAM+0(8),GENEVA
-         MVC   WKTOKNAM+8(8),PGMNAME
-         ST    R4,WKTOKN          share address of MR95 EXUEXU area
-*                                 with DB2 HPU exit sub threads
-*
-         CALL  IEANTCR,(TOKNLVL2,WKTOKNAM,WKTOKN,TOKNPERS,WKTOKNRC),   +
-               MF=(E,WKREENT)
-         L     R15,WKTOKNRC       SUCCESSFUL   ???
-         LTR   R15,R15
-         JZ    A0128
-         GVBMSG LOG,MSGNO=DB2_HPU_TOKN,SUBNO=1,                        +
-               SUB1=(PGMNAME,8),                                       +
-               GENENV=GENENV,                                          +
-               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
-               MF=(E,MSG_AREA)
-         la    r15,8
-         j     returne
-*
-* obtain blocks for records returned by EXUEXU subtasks and
-*   initialize EXUEXU entries
-*
-A0128    EQU   *
-         LLGT  R7,WKECBLST          => List of ECB addresses
-         USING EXUEXU,R4
-         LGH   R9,WKPARALL
-A0130    EQU   *
-         LLGT  R0,=A(BLOCKSZ)       "Block" size for DB2 rows
-         LY    R1,DBLWORK2
-         AR    R1,R0 
-         STY   R1,DBLWORK2
-         GETMAIN RU,LV=(0),LOC=(ANY)
-         ST    R1,EXUBLKA           address of block
-         ST    R1,EXURPOS           address of (1st) record
-         AHI   R1,BLOCKSZ-1         last byte address
-         ST    R1,EXURLAST
-         LA    R0,EXUECBMA          address of wait ECB (main)
-         ST    R0,0(,R7)
-         MVI   EXUEOF,C' '
-         MVI   EXUWAIT,C' '
-         MVI   EXUSTAT,C' '
-         MVI   EXUFINAL,C' '
-         LA    R4,EXUEXUL(,R4)      => next EXUEXU entry
-         LA    R7,4(,R7)            => next address in ECB list
-         BRCT  R9,A0130
-         LA    R0,WKECBSUB          subtask ended ECB
-         ST    R0,0(,R7)
-         OI    0(R7),X'80'          indicate last word in list
-         DROP  R4 EXUEXU
-*
-         XC    WKECBSUB,WKECBSUB
-         XC    WKTCBSUB,WKTCBSUB
-*
-**********************************************************************
-* Start DB2 HPU utility                                              *
-**********************************************************************
-         LARL  R1,SUBTASK
-         IDENTIFY EP=GVBMRSB,ENTRY=(1)
-*
-         MVC   WKPARM(14),=CL14'XXXX,DB2UNLOAD'
-         MVC   WKPARM(04),DBSUBSYS
-*
-         basr  r9,0
-         USING *,R9
-         LA    R7,WKECBSUB
-         ATTACH EP=GVBMRSB,         entry point of subtask             +
-               ECB=(7),SZERO=YES        ECB (located in THRDAREA)
-         ST    R1,WKTCBSUB
-         DROP  R9
+A0012    EQU   *
+         MVC   WKPRINT,SPACES
+         wto 'open done'
+         MVC   WKPRINT(18),=CL18'GVBXRA: OPEN DONE '
+         LA    R2,OUTDCB
+         LA    R0,WKPRINT
+*         PUT   (R2),(R0)
 *
 **********************************************************************
 * DISPLAY SQL IN MR95 TRACE FILE IF OPEN                             *
@@ -627,7 +604,7 @@ d1       using thrdarea,r14
 *
          DEQ (GENEVA,ENQSTAT,,STEP),RNL=NO
 *
-         LAY   R15,DB2FETCH1      LOAD FETCH ROUTINE ADDRESS
+         LAY   R15,ADAFETCH1      LOAD FETCH ROUTINE ADDRESS
          BASR  R14,R15            WAIT  FOR COMPLETION OF FIRST READ
          LLGTR R6,R6              Set top half to zero as it's 64 bit
          ST    R6,SAVESUBR+RSA6   PASS BACK RECORD ADDRESS
@@ -641,11 +618,6 @@ RETURNE  DS    0H
          LM    R0,R12,SAVESUBR+RSA0   RESTORE REGISTERS R0 - R12
          BSM   0,R14                  RETURN
 *
-*
-RTNERROR DS    0H
-         LHI   R15,12
-         J     RETURNE
-*
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
 * 1.  READ first block of records                                     *
@@ -658,119 +630,202 @@ RTNERROR DS    0H
          using genfile,file_area
          using genenv,env_area
 *
-DB2FETCH1 DS    0H
-         STMG  R14,R12,SAVESUB3
-         LR    R9,R14              SAVE RETURN ADDRESS
-         LARL  R10,GVBMRAD         set static area base
-         LLGT  R4,WKEXUADR         get first EXUEXU entry
-         J     A0020               First time, straight to continue
-*
+ADAFETCH1 DS    0H
 DB2FETCH DS    0H
          STMG  R14,R12,SAVESUB3
          LR    R9,R14              SAVE RETURN ADDRESS
          LARL  R10,GVBMRAD         set static area base
-         LLGT  R8,SQLWADDR         Needed if it's not 1st time through
 *
-* Can only post DB2 HPU exit on subsequent call allowing MR95 chance
-* to process the previous block we returned
+***********************************************************************
+*   FILL   NEXT "BUFSIZE" buffer                                      *
+***********************************************************************
+         USING ADACBX,CB
+         USING FBBDX,FB
+         USING RBBDX,R5
+         USING SBBDX,SB
+         USING VBBDX,VB
+         USING IBBDX,IB
+         USING MBBDX,MB
 *
-A0010    EQU   *
-         LLGT  R4,WKEXUCUR        EXU block last returned to MR95
-         USING EXUEXU,R4
+LOADB    DS    0H
+         CLI   WKEOF,C'Y'          End of file pending ?      
+         JNE   LOADB10             No, go
 *
-         CLI   EXUFINAL,C'Y'      Was it final data block from an exit?
-         JE    A0014              Yes, go
+         MVC   WKPRINT,SPACES
+         wto 'Already at end of file'
+         MVC   WKPRINT(57),=CL57'GVBXRA: ALREADY AT END OF FILE. RETURN+
+               ING RC=8 TO GVBMR95'
+         LA    R2,OUTDCB
+         LA    R0,WKPRINT
+         PUT   (R2),(R0)
+         MVC   WKPRINT,SPACES
+         MVC   WKPRINT(35),=CL35'GVBXRA: BLOCKS RETURNED TO GVBMR95 '
+         L     R15,WKBUFRET
+         CVD   R15,WKDBLWK
+         MVC   WKPRINT+35(7),NUMMSK+5
+         MVI   WKPRINT+35,C' '
+         ED    WKPRINT+35(7),WKDBLWK+5
+         LA    R2,OUTDCB
+         LA    R0,WKPRINT
+*         PUT   (R2),(R0)
+         MVC   WKRETC,=F'8'
+         J     LOADB99
 *
-* Just another block of data
-         CLI   EXUWAIT,C'Y'       This exit instance waiting for us ?
-         JE    A0012              Yes, good
-         DC    H'0'              No, must be otherwise wouldn't be here
-A0012    EQU   *
-         CLI   EXUSTAT,C'3'       And is it in the correct state ?
-         JE    A0013              Yes, good
-         DC    H'0'              No, must be otherwise wouldn't be here
+LOADB10  EQU   *
+         MVC   ACBXCMD,=CL2'L3'
+         MVI   ACBXCOP1,C'M'
+         MVI   ACBXCOP2,C'V'
+         MVC   ACBXADD1,=CL8'AA      '
+         XC    ACBXISN,ACBXISN
+         XC    ACBXISL,ACBXISL
+         XC    ACBXISQ,ACBXISQ
+*
+         MVC   FBDXDATA(21),=CL21'AA,AB,AC,AD,AE,AF,AG.'
+         MVC   FBDXSEND+4(4),=F'21'
+*
+         XC    RBDXSEND,RBDXSEND
+         MVC   RBDXRECV+4(4),=A(LREC*NREC)
+*
+         XC    MBDXSEND,MBDXSEND
+         MVC   MBDXRECV+4(4),=A(MISN*NREC)
+*
+         MVC   SBDXDATA(03),=CL3'AA.'
+         MVC   SBDXSEND+4(4),=F'3'
+*
+         MVC   VBDXDATA(10),=CL10'0000000000'
+         MVC   VBDXSEND+4(4),=F'10'
+*
 A0013    EQU   *
-         XC    EXUECBMA,EXUECBMA  reset ECB -----
-         MVI   EXUSTAT,C' '       reset status
-         POST  EXUECBEX           allow INZEXIT instance to continue
-         J     A0020              Continue..
+         LA    R1,ADAPAL
+         L     R15,WKAADA
+         LR    R11,R13
+         LAY   R13,WKSUBADA
+         BASR  R14,R15
+         LR    R13,R11
+         CLC   ACBXRSP,=H'0'
+         JE    A0014
+         CLC   ACBXRSP,=F'3'
+         JE    EVNTEOF           Nothing left to read here
+*        DC    H'0'
+         MVC   WKRETC,=F'16'
+         MVC   WKPRINT,SPACES
+         MVC   WKPRINT(31),=CL31'GVBXRA: Read(1) Error xxxx/xxxx'
+         J     A0017
 *
-* Determine if final data block from the final INZEXIT instance....
 A0014    EQU   *
-         ENQ (GENEVA,MRADNAME,E,,STEP),RNL=NO
-         LLGT  R1,WKEXUADR
-         AHI   R1,-16             BACK UP TO EXUEXU HEADER
-         USING EXHEXH,R1
-         CLC   EXHINIT,EXHFINI    INITIALIZATIONS <= TERMINATIONS ?
-         JNH   A0015              YES: we're on the final instance
-         DROP  R1
+         MVC   WKPRINT,SPACES
+         MVC   WKPRINT(18),=CL18'GVBXRA: READ DONE:'
+         XC    WKRECBUF,WKRECBUF
+         USING MBDSECT,R10
+         LAY   R10,MBAREA
+         LAY   R11,RBAREA
+A001400  EQU   *
+         CLC   MBRESP,=F'0'      All good
+         JE    A001402
+         CLC   MBRESP,=F'3'      Then at least we have a partial block
+         JE    A0015
+*        DC    H'0'
+         MVC   WKRETC,=F'16'
+         MVC   WKPRINT,SPACES
+         MVC   WKPRINT(31),=CL31'GVBXRA: Read(2) Error xxxx/xxxx'
+         J     A0017
 *
-*                                 NO: not the final INZEXIT instance
-         DEQ (GENEVA,MRADNAME,,STEP),RNL=NO
-         XC    EXUECBMA,EXUECBMA  reset ECB -----
-         MVI   EXUSTAT,C' '       reset status
-         J     A0020              NO: continue..
+A001402  EQU   *
+         MVC   WKPRINT+18(LREC),0(R11)
+         LA    R2,OUTDCB
+         LA    R0,WKPRINT
+         PUT   (R2),(R0)
 *
-A0015    EQU   *                  Final EXU (partition) !!!
-         DEQ (GENEVA,MRADNAME,,STEP),RNL=NO
-         J     EVNTEOF            Go: it's last data from last instance
+         LA    R10,MISN(,R10)
+         LA    R11,LREC(,R11)
+         ASI   WKRECBUF,1        records in buffer so far
+         CLC   WKRECBUF,MBCOUNT  all records retrieved ?
+         JL    A001400           no, back for next...
+         L     R0,WKRECCNT
+         A     R0,WKRECBUF
+         ST    R0,WKRECCNT       total records so far
+         J     LOADB99           read one block only, i.e. one L3.
 *
-* Wait for one of the DB2 HPU related exits to post us
+A0015    EQU   *
+         MVC   WKPRINT,SPACES
+         MVC   WKPRINT(19),=CL19'GVBXRA: END OF DATA'
+         LA    R2,OUTDCB
+         LA    R0,WKPRINT
+         PUT   (R2),(R0)
 *
-A0020    EQU   *
-         LLGT  R1,WKECBLST
-         WAIT  1,ECBLIST=(1)      the exit has returned a block of
+         MVC   WKPRINT,SPACES
+         MVC   WKPRINT(39),=CL39'GVBXRA: Records read in this partition+
+               :'
+         L     R15,WKRECCNT
+         CVD   R15,WKDBLWK
+         MVC   WKPRINT+40(7),NUMMSK+5
+         MVI   WKPRINT+40,C' '
+         ED    WKPRINT+40(7),WKDBLWK+5
+         LA    R2,OUTDCB
+         LA    R0,WKPRINT
+         PUT   (R2),(R0)
 *
-* Find out which DB2 HPU related EXUEXU entry posted us
+         MVI   WKEOF,C'Y'                End of file pending
+         J     LOADB99
 *
-         LGH   R15,WKPARALL
-         LLGT  R14,WKECBLST
-         LLGT  R4,WKEXUADR        get first EXUEXU entry
-A0022    EQU   *
-         LLGT  R1,0(,R14)         => ECB from list
-         TM    0(R1),X'40'
-         JO    A0023              posted
-         LA    R14,4(,R14)        next EXUEXU ECB list entry
-         LA    R4,EXUEXUL(,R4)    next EXUEXU entry
-         BRCT  R15,A0022
+* This has to be moved !!
 *
-         TM    WKECBSUB,X'40'     posted by unexpected DB2 HPU term ?
-         JO    A0022A             Yes, go
-         DC    H'0'               One of the ECB's must have posted us!
+A0017    EQU   *
+         LH    R15,ACBXRSP
+         CVD   R15,WKDBLWK
+         MVC   WKPRINT+22(4),NUMMSK+8
+         MVI   WKPRINT+22,C' '
+         ED    WKPRINT+22(4),WKDBLWK+6
+         LH    R15,ACBXERRC
+         CVD   R15,WKDBLWK
+         MVC   WKPRINT+27(4),NUMMSK+8
+         MVI   WKPRINT+27,C' '
+         ED    WKPRINT+27(4),WKDBLWK+6
+         LA    R2,OUTDCB
+         LA    R0,WKPRINT
+         PUT   (R2),(R0)
 *
-A0022A   EQU   *
-         LLGT  R15,WKSUBERR        Subtask (DB2HPU) had an error
-         CVD   R15,DBLWORK         STORE THE RETURN CODE (PACKED)
-         MVC   WORKMSG(8),SPACES
-         UNPK  WORKMSG(4),DBLWORK+4(4)
-         OI    WORKMSG+3,X'F0'     FORCE A DISPLAYABLE ZONE
 *
-         GVBMSG WTO,MSGNO=DB2_HPU_FAIL,SUBNO=2,                        +
-               SUB1=(PGMNAME,8),                                       +
-               SUB2=(WORKMSG,4),  return code                          +
-               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
-               MF=(E,MSG_AREA)
-         J     A0202
+LOADB99  EQU   *
+         L     R15,WKRETC
 *
-A0023    EQU   *
-*                                 records or reached eof
-         CLI   EXUSTAT,C'2'       block populated status ?
-         JE    A0024              yes, that's correct
-         DC    H'0'               no, cannot have posted us then !!!
+***********************************************************************
+*   RETURN NEXT "BUFSIZE" buffer                                      *
+***********************************************************************
+UNLOADB  DS    0H
+         LLGT  R15,=A(LREC)
+         MS    R15,WKRECBUF
 *
-A0024    EQU   *
-         ASI   EXUCNT1,1         Count times through
-         ST    R4,WKEXUCUR       This is the EXU being passed to MR95
-         MVI   EXUSTAT,C'3'      Now passing data to MR95
+         LLGT  R14,GPBLKSIZ
+         USING GENBLKSZ,R14
+         ST    R15,GP_RESULT_BLK_SIZE
+         DROP  R14
 *
-         CLI   EXUEOF,C'Y'
-         JNE   FETCHOK            CONTINUE
-         MVI   EXUFINAL,C'Y'
-         J     FETCHOK            CONTINUE
+         LAY   R1,RBAREA
+         LLGTR R1,R1
+         LLGT  R14,GPBLOCKA       LOAD  POINTER ADDRESS
+         USING GENBLOCK,R14
+         STG   R1,GP_RESULT_PTR   RETURN BLOCK ADDRESS
+         DROP  R14
 *
+         LTR   R15,R15
+         JZ    U0002
+         XC    WKRECBUF,WKRECBUF  RESET BUFFER COUNT = 0
+         ASI   WKBUFRET,1         INCREMENT NUMBER BUFFERS RETURNED
+         J     U0004
+U0002    EQU   *
+         MVC   WKRETC,=F'8'       ALREADY EOF
+U0004    EQU   *
+*
+         BR    R10                RETURN
+*
+>>>      J     EVNTEOF            Go: it's last data from last instance
+*
+>>>      J     FETCHOK            CONTINUE
+*
+* This is for errors
 *
 A0202    EQU   *                  R15 contains return error
-         DETACH WKTCBSUB
          XGR   R6,R6              Indicate NO Record
          STG   R6,RECADDR         Save the Record address
 *
@@ -785,6 +840,7 @@ A0202    EQU   *                  R15 contains return error
 A0203    EQU   *
          BR    R9                 NO  - USE GVBMRAD RETURN ADDRESS
 *
+* This is for ok
 *
 FETCHOK  DS    0H
          LLGT  R6,EXUBLKA         Current record at start of block
@@ -800,13 +856,9 @@ FETCHOK  DS    0H
          AGR   R0,R6
          STG   R0,EODADDR         used by MR95
 *
-* We can't post DB2 HPU exit here: MR95 hasn't processed the block yet
-* Post it when we come back in to DB2FETCH, if not EOF (FINAL)
-*
          STG   R6,SAVESUB3+64
          LMG   R14,R12,SAVESUB3
          BSM   0,R14
-         DROP  R4 EXUEXU
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
@@ -817,36 +869,39 @@ FETCHOK  DS    0H
 EVNTEOF  EQU   *
 *
 **********************************************************************
-* DB2HPU has reached eof for the table or for a partition in table   *
+* ADABAS end of file                                                 *
 **********************************************************************
+*
+         MVC   ACBXCMD,=CL2'CL'
+         XC    FBDXSEND,FBDXSEND
+         XC    RBDXSEND,RBDXSEND
+         XC    SBDXSEND,SBDXSEND
+         XC    VBDXSEND,VBDXSEND
+         XC    RBDXRECV,RBDXRECV
+         LA    R1,ADAPAL
+         L     R15,WKAADA
+         LR    R11,R13
+         LAY   R13,WKSUBADA
+         BASR  R14,R15
+         LR    R13,R11
+         CLC   ACBXRSP,=H'0'
+         JE    A0015B
+         MVC   WKPRINT,SPACES
+         MVC   WKPRINT(31),=CL31'GVBXRA: Close Error xxxx/xxxx  '
+         wto 'close error'
+         J     A0017
+A0015B   EQU   *
+         MVC   WKPRINT,SPACES
+         MVC   WKPRINT(18),=CL18'GVBXRA: CLOSE DONE'
+         LA    R2,OUTDCB
+         LA    R0,WKPRINT
+         PUT   (R2),(R0)
+         J     LOADB99
 *
          XGR   R6,R6         Indicate NO Records and end of partitions
          STG   R6,RECADDR         Save the Record address
 *
-         WAIT  1,ECB=WKECBSUB     subtask has finished altogether
-*
-         DETACH WKTCBSUB
-*
-* Free storages
-*
-         USING EXUEXU,R4
-         LLGT  R4,WKEXUADR          get first EXUEXU entry
-         LGH   R9,WKPARALL          Free I/O blocks
-EOF130   EQU   *
-         LLGT  R0,=A(BLOCKSZ)       "Block" size for DB2 rows
-         LLGT  R1,EXUBLKA           address of block
-         FREEMAIN RU,LV=(0),A=(1)
-         LA    R4,EXUEXUL(,R4)      => next EXUEXU entry
-         BRCT  R9,EOF130
-*
-         LLGT  R0,WKECBLEN          Free ECB list
-         LLGT  R1,WKECBLST
-         FREEMAIN RU,LV=(0),A=(1)
-*
-         LLGT  R0,WKEXULEN          Free EXU table including header
-         LLGT  R1,WKEXUADR
-         AGHI  R1,-16
-         FREEMAIN RU,LV=(0),A=(1)
+* Free storage
 *
          Lhi   R0,F10K              Free buffer for  EXPANDED SQL TEXT
          LLGT  R1,SQLTADDR
@@ -899,32 +954,6 @@ parsv_dcb ds   0h
 *
          DROP  R13
 *
-**********************************************************************
-* Subtask that starts DB2HPU and wait for it to finish               *
-**********************************************************************
-*
-SUBTASK  ds    0h
-         bakr  r14,0
-         larl  r10,GVBMRAD        set static area base
-*
-         LA    R0,WKPARM1+2
-         O     R0,=X'80000000'
-         ST    R0,WKPARM0
-         MVC   WKPARM1+2(2),=H'14'
-         LA    R1,WKPARM0
-         LINK  EP=INZUTILB
-*
-         ltr   r15,r15
-         jz    subtask2
-         chi   r15,4
-         je    subtask3
-         st    R15,WKSUBERR
-         j     subtask2
-subtask3 equ   *                  rc=4: all records passed to MR95
-*
-subtask2 equ   *
-         pr    r14
-*
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
 *        C O N S T A N T S                                            *
@@ -962,7 +991,7 @@ HWTYPE   DC    H'500'              NOTNULL SMALLINT TYPE
 DATETYP  DC    H'384'              NOTNULL DATE TYPE
 TIMETYP  DC    H'388'              NOTNULL TIME TYPE
 TIMES    DC    H'392'              NOTNULL TIMESTAMP TYPE
-                        SPACE 3
+*
 HEXTR    DS    XL256'00'
          ORG   HEXTR+240
          DC    C'0123456789ABCDEF'
@@ -993,8 +1022,6 @@ STATOPENL EQU  *-STATOPEN
 *
 STATCLOS CLOSE (),MODE=31,MF=L
 STATCLOSL EQU  *-STATCLOS
-*
-PARALLEL DC    CL12'PARALLELISM '
          LTORG ,
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
