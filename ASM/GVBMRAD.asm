@@ -142,11 +142,10 @@ WKTIMWRK DS   0XL16
 WKDBLWRK DS    D                  TEMPORARY DOUBLEWORD  WORK AREA
 WKDBLWK2 DS    D                  TEMPORARY DOUBLEWORD  WORK AREA
 WKDBLWK3 DS    D                  TEMPORARY DOUBLEWORD  WORK AREA
+WKDBLWK  DS    XL08               Double work workarea
 *
 WKPRINT  DS    XL131              Print line
 WKTRACE  DS    CL1                Tracing
-         DS   0F
-WKDBLWK  DS    XL08               Double work workarea
 *
 WKEOF    DS    CL1
          DS    XL1
@@ -398,7 +397,7 @@ INITLEN  STH   R9,SQLBUFFR        SAVE  ACTUAL  TEXT LENGTH
 *
 *
          LOAD  EPLOC=LINKNAME,ERRET=A0010
-         OILH  R0,MODE31
+         O     R0,MODE31
          ST    R0,WKAADA
          J     A0011
 A0010    EQU   *
@@ -963,9 +962,6 @@ GENEVA   DC    CL8'GENEVA  '           TOKEN  and MAJ ENQ NAME
 PGMNAME  DC    CL8'GVBMRAD '
 MRADNAME DC    CL8'MRADEXA '          MINOR  ENQ  NODE FOR WRITE I/O
 LINKNAME DC    CL8'ADAUSER'
-*
-         DS    0D
-MODE31   equ   X'8000'
 *
          LTORG ,
 *
