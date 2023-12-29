@@ -137,7 +137,6 @@ WKAREA   DSECT
 WKSAVSUB DS  18fd                 INTERNAL  SUBROUTINE  REG  SAVE  AREA
 WKSAB    DS  18fd                 Sub savearea
 WKSUBADA DS  18fd                 Savearea for calling ADABAS
-WKREG10  DS    A                  Preserve R10 (return address)
 *
 WKTIMWRK DS   0XL16
 WKDBLWRK DS    D                  TEMPORARY DOUBLEWORD  WORK AREA
@@ -147,7 +146,6 @@ WKDBLWK3 DS    D                  TEMPORARY DOUBLEWORD  WORK AREA
 WKPRINT  DS    XL131              Print line
 WKTRACE  DS    CL1                Tracing
          DS   0F
-WKREENT  DS    XL256              Reentrant workarea
 WKDBLWK  DS    XL08               Double work workarea
 *
 WKEOF    DS    CL1
@@ -159,11 +157,6 @@ WKRECCNT DS    F                  NUMBER OF RECORDS READ
 WKRECBUF DS    F                  NUMBER OF RECORDS IN BUFFER
 WKBUFRET DS    F                  NUMBER OF BUFFERS RETURNED
 WKCALLRL DS    F                  RETURNED RECORD LENGTH
-*
-WKRPTDCB DS    A                  CONTROL   REPORT      "DCB"
-*
-         DS    0F
-OUTDCB   DS    XL(outfilel)    Reentrant DCB and DCBE areas
 *
 WKWTOPRM WTO   TEXT=(R2),MF=L
 WKWTOLEN EQU   *-WKWTOPRM
@@ -410,6 +403,7 @@ INITLEN  STH   R9,SQLBUFFR        SAVE  ACTUAL  TEXT LENGTH
          J     A0011
 A0010    EQU   *
          GVBMSG LOG,MSGNO=ADA_NOLINK,SUBNO=1,                          +
+               GENENV=GENENV,                                          +
                SUB1=(PGMNAME,8),                                       +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
@@ -499,6 +493,7 @@ A0011    EQU   *
          MVI   WORKMSG+6,C' '
          ED    WORKMSG+6(4),WKDBLWK+6
          GVBMSG LOG,MSGNO=ADA_BADRSP,SUBNO=4,                          +
+               GENENV=GENENV,                                          +
                SUB1=(PGMNAME,8),                                       +
                SUB2=(WORKMSG,2),                                       +
                SUB3=(WORKMSG+2,4),                                     +
@@ -625,7 +620,7 @@ d1       using thrdarea,r14
 *
          DEQ (GENEVA,ENQSTAT,,STEP),RNL=NO
 *
-         LAY   R15,ADAFETCH1      LOAD FETCH ROUTINE ADDRESS
+         LAY   R15,ADAFETCH       LOAD FETCH ROUTINE ADDRESS
          BASR  R14,R15            WAIT  FOR COMPLETION OF FIRST READ
          LLGTR R6,R6              Set top half to zero as it's 64 bit
          ST    R6,SAVESUBR+RSA6   PASS BACK RECORD ADDRESS
@@ -651,8 +646,7 @@ RETURNE  DS    0H
          using genfile,file_area
          using genenv,env_area
 *
-ADAFETCH1 DS    0H
-DB2FETCH DS    0H
+ADAFETCH DS    0H
          STMG  R14,R12,SAVESUB3
          LR    R9,R14              SAVE RETURN ADDRESS
          LARL  R10,GVBMRAD         set static area base
@@ -696,6 +690,7 @@ A0013    EQU   *
          MVI   WORKMSG+6,C' '
          ED    WORKMSG+6(4),WKDBLWK+6
          GVBMSG LOG,MSGNO=ADA_BADRSP,SUBNO=4,                          +
+               GENENV=GENENV,                                          +
                SUB1=(PGMNAME,8),                                       +
                SUB2=(WORKMSG,2),                                       +
                SUB3=(WORKMSG+2,4),                                     +
@@ -726,6 +721,7 @@ A001400  EQU   *
          MVI   WORKMSG+6,C' '
          ED    WORKMSG+6(4),WKDBLWK+6
          GVBMSG LOG,MSGNO=ADA_BADRSP,SUBNO=4,                          +
+               GENENV=GENENV,                                          +
                SUB1=(PGMNAME,8),                                       +
                SUB2=(WORKMSG,2),                                       +
                SUB3=(WORKMSG+2,4),                                     +
@@ -844,6 +840,7 @@ EVNTEOF  EQU   *
          MVI   WORKMSG+6,C' '
          ED    WORKMSG+6(4),WKDBLWK+6
          GVBMSG LOG,MSGNO=ADA_BADRSP,SUBNO=4,                          +
+               GENENV=GENENV,                                          +
                SUB1=(PGMNAME,8),                                       +
                SUB2=(WORKMSG,2),                                       +
                SUB3=(WORKMSG+2,4),                                     +
@@ -946,6 +943,10 @@ DATETYP  DC    H'384'              NOTNULL DATE TYPE
 TIMETYP  DC    H'388'              NOTNULL TIME TYPE
 TIMES    DC    H'392'              NOTNULL TIMESTAMP TYPE
 *
+DBID300  DC    F'300'
+FNR0047  DC    F'47'
+*
+         DS    0F
 HEXTR    DS    XL256'00'
          ORG   HEXTR+240
          DC    C'0123456789ABCDEF'
@@ -961,21 +962,11 @@ TOKNLVL2 DC    A(2)               NAME/TOKEN  AVAILABILITY  TASK LEVEL
 GENEVA   DC    CL8'GENEVA  '           TOKEN  and MAJ ENQ NAME
 PGMNAME  DC    CL8'GVBMRAD '
 MRADNAME DC    CL8'MRADEXA '          MINOR  ENQ  NODE FOR WRITE I/O
-TOKNPERS DC    F'0'
-IEANTCR  DC    V(IEANTCR)
-IEANTRT  DC    V(IEANTRT)
+LINKNAME DC    CL8'ADAUSER'
 *
-SYSFILE  DCB   DSORG=PS,DDNAME=SYSIN,MACRF=(PM),DCBE=SYSDCBE,          X
-               RECFM=FB,LRECL=80
-SYSEOFF  EQU   *-SYSFILE
-SYSDCBE  DCBE  RMODE31=BUFF
-SYSFILEL EQU   *-SYSFILE
+         DS    0D
+MODE31   equ   X'8000'
 *
-STATOPEN OPEN  (,OUTPUT),MODE=31,MF=L
-STATOPENL EQU  *-STATOPEN
-*
-STATCLOS CLOSE (),MODE=31,MF=L
-STATCLOSL EQU  *-STATCLOS
          LTORG ,
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
