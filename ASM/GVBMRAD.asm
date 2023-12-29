@@ -139,16 +139,10 @@ WKSAB    DS  18fd                 Sub savearea
 WKSUBADA DS  18fd                 Savearea for calling ADABAS
 *
 WKTIMWRK DS   0XL16
-WKDBLWRK DS    D                  TEMPORARY DOUBLEWORD  WORK AREA
-WKDBLWK2 DS    D                  TEMPORARY DOUBLEWORD  WORK AREA
-WKDBLWK3 DS    D                  TEMPORARY DOUBLEWORD  WORK AREA
 WKDBLWK  DS    XL08               Double work workarea
 *
-WKPRINT  DS    XL131              Print line
 WKTRACE  DS    CL1                Tracing
-*
 WKEOF    DS    CL1
-         DS    XL1
 WKTHRDNO DS    H
 *
          DS    0F
@@ -962,6 +956,8 @@ GENEVA   DC    CL8'GENEVA  '           TOKEN  and MAJ ENQ NAME
 PGMNAME  DC    CL8'GVBMRAD '
 MRADNAME DC    CL8'MRADEXA '          MINOR  ENQ  NODE FOR WRITE I/O
 LINKNAME DC    CL8'ADAUSER'
+*
+NUMMSK   DC    XL12'402020202020202020202021'
 *
          LTORG ,
 *
