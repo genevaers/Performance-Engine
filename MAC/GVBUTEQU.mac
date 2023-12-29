@@ -229,6 +229,8 @@ DB2_HPU_NAPF EQU 201 DB2 HPU requires APF authorization
 DB2_HPU_SYSI EQU 202 Unable to open SYSIN file for DB2 HPU
 DB2_HPU_PARA EQU 203 Invalid DB2 HPU parallel parameter (physical file) 
 DB2_HPU_TOKN EQU 204 Unable to create/locate token for DB2 HPU
+ADA_BADRSP   EQU 210 &&1 - Bad Adabas response to command XX: XXXX/XXXX
+ADA_NOLINK   EQU 211 &&1 - Adabas link module not found
 *
 DB2_VSAM_OPEN_FAIL EQU   300 - Unable to open Db2 base VSAM file
 MSG#301  EQU   301 (301U) - Error on Db2 base VSAM SHOWCB

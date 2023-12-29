@@ -185,7 +185,6 @@ WKCID1   DS    X
 WKCID23  DS    XL2
 WKCID4   DS    X
 WKAADA   DS    F
-WKRETC   DS    F
 *
 CB       DS    XL(ACBXQLL)
 *
@@ -276,7 +275,7 @@ START    STM   R14,R12,SAVESUBR+RSA14  SAVE  CALLER'S REGISTERS
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *
          XC    dblwork2,dblwork2  used to accumulate total getmained
-         XC    workmsg(4),workmsg zero translated error msg area
+         XC    workmsg(16),workmsg zero translated error msg area
 *
 A0002    EQU   *
          LAY   R0,ADAFETCH        INITIALIZE READ ROUTINE ADDRESS
@@ -410,10 +409,15 @@ INITLEN  STH   R9,SQLBUFFR        SAVE  ACTUAL  TEXT LENGTH
          ST    R0,WKAADA
          J     A0011
 A0010    EQU   *
-         WTO 'GVBXRA: ADABAS LINK MODULE NOT LOADED'
+         GVBMSG LOG,MSGNO=ADA_NOLINK,SUBNO=1,                          +
+               SUB1=(PGMNAME,8),                                       +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+         LHI   R15,12
+         J     RETURNE
+*
+*
 A0011    EQU   *
-*
-*
          MVI   ACBXVERT,ACBXVERE
          MVI   ACBXVERN,ACBXVERC
          MVC   ACBXLEN,=Y(ACBXQLL)
@@ -483,33 +487,50 @@ A0011    EQU   *
 *
          CLC   ACBXRSP,=H'0'
          JE    A0012
-*        DC    H'0'
-         MVC   WKPRINT,SPACES
-         wto 'open error'
-         MVC   WKPRINT(30),=CL30'GVBXRA: Open Error xxxx/xxxx  '
+         MVC   WORKMSG(2),ACBXCMD
          LH    R15,ACBXRSP
          CVD   R15,WKDBLWK
-         MVC   WKPRINT+19(4),NUMMSK+8
-         MVI   WKPRINT+19,C' '
-         ED    WKPRINT+19(4),WKDBLWK+6
+         MVC   WORKMSG+2(4),NUMMSK+8
+         MVI   WORKMSG+2,C' '
+         ED    WORKMSG+2(4),WKDBLWK+6
          LH    R15,ACBXERRC
          CVD   R15,WKDBLWK
-         MVC   WKPRINT+24(4),NUMMSK+8
-         MVI   WKPRINT+24,C' '
-         ED    WKPRINT+24(4),WKDBLWK+6
-         LA    R2,OUTDCB
-         LA    R0,WKPRINT
-*         PUT   (R2),(R0)
-         MVC   WKRETC,=F'16'
-         J     I0099
+         MVC   WORKMSG+6(4),NUMMSK+8
+         MVI   WORKMSG+6,C' '
+         ED    WORKMSG+6(4),WKDBLWK+6
+         GVBMSG LOG,MSGNO=ADA_BADRSP,SUBNO=4,                          +
+               SUB1=(PGMNAME,8),                                       +
+               SUB2=(WORKMSG,2),                                       +
+               SUB3=(WORKMSG+2,4),                                     +
+               SUB4=(WORKMSG+6,4),                                     +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+         LHI   R15,12
+         J     RETURNE
 *
-A0012    EQU   *
-         MVC   WKPRINT,SPACES
-         wto 'open done'
-         MVC   WKPRINT(18),=CL18'GVBXRA: OPEN DONE '
-         LA    R2,OUTDCB
-         LA    R0,WKPRINT
-*         PUT   (R2),(R0)
+A0012    EQU   *                       Set for first read command
+         MVC   ACBXCMD,=CL2'L3'
+         MVI   ACBXCOP1,C'M'
+         MVI   ACBXCOP2,C'V'
+         MVC   ACBXADD1,=CL8'AA      '
+         XC    ACBXISN,ACBXISN
+         XC    ACBXISL,ACBXISL
+         XC    ACBXISQ,ACBXISQ
+*
+         MVC   FBDXDATA(21),=CL21'AA,AB,AC,AD,AE,AF,AG.'
+         MVC   FBDXSEND+4(4),=F'21'
+*
+         XC    RBDXSEND,RBDXSEND
+         MVC   RBDXRECV+4(4),=A(LREC*NREC)
+*
+         XC    MBDXSEND,MBDXSEND
+         MVC   MBDXRECV+4(4),=A(MISN*NREC)
+*
+         MVC   SBDXDATA(03),=CL3'AA.'
+         MVC   SBDXSEND+4(4),=F'3'
+*
+         MVC   VBDXDATA(10),=CL10'0000000000'
+         MVC   VBDXSEND+4(4),=F'10'
 *
 **********************************************************************
 * DISPLAY SQL IN MR95 TRACE FILE IF OPEN                             *
@@ -635,6 +656,7 @@ DB2FETCH DS    0H
          STMG  R14,R12,SAVESUB3
          LR    R9,R14              SAVE RETURN ADDRESS
          LARL  R10,GVBMRAD         set static area base
+         LAY   R5,RB
 *
 ***********************************************************************
 *   FILL   NEXT "BUFSIZE" buffer                                      *
@@ -649,51 +671,7 @@ DB2FETCH DS    0H
 *
 LOADB    DS    0H
          CLI   WKEOF,C'Y'          End of file pending ?      
-         JNE   LOADB10             No, go
-*
-         MVC   WKPRINT,SPACES
-         wto 'Already at end of file'
-         MVC   WKPRINT(57),=CL57'GVBXRA: ALREADY AT END OF FILE. RETURN+
-               ING RC=8 TO GVBMR95'
-         LA    R2,OUTDCB
-         LA    R0,WKPRINT
-         PUT   (R2),(R0)
-         MVC   WKPRINT,SPACES
-         MVC   WKPRINT(35),=CL35'GVBXRA: BLOCKS RETURNED TO GVBMR95 '
-         L     R15,WKBUFRET
-         CVD   R15,WKDBLWK
-         MVC   WKPRINT+35(7),NUMMSK+5
-         MVI   WKPRINT+35,C' '
-         ED    WKPRINT+35(7),WKDBLWK+5
-         LA    R2,OUTDCB
-         LA    R0,WKPRINT
-*         PUT   (R2),(R0)
-         MVC   WKRETC,=F'8'
-         J     LOADB99
-*
-LOADB10  EQU   *
-         MVC   ACBXCMD,=CL2'L3'
-         MVI   ACBXCOP1,C'M'
-         MVI   ACBXCOP2,C'V'
-         MVC   ACBXADD1,=CL8'AA      '
-         XC    ACBXISN,ACBXISN
-         XC    ACBXISL,ACBXISL
-         XC    ACBXISQ,ACBXISQ
-*
-         MVC   FBDXDATA(21),=CL21'AA,AB,AC,AD,AE,AF,AG.'
-         MVC   FBDXSEND+4(4),=F'21'
-*
-         XC    RBDXSEND,RBDXSEND
-         MVC   RBDXRECV+4(4),=A(LREC*NREC)
-*
-         XC    MBDXSEND,MBDXSEND
-         MVC   MBDXRECV+4(4),=A(MISN*NREC)
-*
-         MVC   SBDXDATA(03),=CL3'AA.'
-         MVC   SBDXSEND+4(4),=F'3'
-*
-         MVC   VBDXDATA(10),=CL10'0000000000'
-         MVC   VBDXSEND+4(4),=F'10'
+         JE    EVNTEOF             Yes, go
 *
 A0013    EQU   *
          LA    R1,ADAPAL
@@ -705,38 +683,59 @@ A0013    EQU   *
          CLC   ACBXRSP,=H'0'
          JE    A0014
          CLC   ACBXRSP,=F'3'
-         JE    EVNTEOF           Nothing left to read here
-*        DC    H'0'
-         MVC   WKRETC,=F'16'
-         MVC   WKPRINT,SPACES
-         MVC   WKPRINT(31),=CL31'GVBXRA: Read(1) Error xxxx/xxxx'
-         J     A0017
+         JE    EVNTEOF             Nothing left to read here
+         MVC   WORKMSG(2),ACBXCMD
+         LH    R15,ACBXRSP
+         CVD   R15,WKDBLWK
+         MVC   WORKMSG+2(4),NUMMSK+8
+         MVI   WORKMSG+2,C' '
+         ED    WORKMSG+2(4),WKDBLWK+6
+         LH    R15,ACBXERRC
+         CVD   R15,WKDBLWK
+         MVC   WORKMSG+6(4),NUMMSK+8
+         MVI   WORKMSG+6,C' '
+         ED    WORKMSG+6(4),WKDBLWK+6
+         GVBMSG LOG,MSGNO=ADA_BADRSP,SUBNO=4,                          +
+               SUB1=(PGMNAME,8),                                       +
+               SUB2=(WORKMSG,2),                                       +
+               SUB3=(WORKMSG+2,4),                                     +
+               SUB4=(WORKMSG+6,4),                                     +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+         J     A0202
 *
 A0014    EQU   *
-         MVC   WKPRINT,SPACES
-         MVC   WKPRINT(18),=CL18'GVBXRA: READ DONE:'
          XC    WKRECBUF,WKRECBUF
-         USING MBDSECT,R10
-         LAY   R10,MBAREA
+         USING MBDSECT,R12
+         LAY   R12,MBAREA
          LAY   R11,RBAREA
 A001400  EQU   *
          CLC   MBRESP,=F'0'      All good
          JE    A001402
          CLC   MBRESP,=F'3'      Then at least we have a partial block
          JE    A0015
-*        DC    H'0'
-         MVC   WKRETC,=F'16'
-         MVC   WKPRINT,SPACES
-         MVC   WKPRINT(31),=CL31'GVBXRA: Read(2) Error xxxx/xxxx'
-         J     A0017
+         MVC   WORKMSG(2),ACBXCMD
+         LH    R15,ACBXRSP
+         CVD   R15,WKDBLWK
+         MVC   WORKMSG+2(4),NUMMSK+8
+         MVI   WORKMSG+2,C' '
+         ED    WORKMSG+2(4),WKDBLWK+6
+         LH    R15,ACBXERRC
+         CVD   R15,WKDBLWK
+         MVC   WORKMSG+6(4),NUMMSK+8
+         MVI   WORKMSG+6,C' '
+         ED    WORKMSG+6(4),WKDBLWK+6
+         GVBMSG LOG,MSGNO=ADA_BADRSP,SUBNO=4,                          +
+               SUB1=(PGMNAME,8),                                       +
+               SUB2=(WORKMSG,2),                                       +
+               SUB3=(WORKMSG+2,4),                                     +
+               SUB4=(WORKMSG+6,4),                                     +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+         J     A0202
 *
 A001402  EQU   *
-         MVC   WKPRINT+18(LREC),0(R11)
-         LA    R2,OUTDCB
-         LA    R0,WKPRINT
-         PUT   (R2),(R0)
-*
-         LA    R10,MISN(,R10)
+         LA    R12,MISN(,R12)
          LA    R11,LREC(,R11)
          ASI   WKRECBUF,1        records in buffer so far
          CLC   WKRECBUF,MBCOUNT  all records retrieved ?
@@ -744,50 +743,10 @@ A001402  EQU   *
          L     R0,WKRECCNT
          A     R0,WKRECBUF
          ST    R0,WKRECCNT       total records so far
-         J     LOADB99           read one block only, i.e. one L3.
+         J     UNLOADB           read one block only, i.e. one L3.
 *
 A0015    EQU   *
-         MVC   WKPRINT,SPACES
-         MVC   WKPRINT(19),=CL19'GVBXRA: END OF DATA'
-         LA    R2,OUTDCB
-         LA    R0,WKPRINT
-         PUT   (R2),(R0)
-*
-         MVC   WKPRINT,SPACES
-         MVC   WKPRINT(39),=CL39'GVBXRA: Records read in this partition+
-               :'
-         L     R15,WKRECCNT
-         CVD   R15,WKDBLWK
-         MVC   WKPRINT+40(7),NUMMSK+5
-         MVI   WKPRINT+40,C' '
-         ED    WKPRINT+40(7),WKDBLWK+5
-         LA    R2,OUTDCB
-         LA    R0,WKPRINT
-         PUT   (R2),(R0)
-*
-         MVI   WKEOF,C'Y'                End of file pending
-         J     LOADB99
-*
-* This has to be moved !!
-*
-A0017    EQU   *
-         LH    R15,ACBXRSP
-         CVD   R15,WKDBLWK
-         MVC   WKPRINT+22(4),NUMMSK+8
-         MVI   WKPRINT+22,C' '
-         ED    WKPRINT+22(4),WKDBLWK+6
-         LH    R15,ACBXERRC
-         CVD   R15,WKDBLWK
-         MVC   WKPRINT+27(4),NUMMSK+8
-         MVI   WKPRINT+27,C' '
-         ED    WKPRINT+27(4),WKDBLWK+6
-         LA    R2,OUTDCB
-         LA    R0,WKPRINT
-         PUT   (R2),(R0)
-*
-*
-LOADB99  EQU   *
-         L     R15,WKRETC
+         MVI   WKEOF,C'Y'        End of file pending return partial blk
 *
 ***********************************************************************
 *   RETURN NEXT "BUFSIZE" buffer                                      *
@@ -809,36 +768,9 @@ UNLOADB  DS    0H
          DROP  R14
 *
          LTR   R15,R15
-         JZ    U0002
+         JZ    EVNTEOF            Nothing to return, go
          XC    WKRECBUF,WKRECBUF  RESET BUFFER COUNT = 0
          ASI   WKBUFRET,1         INCREMENT NUMBER BUFFERS RETURNED
-         J     U0004
-U0002    EQU   *
-         MVC   WKRETC,=F'8'       ALREADY EOF
-U0004    EQU   *
-*
-         BR    R10                RETURN
-*
->>>      J     EVNTEOF            Go: it's last data from last instance
-*
->>>      J     FETCHOK            CONTINUE
-*
-* This is for errors
-*
-A0202    EQU   *                  R15 contains return error
-         XGR   R6,R6              Indicate NO Record
-         STG   R6,RECADDR         Save the Record address
-*
-         L     R2,EVNTDCBA        LOAD SYNAD EXIT ADDRESS
-         LT    R2,DCBDCBE-IHADCB(R2) --> DCBE
-         JZ    A0203
-         USING DCBE,R2
-         L     R14,DCBESYNA       LOAD I/O error routine addr
-         drop  r2
-         LTR   R14,R14            EXIT  ADDRESS  AVAILABLE   ???
-         BNZR  R14                YES - USE GVBMR95 EXIT   ADDRESS
-A0203    EQU   *
-         BR    R9                 NO  - USE GVBMRAD RETURN ADDRESS
 *
 * This is for ok
 *
@@ -860,6 +792,23 @@ FETCHOK  DS    0H
          LMG   R14,R12,SAVESUB3
          BSM   0,R14
 *
+* This is for errors
+*
+A0202    EQU   *                  R15 contains return error
+         XGR   R6,R6              Indicate NO Record
+         STG   R6,RECADDR         Save the Record address
+*
+         L     R2,EVNTDCBA        LOAD SYNAD EXIT ADDRESS
+         LT    R2,DCBDCBE-IHADCB(R2) --> DCBE
+         JZ    A0203
+         USING DCBE,R2
+         L     R14,DCBESYNA       LOAD I/O error routine addr
+         drop  r2
+         LTR   R14,R14            EXIT  ADDRESS  AVAILABLE   ???
+         BNZR  R14                YES - USE GVBMR95 EXIT   ADDRESS
+A0203    EQU   *
+         BR    R9                 NO  - USE GVBMRAD RETURN ADDRESS
+*
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
 * 1.  PERFORM END-OF-JOB PROCESSING AT END-OF-FILE (EOF)              *
@@ -867,11 +816,6 @@ FETCHOK  DS    0H
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *
 EVNTEOF  EQU   *
-*
-**********************************************************************
-* ADABAS end of file                                                 *
-**********************************************************************
-*
          MVC   ACBXCMD,=CL2'CL'
          XC    FBDXSEND,FBDXSEND
          XC    RBDXSEND,RBDXSEND
@@ -886,18 +830,28 @@ EVNTEOF  EQU   *
          LR    R13,R11
          CLC   ACBXRSP,=H'0'
          JE    A0015B
-         MVC   WKPRINT,SPACES
-         MVC   WKPRINT(31),=CL31'GVBXRA: Close Error xxxx/xxxx  '
-         wto 'close error'
-         J     A0017
-A0015B   EQU   *
-         MVC   WKPRINT,SPACES
-         MVC   WKPRINT(18),=CL18'GVBXRA: CLOSE DONE'
-         LA    R2,OUTDCB
-         LA    R0,WKPRINT
-         PUT   (R2),(R0)
-         J     LOADB99
 *
+* Not much of an error but mention it
+         MVC   WORKMSG(2),ACBXCMD
+         LH    R15,ACBXRSP
+         CVD   R15,WKDBLWK
+         MVC   WORKMSG+2(4),NUMMSK+8
+         MVI   WORKMSG+2,C' '
+         ED    WORKMSG+2(4),WKDBLWK+6
+         LH    R15,ACBXERRC
+         CVD   R15,WKDBLWK
+         MVC   WORKMSG+6(4),NUMMSK+8
+         MVI   WORKMSG+6,C' '
+         ED    WORKMSG+6(4),WKDBLWK+6
+         GVBMSG LOG,MSGNO=ADA_BADRSP,SUBNO=4,                          +
+               SUB1=(PGMNAME,8),                                       +
+               SUB2=(WORKMSG,2),                                       +
+               SUB3=(WORKMSG+2,4),                                     +
+               SUB4=(WORKMSG+6,4),                                     +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+*
+A0015B   EQU   *
          XGR   R6,R6         Indicate NO Records and end of partitions
          STG   R6,RECADDR         Save the Record address
 *
@@ -912,7 +866,7 @@ A0015B   EQU   *
 *
          ENQ   (GENEVA,ENQSTAT,E,,STEP),RNL=NO
          if LTR,R15,R15,nz
-*          'GVBMRSQ - Buffer stats "ENQ" FAILED'
+*          'GVBMRAD - Buffer stats "ENQ" FAILED'
 *          this just means that the stats will not be correct
 *          Issue a warning message
            GVBMSG LOG,MSGNO=STATS_ENQ_FAIL,SUBNO=1,GENENV=GENENV,      +
