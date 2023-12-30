@@ -656,7 +656,6 @@ ADAFETCH DS    0H
          USING IBBDX,IB
          USING MBBDX,MB
 *
-LOADB    DS    0H
          CLI   WKEOF,C'Y'          End of file pending ?      
          JE    EVNTEOF             Yes, go
 *
