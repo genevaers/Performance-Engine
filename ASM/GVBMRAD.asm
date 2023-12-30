@@ -732,7 +732,7 @@ A001402  EQU   *
          L     R0,WKRECCNT
          A     R0,WKRECBUF
          ST    R0,WKRECCNT       total records so far
-         J     UNLOADB           read one block only, i.e. one L3.
+         J     FETCHOK           read one block only, i.e. one L3.
 *
 A0015    EQU   *
          MVI   WKEOF,C'Y'        End of file pending return partial blk
@@ -740,39 +740,17 @@ A0015    EQU   *
 ***********************************************************************
 *   RETURN NEXT "BUFSIZE" buffer                                      *
 ***********************************************************************
-UNLOADB  DS    0H
-         LLGT  R15,=A(LREC)
-         MS    R15,WKRECBUF
-*
-         LLGT  R14,GPBLKSIZ
-         USING GENBLKSZ,R14
-         ST    R15,GP_RESULT_BLK_SIZE
-         DROP  R14
-*
-         LAY   R1,RBAREA
-         LLGTR R1,R1
-         LLGT  R14,GPBLOCKA       LOAD  POINTER ADDRESS
-         USING GENBLOCK,R14
-         STG   R1,GP_RESULT_PTR   RETURN BLOCK ADDRESS
-         DROP  R14
-*
-         LTR   R15,R15
-         JZ    EVNTEOF            Nothing to return, go
-         XC    WKRECBUF,WKRECBUF  RESET BUFFER COUNT = 0
-         ASI   WKBUFRET,1         INCREMENT NUMBER BUFFERS RETURNED
-*
-* This is for ok
-*
 FETCHOK  DS    0H
-         LLGT  R6,EXUBLKA         Current record at start of block
+         ASI   WKBUFRET,1         INCREMENT NUMBER BUFFERS RETURNED
+         LAY   R1,RBAREA
+         LLGTR R6,R1              Current record at start of block
          STG   R6,RECADDR         Store address of record
-         LGF   R0,EXUROWLN
+         LGF   R0,=A(LREC)
          ST    R0,ROWLEN          Store length of record
          ST    R0,GPRECLEN        used by MR95
          ST    R0,GPRECMAX
 *
-         LGF   R0,EXUROWLN
-         MS    R0,EXURNUM
+         MS    R0,WKRECBUF        Times number of records
          ST    R0,GPBLKMAX
          AGR   R0,R6
          STG   R0,EODADDR         used by MR95
