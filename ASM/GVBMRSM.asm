@@ -878,7 +878,7 @@ COPY_CT  DS    0H
 *
          LH    R0,EXNCOL          LOAD NO. OF COLUMNS IN RECORD         
 *
-         eextr r12,fp9            get the biased exponent set by MR87
+         eextr r12,fp9            get the biased exponent set by MRSI
 *
          do from=(r0)
            LH  R14,COLNO          LOAD     COLUMN NUMBER
@@ -1551,69 +1551,76 @@ COLBCTAR DS    0H
 *
 * For COUNT and AVERAGE funcs we need to get the sort key break count
 *
-         CLI   CDSUBOPT+1,BCOUNT
-         JE    COLBCOUNT
-         CLI   CDSUBOPT+1,BAVERAGE
+         CLI   CDSUBOPT+1,BMEAN 
          JNE   COLBCT10
-COLBCOUNT DS   0H
-         STM   r2,r3,SAVEMR66     Save registers just for dfp stuff
-* Get count from the lowest sort key area
-         L     R10,VWLOWSKY       LOAD  SORT KEY   COUNTER   ADDRESS
-         USING SORTKEY,R10
-*         eextr r12,fp9            get the biased exponent set in MRI
-         S     R1,SUBTOTAD        COMPUTE SET    OFFSET FROM BEG
-         A     R1,EXTCNTA 
-*         AH    R1,CDCLCOFF         ADD  CALC COLUMN OFFSET  TO BASE        
+*COLBCOUNT DS   0H
+*         STM   r2,r3,SAVEMR66     Save registers just for dfp stuff
+* Get count from 
+*         L     R10,VWLOWSKY       LOAD  SORT KEY   COUNTER   ADDRESS
+*         USING SORTKEY,R10
+**         eextr r12,fp9            get the biased exponent set in MRI
+*         S     R1,SUBTOTAD        COMPUTE SET    OFFSET FROM BEG
+*         A     R1,EXTCNTA 
 *
-         ZAP   0(AccumDFPl,R1),SKCOUNT MOVE packed count into accum 
-         lmg r2,r3,0(r1)       get the packed value into a gpr pair
-         cxstr fp1,r2          convert to dfp
-*         iextr fp1,fp1,r12     insert the biased exponent
-         GVBSTX fp1,0(,r1)       and save back in accumlator
-         DROP  R10
+*         ZAP   0(AccumDFPl,R1),SKCOUNT MOVE packed count into accum 
+*         lmg r2,r3,0(r1)       get the packed value into a gpr pair
+*         cxstr fp1,r2          convert to dfp
+**         iextr fp1,fp1,r12     insert the biased exponent
+*         GVBSTX fp1,0(,r1)       and save back in accumlator
+*         DROP  R10
 *
-         LM    r2,r3,SAVEMR66     Restore registers 
+*         LM    r2,r3,SAVEMR66     Restore registers 
 *
-         CLI   CDSUBOPT+1,BCOUNT         
-         JE    COLBCOF2 
+*         CLI   CDSUBOPT+1,BCOUNT         
+*         JE    COLBCOF2 
 *         
 * Calculate average value for this sort break 
 *
 COLBAVGE DS    0H
 *
 * R1 -> count /fp1 contains count
+         L     R1,EXTCNTA
 * R3 -> subtotal array of accumulators
          AH    R3,CDCLCOFF           ADD  CALC COLUMN OFFSET  TO BASE
          GVBLDX  fp0,0(,r3)          load the break total
-*         GVBLDX  fp1,0(,r4)           the count is in fp1
+         GVBLDX  fp1,0(,r1)           the count is in fp1
          dxtr  fp0,fp0,fp1             divide them
 *
          LR    R1,R3                 
          S     R1,SUBTOTAD            
-         A     R1,EXTAVEA            Address break average array
+         A     R1,EXTMEANA             Address break average array
 *                                      at the correct col offset         
          GVBSTX   fp0,0(,r1)           save result 
          J     COLBCOF2        
-*        
 *
 COLBCT10 DS    0h
 *
 ***********************************************************************
 *  SELECT SET OF ACCUMULATORS                                         *
 ***********************************************************************
-COLBDET  LR    R1,R3              ASSUME CURRENT SET   OF  ACCUMULATORS
+COLBDET  LR    R1,R3                ASSUME CURRENT SET OF ACCUMULATORS
 *
-COLBMAX  CLI   CDSUBOPT+1,DETMAX  DETAILED MAX   ???
+COLBMAX  CLI   CDSUBOPT+1,DETMAX    DETAILED MAX   ???
          JNE   COLBMIN
-         S     R1,SUBTOTAD        COMPUTE SET    OFFSET FROM BEG
+         S     R1,SUBTOTAD          COMPUTE SET  OFFSET FROM BEG
          A     R1,EXTMAXA
          J     COLBCOFF
 *
-COLBMIN  CLI   CDSUBOPT+1,DETMIN  DETAILED MIN   ???
-         JNE   COLBDET2
+COLBMIN  CLI   CDSUBOPT+1,DETMIN    DETAILED MIN   ???
+         JNE   COLBCOUNT
          S     R1,SUBTOTAD
          A     R1,EXTMINA
          J     COLBCOFF
+*
+COLBCOUNT DS   0H
+         CLI   CDSUBOPT+1,BCOUNT    BREAK COUNT
+         JNE   COLBDET2
+* must copy accumulated value to EXTCNTA - for use by average   
+* or just point to it      
+*         S     R1,SUBTOTAD
+         st    r1,EXTCNTA
+*         L     R1,EXTCNTA           Address the count accumulator 
+         J     COLBCOF2
 *
 COLBDET2 EQU   *
 
@@ -1623,13 +1630,12 @@ COLBCOF2 DS    0H
          MVC   ACCUMWRK(AccumDFPl),0(R1)  COPY VALUE
          GVBLDX  fp0,0(,r1)         get the dfp value
 *
-         cxtr  fp0,fp8            NULL VALUE  ???
+         cxtr  fp0,fp8            NULL VALUE  ?
          JNE   COLBEDIT           NO - BYPASS
 *
 COLBCNUL LH    R0,NOTNULL         DECREMENT NOT NULL  COUNT
          BCTR  R0,0
          STH   R0,NOTNULL
-                     EJECT
 ***********************************************************************
 *  EDIT OUTPUT VALUE ("CT" AND SORTABLE VALUES)                       *
 ***********************************************************************
@@ -2158,7 +2164,7 @@ SUMMOVE  GVBSTX   fp0,0(,r14)                      NO  - MOVE
 SUMSUM   axtr  fp1,fp1,fp0                      ADD  RESULTS TO  TOTALS
          GVBSTX   fp1,0(,r14)                      and save it
 *
-SUMMAX   TM    VWFLAG1,VWMIN+VWMAX+VWBCNT+VWBAVE SPECIAL FUNCTIONS ?
+SUMMAX   TM    VWFLAG1,VWMIN+VWMAX  SPECIAL FUNCTIONS ?
          JZ    SUMADV
 *
 ***********************************************************************

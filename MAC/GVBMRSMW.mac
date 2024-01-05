@@ -188,7 +188,7 @@ NOTNULL  DS    HL2                NULL     COLUMN VALUE     COUNT
 EXTCOLA  DS    A                  EXTRACT  COLUMN   VALUES ADDRESS
 SUBTOTAD DS    A                  SORT KEY SUBTOTAL ARRAY  ADDRESS
 EXTCNTA  DS    A                  EXTRACT  COLUMN   COUNT  VALUES
-EXTAVEA  DS    A                  Average column values address
+EXTMEANA DS    A                  Average/mean column values address
 *EXTPCALC DS    A                  PRE-CALCULATION   VALUES ADDRESS
 *EXTFRSTA DS    A                  FIRST    COLUMN   VALUES ADDRESS
 *EXTLASTA DS    A                  LAST     COLUMN   VALUES ADDRESS

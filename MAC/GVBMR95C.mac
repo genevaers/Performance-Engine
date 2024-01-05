@@ -1310,6 +1310,9 @@ BRKCALC  EQU   08  (C)                  CALCULATIONS  AT  BREAK LEVEL
 RECALC   EQU   09  (R)                  CALCULATIONS  AT  BOTH  LEVELS
 DETMAX   EQU   10  (X)                  DETAIL LEVEL  MAXIMUM   VALUE
 DETMIN   EQU   11  (M)                  DETAIL LEVEL  MINIMUM   VALUE
+BCOUNT   EQU   12                       Record Count at break
+BMEAN    EQU   13                       Average Col value (break level)
+
 *
 ***********************************************************************
 * MISCELLANEOUS PARAMETERS                                            *

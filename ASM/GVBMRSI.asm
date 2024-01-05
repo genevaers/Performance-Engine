@@ -319,11 +319,11 @@ ALLOC04  GVBSTX   fp8,0(,R1) storage with DFP zero
          AHI   R1,AccumDFPl
          BRCT  R0,ALLOC04
 ***********************************************************************
-*  ALLOCATE AND INITIALIZE BREAK LEVEL average                        *
+*  ALLOCATE AND INITIALIZE BREAK LEVEL average/mean                   *
 ***********************************************************************
-         LR    R0,R2              OBTAIN  MEMORY FOR COUNTS
+         LR    R0,R2              OBTAIN  MEMORY FOR average
          GETMAIN R,LV=(0),LOC=(ANY)
-         ST    R1,EXTAVEA         SAVE    AREA   ADDRESS
+         ST    R1,EXTMEANA         SAVE    AREA   ADDRESS
 *
          LH    R0,MAXCOL          INITIALIZE
 ALLOC03  GVBSTX   fp8,0(,R1) storage with DFP zero
@@ -336,10 +336,10 @@ ALLOC03  GVBSTX   fp8,0(,R1) storage with DFP zero
          GETMAIN R,LV=(0),LOC=(ANY)
          ST    R1,EXTCNTA         SAVE    AREA   ADDRESS
 *
-         LH    R0,MAXCOL          INITIALIZE
+*         LH    R0,MAXCOL          INITIALIZE
 ALLOC05  GVBSTX   fp8,0(,R1) storage with DFP zero
-         AHI   R1,AccumDFPl
-         BRCT  R0,ALLOC05         
+*         AHI   R1,AccumDFPl
+*         BRCT  R0,ALLOC05         
 ***********************************************************************
 *  COMPUTE MAXIMUM NO. OF CELLS FOR ALL BREAK LEVEL ACCUMULATORS      *
 ***********************************************************************
@@ -3096,8 +3096,10 @@ VDPCOPY2       DS   0H
                  MVC VWSUMTYP,VDP1000_VIEW_TYPE+2 VIEW TYPE       (S,D)
                  MVC VWDESTYP,VDP1000_OUTPUT_MEDIA+2 DESTINATION(O,B,F)
 *
-                 MVC VWBASEV#,VDP1000_COLUMN_ID BASE VIEW ID
+*                 MVC VWBASEV#,VDP1000_COLUMN_ID BASE VIEW ID
                  MVC VWDHDR,VDP1000_GEN_DELIM_HEADER Header Ind for CSV
+*
+                 MVC VWEXSUM,VDP1000_EXTRACT_SUMMARIZED                  
 *
                  XC VWFLAGS,VWFLAGS          INITIALIZE   FLAGS
 *
@@ -4875,7 +4877,7 @@ FLAGLOO1 EQU   *
 *
 FLAGLOO2 EQU   *
 *
-         CLI   CDSUBOPT+1,BAVERAGE Average value at key break?
+         CLI   CDSUBOPT+1,BMEAN   Average value at key break?
          JNE   FLAGLOO3
          OI    VWFLAG1,VWBAVE
 FLAGLOO3 EQU   *         

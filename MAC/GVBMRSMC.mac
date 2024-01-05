@@ -78,7 +78,9 @@ VWFXWDTH EQU   X'01'  ---- ---1   Use Fix Width Cols 4 Delimited Out
 *
 VWPROC   DS    XL1                View Processed (' ','P')
 VWDHDR   DS    CL1                CSV heading title indicator
-VWBASEV# DS    FL04               PERMUTATION  VIEW   BASE   VIEW#
+*VWBASEV# DS    FL04               PERMUTATION  VIEW   BASE   VIEW#
+VWEXSUM  DS    XL1                Extract time summarization
+         DS    XL3
 *
 VWSRTCNT DS    HL02               SORT      KEY        COUNT
 VWBRKCNT DS    HL02               SORT      BREAK      COUNT
@@ -631,7 +633,7 @@ LAST     EQU   06  (E)                  LAST       COLUMN VALUE (END )
 DETMAX   EQU   10  (X)                  DETAIL LEVEL  MAXIMUM   VALUE
 DETMIN   EQU   11  (M)                  DETAIL LEVEL  MINIMUM   VALUE
 BCOUNT   EQU   12                       Record Count at break
-BAVERAGE EQU   13                       Average Col value (break level)
+BMEAN    EQU   13                       Average Col value (break level)
 *
 *  COLUMN CALCULATION OPTIONS ("CDCALOPT")
 DETCALC  EQU   07  (D)                  CALCULATIONS  AT DETAIL LEVEL

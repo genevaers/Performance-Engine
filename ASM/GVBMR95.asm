@@ -10310,7 +10310,7 @@ WRTSSMLP MVC   0(256,R14),0(R1)
          LA    R1,256(,R1)
          LA    R14,256(,R14)
 WRTSSEND BRCTG R0,WRTSSMLP
-         EX    R15,MVCR14R1       MOVE RECORD FROM DATA SPACE
+         EX    R15,MVCR14R1       MOVE RECORD to stack
 *
          XC    STKMAXC,STKMAXC    INITIALIZE  COUNT (NOT -1 ANYMORE)
 *
@@ -10331,12 +10331,23 @@ WRTSSEND BRCTG R0,WRTSSMLP
              if CH,R15,gt,STKMAXC LARGER   COLUMN NUMBER  THAN PREVIOUS
                STH R15,STKMAXC
              endif
-             SH R15,SUMMINC       COMPUTE  OFFSET TO INDICATED COLUMN
+**            get the suptotal option from the sum sub table
+*             BCTGR R15,0          COMPUTE  OFFSET TO INDICATED COLUMN
+*             LG    R14,SUMSUBOP   COMPUTE  SUBTOTAL  OPTION CODE ADDR
+*             AGR   R14,R15
+*             SGR   R5,R5          LOAD SUBTOTAL  OPTION
+*             IC    R5,0(,R14)
+*             AHI   R15,1           COMPUTE  OFFSET TO INDICATED COLUMN
+*             
+             SH R15,SUMMINC        COMPUTE  OFFSET TO INDICATED COLUMN
              LA R14,L'COLDATA
              MLGR R14,R14
 *
-             AGR R15,R1                 ADD  BASE  TO OFFSET
+             AGR R15,R1                   ADD  BASE  TO OFFSET
              MVC 0(L'COLDATA,R15),COLDATA ADD VALUE TO CORRECT COLUMN
+*             IF CHI,R5,EQ,BCOUNT          Sort key Break count?
+*               ZAP 0(L'COLDATA,R15),P001  Set count to  1
+*             endif              
 *
              LA R6,COLDATAL(,R6)  ADVANCE  TO NEXT COLUMN  OFFSET
            enddo ,                LOOP THROUGH ALL COLUMNS IN EXTRACT
@@ -10545,6 +10556,13 @@ WRTSSUML LGH   R15,COLNO          LOAD     COLUMN NUMBER
 *
          CHI   R5,SUBTOT          CHECK    SUBTOTAL  OPTIONS
          JE    WRTSSUMC
+*
+         CHI   R5,BCOUNT          Sort key Break count?
+*         JE    WRTSCOUNT
+         JE    WRTSSUMC           Sum as count column must contain 1 
+         CHI   R5,BMEAN           Sort key Break average?
+         JE    WRTSSUMC
+*         
          CHI   R5,DETCALC
          JE    WRTSSUMC
          CHI   R5,BRKCALC
@@ -10576,6 +10594,9 @@ WRTSLAST CHI   R5,LAST
 *
 WRTSCPYC MVC   0(L'COLDATA,R15),COLDATA COPY VALUE TO CORRECT  COLUMN
          J     WRTSNXTC
+WRTSCOUNT DS   0H
+         AP    0(L'COLDATA,R15),P001   Add one to count
+         J     WRTSNXTC         
 *
 WRTSSUMC AP    0(L'COLDATA,R15),COLDATA ADD  VALUE TO CORRECT  COLUMN
 *
