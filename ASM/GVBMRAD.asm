@@ -23,7 +23,7 @@
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
 *   GVBMRAD -                                                         *
-*            ADABAS I/I -- initialization                             *
+*            ADABAS I/O -- initialization                             *
 *                                                                     *
 *                                                                     *
 *  NOTE:     GVBMRAD RUNS IN 31-BIT ADDRESSING MODE.                  *
@@ -220,9 +220,9 @@ LEAVE    OPSYN ASM_LEAVE
          asmmrel on
          print on
 *
-GVBMRAD  RMODE 31
-GVBMRAD  AMODE 31
-GVBMRAD  CSECT
+GVBMRSU  RMODE 31
+GVBMRSU  AMODE 31
+GVBMRSU  CSECT
          j     start              get to the code
 MRAUEYE  GVBEYE GVBMRAD
 static   loctr                    define the static section
@@ -251,8 +251,8 @@ START    STM   R14,R12,SAVESUBR+RSA14  SAVE  CALLER'S REGISTERS
          llgtr r14,r14
          llgtr r15,r15
 *
-         LARL  R10,GVBMRAD        set static area base
-         USING (GVBMRAD,code),R10
+         LARL  R10,GVBMRSU        set static area base
+         USING (GVBMRSU,code),R10
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
@@ -366,27 +366,34 @@ INITLEN  STH   R9,SQLBUFFR        SAVE  ACTUAL  TEXT LENGTH
 *  OPEN INPUT FILE (ADABAS)                                           *
 ***********************************************************************
 *
-         LAY   R3,CB
          USING ADACBX,CB
-         LAY   R4,FB
          USING FBBDX,FB
-         LAY   R5,RB
          USING RBBDX,R5
-         LAY   R6,SB
          USING SBBDX,SB
-         LAY   R7,VB
          USING VBBDX,VB
-         LAY   R8,IB
          USING IBBDX,IB
-         LAY   R9,MB
          USING MBBDX,MB
 *
-         ST    R3,ADAPAL+00
+         LAY   R5,RB
+*
+         LA    R0,CB
+         ST    R0,ADAPAL+00
          LA    R0,APLXLINK
          ST    R0,ADAPAL+04
          LA    R0,LINKWORK
          ST    R0,ADAPAL+08
-         STM   R4,R9,ADAPAL+12
+         LA    R0,FB
+         ST    R0,ADAPAL+12
+         LA    R0,RB
+         ST    R0,ADAPAL+16
+         LA    R0,SB
+         ST    R0,ADAPAL+20
+         LA    R0,VB
+         ST    R0,ADAPAL+24
+         LA    R0,IB
+         ST    R0,ADAPAL+28
+         LA    R0,MB
+         ST    R0,ADAPAL+32
          OI    ADAPAL+32,X'80'
 *
 *
@@ -642,7 +649,8 @@ RETURNE  DS    0H
 ADAFETCH DS    0H
          STMG  R14,R12,SAVESUB3
          LR    R9,R14              SAVE RETURN ADDRESS
-         LARL  R10,GVBMRAD         set static area base
+         LARL  R10,GVBMRSU         set static area base
+         LLGT  R8,SQLWADDR         Needed if it's not 1st time through
          LAY   R5,RB
 *
 ***********************************************************************
