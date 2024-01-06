@@ -171,6 +171,7 @@ WKCID1   DS    X
 WKCID23  DS    XL2
 WKCID4   DS    X
 WKAADA   DS    F
+WKARB    DS    F
 *
 CB       DS    XL(ACBXQLL)
 *
@@ -263,7 +264,6 @@ START    STM   R14,R12,SAVESUBR+RSA14  SAVE  CALLER'S REGISTERS
          XC    dblwork2,dblwork2  used to accumulate total getmained
          XC    workmsg(16),workmsg zero translated error msg area
 *
-A0002    EQU   *
          LAY   R0,ADAFETCH        INITIALIZE READ ROUTINE ADDRESS
          O     R0,MODE31
          ST    R0,EVNTREAD
@@ -294,6 +294,19 @@ A0002    EQU   *
          XR    R15,R15
          MVCL  R0,R14
 *
+*   obtain record buffer
+*
+         LGHI  R0,NREC*LREC
+         LY    R1,DBLWORK2
+         AR    R1,R0 
+         STY   R1,DBLWORK2
+         GETMAIN RU,LV=(0),LOC=(31)
+         ST    R1,WKARB
+         lr    R0,R1              ZERO  WORK  AREA
+         lghi  R1,NREC*LREC
+         xr    R14,R14
+         xr    R15,R15
+         MVCL  R0,R14
 **********************************************************************
 * PERFORM SYMBOLIC VARIABLE SUBSTITUTION FOR DB2 SUBSYSTEM NAME      *
 **********************************************************************
@@ -374,7 +387,7 @@ INITLEN  STH   R9,SQLBUFFR        SAVE  ACTUAL  TEXT LENGTH
          USING IBBDX,IB
          USING MBBDX,MB
 *
-         LAY   R5,RB
+         LLGT  R5,WKARB
 *
          LA    R0,CB
          ST    R0,ADAPAL+00
@@ -384,8 +397,7 @@ INITLEN  STH   R9,SQLBUFFR        SAVE  ACTUAL  TEXT LENGTH
          ST    R0,ADAPAL+08
          LA    R0,FB
          ST    R0,ADAPAL+12
-         LA    R0,RB
-         ST    R0,ADAPAL+16
+         ST    R5,ADAPAL+16
          LA    R0,SB
          ST    R0,ADAPAL+20
          LA    R0,VB
@@ -651,7 +663,7 @@ ADAFETCH DS    0H
          LR    R9,R14              SAVE RETURN ADDRESS
          LARL  R10,GVBMRSU         set static area base
          LLGT  R8,SQLWADDR         Needed if it's not 1st time through
-         LAY   R5,RB
+         LLGT  R5,WKARB
 *
 ***********************************************************************
 *   FILL   NEXT "BUFSIZE" buffer                                      *
@@ -702,8 +714,8 @@ A0013    EQU   *
 A0014    EQU   *
          XC    WKRECBUF,WKRECBUF
          USING MBDSECT,R12
-         LAY   R12,MBAREA
-         LAY   R11,RBAREA
+         LA    R12,MBAREA
+         LA    R11,RBAREA-RB(,R5)
 A001400  EQU   *
          CLC   MBRESP,=F'0'      All good
          JE    A001402
@@ -749,7 +761,7 @@ A0015    EQU   *
 ***********************************************************************
 FETCHOK  DS    0H
          ASI   WKBUFRET,1         INCREMENT NUMBER BUFFERS RETURNED
-         LAY   R1,RBAREA
+         LA    R1,RBAREA-RB(,R5)
          LLGTR R6,R1              Current record at start of block
          STG   R6,RECADDR         Store address of record
          LGF   R0,=A(LREC)
