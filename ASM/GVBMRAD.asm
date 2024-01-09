@@ -146,6 +146,8 @@ WKEOF    DS    CL1
 WKTHRDNO DS    H
 *
          DS    0F
+FRBSIZE  DS    F
+FMBSIZE  DS    F
 WKRECCNT DS    F                  NUMBER OF RECORDS READ
 WKRECBUF DS    F                  NUMBER OF RECORDS IN BUFFER
 WKBUFRET DS    F                  NUMBER OF BUFFERS RETURNED
@@ -191,8 +193,8 @@ MB       DS    XL(MBDXQLL)
 MBCOUNT  DS    F
 MBAREA   DS (NREC)CL(MISN)        100 * 16 byte ISN areas
 *
-RB       DS    XL(RBDXQLL)
-RBAREA   DS (NREC)CL(LREC)        100 * 96 byte records
+*RB       DS    XL(RBDXQLL)
+*RBAREA   DS (NREC)CL(LREC)        100 * 96 byte records
 *
 WORKLEN  EQU   (*-WORKAREA)
 *
@@ -296,17 +298,23 @@ START    STM   R14,R12,SAVESUBR+RSA14  SAVE  CALLER'S REGISTERS
 *
 *   obtain record buffer
 *
-         LGHI  R0,NREC*LREC
+         LH    R0,HNREC
+         MH    R0,HLREC
+         ST    R0,FRBSIZE
          LY    R1,DBLWORK2
          AR    R1,R0 
          STY   R1,DBLWORK2
          GETMAIN RU,LV=(0),LOC=(31)
          ST    R1,WKARB
          lr    R0,R1              ZERO  WORK  AREA
-         lghi  R1,NREC*LREC
+         LGF   R1,FRBSIZE
          xr    R14,R14
          xr    R15,R15
          MVCL  R0,R14
+*
+         LH    R0,HNREC
+         MH    R0,HMISN
+         ST    R0,FMBSIZE
 **********************************************************************
 * PERFORM SYMBOLIC VARIABLE SUBSTITUTION FOR DB2 SUBSYSTEM NAME      *
 **********************************************************************
@@ -446,14 +454,17 @@ A0011    EQU   *
          MVI   RBDXVERT,ABDXVERE
          MVI   RBDXVERN,ABDXVERC
          MVI   RBDXID,ABDXQRB
-         MVC   RBDXSIZE+4(4),=A(LREC*NREC)
+         LGF   R0,FRBSIZE
+         STG   R0,RBDXSIZE
 *
          MVI   MBDXLOC,C' '
          MVC   MBDXLEN,=Y(MBDXQLL)
          MVI   MBDXVERT,ABDXVERE
          MVI   MBDXVERN,ABDXVERC
          MVI   MBDXID,ABDXQMB
-         MVC   MBDXSIZE+4(4),=A(4+MISN*NREC)  QUANTITY THEN MISN AREA
+         LGF   R0,FMBSIZE
+         AGHI  R0,4
+         STG   R0,MBDXSIZE        QUANTITY THEN MISN AREA
 *
          MVI   SBDXLOC,C' '
          MVC   SBDXLEN,=Y(SBDXQLL)
@@ -528,10 +539,10 @@ A0012    EQU   *                       Set for first read command
          MVC   FBDXSEND+4(4),=F'21'
 *
          XC    RBDXSEND,RBDXSEND
-         MVC   RBDXRECV+4(4),=A(LREC*NREC)
+         MVC   RBDXRECV+4(4),FRBSIZE
 *
          XC    MBDXSEND,MBDXSEND
-         MVC   MBDXRECV+4(4),=A(MISN*NREC)
+         MVC   MBDXRECV+4(4),=FMBSIZE
 *
          MVC   SBDXDATA(03),=CL3'AA.'
          MVC   SBDXSEND+4(4),=F'3'
@@ -743,8 +754,8 @@ A001400  EQU   *
          J     A0202
 *
 A001402  EQU   *
-         LA    R12,MISN(,R12)
-         LA    R11,LREC(,R11)
+         AH    R12,HMISN
+         AH    R11,HLREC
          ASI   WKRECBUF,1        records in buffer so far
          CLC   WKRECBUF,MBCOUNT  all records retrieved ?
          JL    A001400           no, back for next...
@@ -764,7 +775,7 @@ FETCHOK  DS    0H
          LA    R1,RBAREA-RB(,R5)
          LLGTR R6,R1              Current record at start of block
          STG   R6,RECADDR         Store address of record
-         LGF   R0,=A(LREC)
+         LH    R0,HLREC
          ST    R0,ROWLEN          Store length of record
          ST    R0,GPRECLEN        used by MR95
          ST    R0,GPRECMAX
@@ -904,9 +915,11 @@ static   loctr
 F10K     equ   10240
 BLOCKSZ  equ   8192
 *
-F4       DC    F'04'
-F8       DC    F'08'
+HLREC    DC    H'LREC'
+HNREC    DC    H'NREC'
+HMISN    DC    H'MISM'
 *
+         DS    0F
 MODE31   DC    XL4'80000000'
 *
 STGBLKLN DC    A(WKLEN+8)
