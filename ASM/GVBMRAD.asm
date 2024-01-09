@@ -542,7 +542,7 @@ A0012    EQU   *                       Set for first read command
          MVC   RBDXRECV+4(4),FRBSIZE
 *
          XC    MBDXSEND,MBDXSEND
-         MVC   MBDXRECV+4(4),=FMBSIZE
+         MVC   MBDXRECV+4(4),FMBSIZE
 *
          MVC   SBDXDATA(03),=CL3'AA.'
          MVC   SBDXSEND+4(4),=F'3'
@@ -726,7 +726,7 @@ A0014    EQU   *
          XC    WKRECBUF,WKRECBUF
          USING MBDSECT,R12
          LA    R12,MBAREA
-         LA    R11,RBAREA-RB(,R5)
+         LA    R11,RBDXQLL(,R5)
 A001400  EQU   *
          CLC   MBRESP,=F'0'      All good
          JE    A001402
@@ -772,7 +772,7 @@ A0015    EQU   *
 ***********************************************************************
 FETCHOK  DS    0H
          ASI   WKBUFRET,1         INCREMENT NUMBER BUFFERS RETURNED
-         LA    R1,RBAREA-RB(,R5)
+         LA    R1,RBDXQLL(,R5)
          LLGTR R6,R1              Current record at start of block
          STG   R6,RECADDR         Store address of record
          LH    R0,HLREC
