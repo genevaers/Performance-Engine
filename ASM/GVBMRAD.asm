@@ -915,9 +915,9 @@ static   loctr
 F10K     equ   10240
 BLOCKSZ  equ   8192
 *
-HLREC    DC    H'LREC'
-HNREC    DC    H'NREC'
-HMISN    DC    H'MISM'
+HLREC    DC    Y(LREC)
+HNREC    DC    Y(NREC)
+HMISN    DC    Y(MISN)
 *
          DS    0F
 MODE31   DC    XL4'80000000'
