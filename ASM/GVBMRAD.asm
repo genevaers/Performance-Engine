@@ -227,8 +227,8 @@ GVBMRSU  RMODE 31
 GVBMRSU  AMODE 31
 GVBMRSU  CSECT
          j     start              get to the code
-MRAUEYE  GVBEYE GVBMRAD
 static   loctr                    define the static section
+MRAUEYE  GVBEYE GVBMRAD
 code     loctr                    and the code
          USING THRDAREA,R13       REUSE/RETAIN   MAIN THREAD SAVE  AREA
          using genenv,env_area
@@ -957,14 +957,11 @@ HEXTR    DS    XL256'00'
 *
 ENQSTAT  DC    CL8'ENQSTAT '      MINOR  ENQ NODE  (Stats)
 TRACNAME DC    CL8'MR95TRAC'      MINOR  ENQ NODE  (MR95 TRACE FILE)
-LOGNAME  DC    CL8'MR95LOG '      MINOR  ENQ NODE  (MR95 LOG FILE)
 ZEROES   DC   8CL01'0'
 REFTBLID DC    CL03'#DD'
 *
-TOKNLVL2 DC    A(2)               NAME/TOKEN  AVAILABILITY  TASK LEVEL
-GENEVA   DC    CL8'GENEVA  '           TOKEN  and MAJ ENQ NAME
+GENEVA   DC    CL8'GENEVA  '      MAJOR ENQ NAME
 PGMNAME  DC    CL8'GVBMRAD '
-MRADNAME DC    CL8'MRADEXA '          MINOR  ENQ  NODE FOR WRITE I/O
 LINKNAME DC    CL8'ADAUSER'
 *
 NUMMSK   DC    XL12'402020202020202020202021'
