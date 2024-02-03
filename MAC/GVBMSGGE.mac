@@ -322,6 +322,8 @@
  GVBMSGDF 210,'&&1 - Bad Adabas response to command &&2: &&3/&&4',TYPE=+
                U
  GVBMSGDF 211,'&&1 - Adabas link module not found',TYPE=U
+ GVBMSGDF 212,'&&1 - Source file type Adabas not available',TYPE=U
+ 
 *
 *  Message from GVBMRDV - Db2 via VSAM
 *

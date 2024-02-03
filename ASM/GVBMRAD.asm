@@ -223,9 +223,9 @@ LEAVE    OPSYN ASM_LEAVE
          asmmrel on
          print on
 *
-GVBMRSU  RMODE 31
-GVBMRSU  AMODE 31
-GVBMRSU  CSECT
+GVBMRAD  RMODE 31
+GVBMRAD  AMODE 31
+GVBMRAD  CSECT
          j     start              get to the code
 static   loctr                    define the static section
 MRAUEYE  GVBEYE GVBMRAD
@@ -254,8 +254,8 @@ START    STM   R14,R12,SAVESUBR+RSA14  SAVE  CALLER'S REGISTERS
          llgtr r14,r14
          llgtr r15,r15
 *
-         LARL  R10,GVBMRSU        set static area base
-         USING (GVBMRSU,code),R10
+         LARL  R10,GVBMRAD        set static area base
+         USING (GVBMRAD,code),R10
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
@@ -384,6 +384,101 @@ INITLOOP BCTR  R1,0               BACKUP  TO PRECEEDING BYTE
 INITLEN  STH   R9,SQLBUFFR        SAVE  ACTUAL  TEXT LENGTH
 *
 ***********************************************************************
+*  PARSE ADABAS RELATED PARAMETERS                                    *
+***********************************************************************
+*
+         LA    R9,SQLTEXT         first sub parameter
+         ST    R9,WKSUBPA1
+         LH    R1,SQLBUFFR
+         LR    R15,R9
+         LGHI  R5,1
+A000102  EQU   *
+         CLI   0(R9),C','
+         JE    A000103
+         LA    R9,1(,R9)
+         BRCT  R1,A000102
+A000103  EQU   *
+         LR    R0,R9
+         SR    R0,R15
+         ST    R0,WKSUBPL1        length of first parameter
+         CLI   0(R9),C','         was there a comma ?
+         JNE   A00011             no, go
+         LA    R9,1(,R9)          account for 1st comma
+*
+         AGHI  R5,1
+         ST    R9,WKSUBPA2
+         LR    R15,R9     
+A000104  EQU   *
+         CLI   0(R9),C','
+         JE    A000105
+         LA    R9,1(,R9)
+         BRCT  R1,A000104
+A000105  EQU   *
+         LR    R0,R9
+         SR    R0,R15
+         ST    R0,WKSUBPL2        length of second parameter
+         CLI   0(R9),C','         was there a comma ?
+         JNE   A00011             no, go
+         LA    R9,1(,R9)          account for comma
+*
+         AGHI  R5,1
+         ST    R9,WKSUBPA3
+         LR    R15,R9     
+A000106  EQU   *
+         CLI   0(R9),C','
+         JE    A000107
+         LA    R9,1(,R9)
+         BRCT  R1,A000106
+A000107  EQU   *
+         LR    R0,R9
+         SR    R0,R15
+         ST    R0,WKSUBPL3        length of third parameter
+         CLI   0(R9),C','         was there a comma ?
+         JNE   A00011             no, go
+         LA    R9,1(,R9)          account for comma
+*
+         AGHI  R5,1
+         ST    R9,WKSUBPA4
+         LR    R15,R9     
+A000108  EQU   *
+         CLI   0(R9),C','
+         JE    A000109
+         LA    R9,1(,R9)
+         BRCT  R1,A000108
+A000109  EQU   *
+         LR    R0,R9
+         SR    R0,R15
+         ST    R0,WKSUBPL4        length of fourth parameter
+A00011   EQU   *   
+*
+         LA    R6,WKSUBPA1
+         LA    R7,WKSUBPL1
+A0010    EQU   *
+         L     R1,0(,R6)
+         L     R2,0(,R7)
+         CLC   0(3,R1),=CL3'SB='
+         JNE   A0011
+         JAS   R14,SUBSB
+         J     A0014
+A0011    EQU   *
+         CLC   0(3,R1),=CL3'FB='
+         JNE   A0012
+         JAS   R14,SUBFB
+         J     A0014
+A0012    EQU   *
+         CLC   0(5,R1),=CL5'DBID='
+         JNE   A0013
+         JAS   R14,SUBDBID
+         J     A0014
+A0013    EQU   *
+         CLC   0(4,R1),=CL4'FNR='
+         JNE   A0014
+         JAS   R14,SUBFNR
+A0014    EQU   *
+         LA    R6,4(,R6)
+         LA    R7,4(,R7)
+         BRCT  R5,A0010
+***********************************************************************
 *  OPEN INPUT FILE (ADABAS)                                           *
 ***********************************************************************
 *
@@ -417,11 +512,11 @@ INITLEN  STH   R9,SQLBUFFR        SAVE  ACTUAL  TEXT LENGTH
          OI    ADAPAL+32,X'80'
 *
 *
-         LOAD  EPLOC=LINKNAME,ERRET=A0010
+         LOAD  EPLOC=LINKNAME,ERRET=A0010E
          O     R0,MODE31
          ST    R0,WKAADA
-         J     A0011
-A0010    EQU   *
+         J     A0011O
+A0010E   EQU   *
          GVBMSG LOG,MSGNO=ADA_NOLINK,SUBNO=1,                          +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,8),                                       +
@@ -431,7 +526,7 @@ A0010    EQU   *
          J     RETURNE
 *
 *
-A0011    EQU   *
+A0011O   EQU   *
          MVI   ACBXVERT,ACBXVERE
          MVI   ACBXVERN,ACBXVERC
          MVC   ACBXLEN,=Y(ACBXQLL)
@@ -503,7 +598,7 @@ A0011    EQU   *
          LR    R13,R11
 *
          CLC   ACBXRSP,=H'0'
-         JE    A0012
+         JE    A0012O
          MVC   WORKMSG(2),ACBXCMD
          LH    R15,ACBXRSP
          CVD   R15,WKDBLWK
@@ -526,7 +621,7 @@ A0011    EQU   *
          LHI   R15,12
          J     RETURNE
 *
-A0012    EQU   *                       Set for first read command
+A0012O   EQU   *                       Set for first read command
          MVC   ACBXCMD,=CL2'L3'
          MVI   ACBXCOP1,C'M'
          MVI   ACBXCOP2,C'V'
@@ -672,7 +767,7 @@ RETURNE  DS    0H
 ADAFETCH DS    0H
          STMG  R14,R12,SAVESUB3
          LR    R9,R14              SAVE RETURN ADDRESS
-         LARL  R10,GVBMRSU         set static area base
+         LARL  R10,GVBMRAD         set static area base
          LLGT  R8,SQLWADDR         Needed if it's not 1st time through
          LLGT  R5,WKARB
 *
@@ -690,7 +785,6 @@ ADAFETCH DS    0H
          CLI   WKEOF,C'Y'          End of file pending ?      
          JE    EVNTEOF             Yes, go
 *
-A0013    EQU   *
          LA    R1,ADAPAL
          L     R15,WKAADA
          LR    R11,R13
@@ -698,7 +792,7 @@ A0013    EQU   *
          BASR  R14,R15
          LR    R13,R11
          CLC   ACBXRSP,=H'0'
-         JE    A0014
+         JE    A0014O
          CLC   ACBXRSP,=F'3'
          JE    EVNTEOF             Nothing left to read here
          MVC   WORKMSG(2),ACBXCMD
@@ -722,7 +816,7 @@ A0013    EQU   *
                MF=(E,MSG_AREA)
          J     A0202
 *
-A0014    EQU   *
+A0014O   EQU   *
          XC    WKRECBUF,WKRECBUF
          USING MBDSECT,R12
          LA    R12,MBAREA

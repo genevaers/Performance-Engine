@@ -1142,6 +1142,8 @@ EXCPFILE EQU   08                 EXEC CHAN PGM  FILE
 ORACLE   EQU   10                 ORACLE  RDBMS  FILE
 SYBASE   EQU   11                 SYBASE  RDBMS  FILE
 MSGQUEUE EQU   15                 WEBSPHERE "MQ" QUEUE
+DB2HPU   EQU   16                 DB2 - high performance unload
+CALLADA  EQU   17                 Adabas direct calls
 *
 ***********************************************************************
 * VIEW TYPES                                                          *
