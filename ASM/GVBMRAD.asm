@@ -154,7 +154,8 @@ FMBSIZE  DS    F
 WKRECCNT DS    F                  NUMBER OF RECORDS READ
 WKRECBUF DS    F                  NUMBER OF RECORDS IN BUFFER
 WKBUFRET DS    F                  NUMBER OF BUFFERS RETURNED
-WKCALLRL DS    F                  RETURNED RECORD LENGTH
+HLREC    DS    H                  RETURNED RECORD LENGTH
+         DS    H
 FOPRBL   DS    F
 WKSUBPA1 DS    A
 WKSUBPA2 DS    A
@@ -216,7 +217,7 @@ MBAREA   DS (NREC)CL(MISN)        100 * 16 byte ISN areas
 *
 WORKLEN  EQU   (*-WORKAREA)
 *
-LREC     EQU   96                  To be determined..
+*LREC     EQU   96                  To be determined..
 NREC     EQU   100                 Arbitrary
 MISN     EQU   16                  Fixed
 
@@ -314,22 +315,7 @@ START    STM   R14,R12,SAVESUBR+RSA14  SAVE  CALLER'S REGISTERS
          XR    R15,R15
          MVCL  R0,R14
 *
-*   obtain record buffer
-*
-         LH    R0,HNREC          Recored buffer
-         MH    R0,HLREC
-         AGHI  R0,RBDXQLL        Plus fixed header
-         ST    R0,FRBSIZE
-         LY    R1,DBLWORK2
-         AR    R1,R0 
-         STY   R1,DBLWORK2
-         GETMAIN RU,LV=(0),LOC=(31)
-         ST    R1,WKARB
-         lr    R0,R1              ZERO  WORK  AREA
-         LGF   R1,FRBSIZE
-         xr    R14,R14
-         xr    R15,R15
-         MVCL  R0,R14
+*   multifetch buffer size
 *
          LH    R0,HNREC
          MH    R0,HMISN
@@ -518,6 +504,23 @@ A0015    EQU   *
          LA    R6,4(,R6)
          LA    R7,4(,R7)
          BRCT  R5,A0010
+*
+*   obtain record buffer
+*
+         LH    R0,HNREC          Recored buffer
+         MH    R0,HLREC
+         AGHI  R0,RBDXQLL        Plus fixed header
+         ST    R0,FRBSIZE
+         LY    R1,DBLWORK2
+         AR    R1,R0 
+         STY   R1,DBLWORK2
+         GETMAIN RU,LV=(0),LOC=(31)
+         ST    R1,WKARB
+         lr    R0,R1              ZERO  WORK  AREA
+         LGF   R1,FRBSIZE
+         xr    R14,R14
+         xr    R15,R15
+         MVCL  R0,R14
 ***********************************************************************
 *  OPEN INPUT FILE (ADABAS)                                           *
 ***********************************************************************
@@ -665,7 +668,8 @@ A0012O   EQU   *                       Set for first read command
          MVC   ACBXCMD,=CL2'L3'
          MVI   ACBXCOP1,C'M'
          MVI   ACBXCOP2,C'V'
-         MVC   ACBXADD1,=CL8'AA      '
+         MVC   ACBXADD1,=CL8'        '
+         MVC   ACBXADD1(2),WKL3SB      =CL8'AA      '
          XC    ACBXISN,ACBXISN
          XC    ACBXISL,ACBXISL
          XC    ACBXISQ,ACBXISQ
@@ -680,9 +684,9 @@ A0012O   EQU   *                       Set for first read command
          MVC   MBDXRECV+4(4),FMBSIZE
 *
          MVC   SBDXDATA(08),WKL3SB     =CL3'AA.'
-         MVC   SBDXSEND+4(4),=FSBL
+         MVC   SBDXSEND+4(4),FSBL
 *
-         XC    VBDXDATA(10),VBXDATA   ,=CL10'0000000000' ???? NXB
+         XC    VBDXDATA(10),VBDXDATA   ,=CL10'0000000000' ???? NXB
          MVC   VBDXSEND+4(4),=F'10'
 *
 **********************************************************************
@@ -1161,6 +1165,43 @@ FNR18    EQU   *
          l     r13,wksave2+4
          lm    r14,r12,12(r13)
          BR    R14
+***********************************************************************
+SUBLREC  DS    0H
+         stm   R14,R12,12(r13)
+         la    r0,wksave2
+         st    r13,wksave2+4
+         st    r0,8(,r13)
+         lr    r13,r0
+*
+         CHI   R2,6                    Too little
+         JL    LREC17
+         CHI   R2,15                   Too much
+         JH    LREC17
+         LA    R4,5(,R1)
+         LR    R3,R2
+         AHI   R3,-5
+LREC19   EQU   *                       Check for numerics
+         CLI   0(R4),C'0'
+         JL    LREC17
+         CLI   0(R4),C'9'
+         JH    LREC17
+         LA    R4,1(,R4)
+         BRCT  R3,LREC19
+*
+         LA    R1,5(,R1)               First digit of number
+         AHI   R2,-6                   Number length - 1 =L2
+         OY    R2,=Xl4'00000070'       Set L1 in pack's L1L2
+         EXRL  R2,EXEPACK
+         CVB   R0,WKDBL1
+         STH   R0,HLREC
+         J     LREC18
+LREC17   EQU   *
+         wto 'error in LREC sub parameter'
+LREC18   EQU   *
+*
+         l     r13,wksave2+4
+         lm    r14,r12,12(r13)
+         BR    R14
 *
 PARMMVC  MVC   0(0,R14),0(R1)
 EXEPACK  PACK  WKDBL1(0),0(0,R1)
@@ -1173,7 +1214,7 @@ EXEPACK  PACK  WKDBL1(0),0(0,R1)
 static   loctr
 F10K     equ   10240
 *
-HLREC    DC    Y(LREC)
+*HLREC    DC    Y(LREC)
 HNREC    DC    Y(NREC)
 HMISN    DC    Y(MISN)
 *
