@@ -628,8 +628,8 @@ A0011O   EQU   *
          MVC   ACBXADD3,SPACES
          MVC   ACBXADD4,SPACES
          MVC   ACBXADD5,SPACES
-         MVC   RBDXDATA(07),=CL7'ACC=47.' NXB
-         MVC   RBDXSEND+4(4),=F'7'        NXB
+         MVC   RBDXDATA(16),WKOPRB
+         MVC   RBDXSEND+4(4),FOPRBL
          LA    R1,ADAPAL
          L     R15,WKAADA
          LR    R11,R13
@@ -670,7 +670,7 @@ A0012O   EQU   *                       Set for first read command
          XC    ACBXISL,ACBXISL
          XC    ACBXISQ,ACBXISQ
 *
-         MVC   FBDXDATA(21),=CL21'AA,AB,AC,AD,AE,AF,AG.'
+         MVC   FBDXDATA(256),WKL3FB    =CL21'AA,AB,AC,AD,AE,AF,AG.'
          MVC   FBDXSEND+4(4),FFBL
 *
          XC    RBDXSEND,RBDXSEND
@@ -679,10 +679,10 @@ A0012O   EQU   *                       Set for first read command
          XC    MBDXSEND,MBDXSEND
          MVC   MBDXRECV+4(4),FMBSIZE
 *
-         MVC   SBDXDATA(03),=CL3'AA.'
+         MVC   SBDXDATA(08),WKL3SB     =CL3'AA.'
          MVC   SBDXSEND+4(4),=FSBL
 *
-         MVC   VBDXDATA(10),=CL10'0000000000'
+         XC    VBDXDATA(10),VBXDATA   ,=CL10'0000000000' ???? NXB
          MVC   VBDXSEND+4(4),=F'10'
 *
 **********************************************************************
