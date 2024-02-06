@@ -134,24 +134,32 @@ MBISNQ   DS    F
 *
 WKAREA   DSECT
          ds    Xl(SAVF4SA_LEN)
-WKSAVSUB DS  18fd                 INTERNAL  SUBROUTINE  REG  SAVE  AREA
-WKSAB    DS  18fd                 Sub savearea
 WKSUBADA DS  18fd                 Savearea for calling ADABAS
+WKSAVE2  DS  18f                  Sub savearea
 *
-WKTIMWRK DS   0XL16
 WKDBLWK  DS    XL08               Double work workarea
+WKDBL1   DS    D
 *
 WKTRACE  DS    CL1                Tracing
 WKEOF    DS    CL1
 WKTHRDNO DS    H
 *
          DS    0F
+FDBID    DS    F
+FFNR     DS    F
+FSBL     DS    F
+FFBL     DS    F
 FRBSIZE  DS    F
 FMBSIZE  DS    F
 WKRECCNT DS    F                  NUMBER OF RECORDS READ
 WKRECBUF DS    F                  NUMBER OF RECORDS IN BUFFER
 WKBUFRET DS    F                  NUMBER OF BUFFERS RETURNED
 WKCALLRL DS    F                  RETURNED RECORD LENGTH
+FOPRBL   DS    F
+WKOPRB   DS    CL16
+WKL3FB   DS    CL256
+WKL3SB   DS    CL8
+
 *
 WKWTOPRM WTO   TEXT=(R2),MF=L
 WKWTOLEN EQU   *-WKWTOPRM
@@ -178,10 +186,10 @@ WKARB    DS    F
 CB       DS    XL(ACBXQLL)
 *
 FB       DS    XL(FBDXQLL)
-         DS    CL56
+         DS    CL256
 *
 SB       DS    XL(SBDXQLL)
-         DS    CL56
+         DS    CL8
 *
 VB       DS    XL(VBDXQLL)
          DS    CL56
@@ -198,9 +206,9 @@ MBAREA   DS (NREC)CL(MISN)        100 * 16 byte ISN areas
 *
 WORKLEN  EQU   (*-WORKAREA)
 *
-LREC     EQU   96
-NREC     EQU   100
-MISN     EQU   16
+LREC     EQU   96                  To be determined..
+NREC     EQU   100                 Arbitrary
+MISN     EQU   16                  Fixed
 
 WKLEN    EQU   (*-WKAREA)
 *
@@ -298,8 +306,9 @@ START    STM   R14,R12,SAVESUBR+RSA14  SAVE  CALLER'S REGISTERS
 *
 *   obtain record buffer
 *
-         LH    R0,HNREC
+         LH    R0,HNREC          Recored buffer
          MH    R0,HLREC
+         AGHI  R0,RBDXQLL        Plus fixed header
          ST    R0,FRBSIZE
          LY    R1,DBLWORK2
          AR    R1,R0 
@@ -449,6 +458,22 @@ A000109  EQU   *
          LR    R0,R9
          SR    R0,R15
          ST    R0,WKSUBPL4        length of fourth parameter
+         CLI   0(R9),C','         was there a comma ?
+         JNE   A00011             no, go
+         LA    R9,1(,R9)          account for comma
+*
+         AGHI  R5,1
+         ST    R9,WKSUBPA5
+         LR    R15,R9     
+A000110  EQU   *
+         CLI   0(R9),C','
+         JE    A000111
+         LA    R9,1(,R9)
+         BRCT  R1,A000110
+A000111  EQU   *
+         LR    R0,R9
+         SR    R0,R15
+         ST    R0,WKSUBPL5        length of fourth parameter
 A00011   EQU   *   
 *
          LA    R6,WKSUBPA1
@@ -459,22 +484,27 @@ A0010    EQU   *
          CLC   0(3,R1),=CL3'SB='
          JNE   A0011
          JAS   R14,SUBSB
-         J     A0014
+         J     A0015
 A0011    EQU   *
          CLC   0(3,R1),=CL3'FB='
          JNE   A0012
          JAS   R14,SUBFB
-         J     A0014
+         J     A0015
 A0012    EQU   *
          CLC   0(5,R1),=CL5'DBID='
          JNE   A0013
          JAS   R14,SUBDBID
-         J     A0014
+         J     A0015
 A0013    EQU   *
          CLC   0(4,R1),=CL4'FNR='
          JNE   A0014
          JAS   R14,SUBFNR
+         J     A0015
 A0014    EQU   *
+         CLC   0(5,R1),=CL5'LREC='
+         JNE   A0015
+         JAS   R14,SUBLREC
+A0015    EQU   *
          LA    R6,4(,R6)
          LA    R7,4(,R7)
          BRCT  R5,A0010
@@ -530,8 +560,8 @@ A0011O   EQU   *
          MVI   ACBXVERT,ACBXVERE
          MVI   ACBXVERN,ACBXVERC
          MVC   ACBXLEN,=Y(ACBXQLL)
-         MVC   ACBXDBID,DBID300
-         MVC   ACBXFNR,FNR0047
+         MVC   ACBXDBID,FDBID
+         MVC   ACBXFNR,FFNR
 *
          MVI   WKCID1,C'F'
          MVC   WKCID23,=X'0001'
@@ -542,7 +572,7 @@ A0011O   EQU   *
          MVI   FBDXVERT,ABDXVERE
          MVI   FBDXVERN,ABDXVERC
          MVI   FBDXID,ABDXQFB
-         MVC   FBDXSIZE+4(4),=F'50'
+         MVC   FBDXSIZE+4(4),=F'256'
 *
          MVI   RBDXLOC,C' '
          MVC   RBDXLEN,=Y(RBDXQLL)
@@ -566,7 +596,7 @@ A0011O   EQU   *
          MVI   SBDXVERT,ABDXVERE
          MVI   SBDXVERN,ABDXVERC
          MVI   SBDXID,ABDXQSB
-         MVC   SBDXSIZE+4(4),=F'50'
+         MVC   SBDXSIZE+4(4),=F'8'
 *
          MVI   VBDXLOC,C' '
          MVC   VBDXLEN,=Y(VBDXQLL)
@@ -580,7 +610,7 @@ A0011O   EQU   *
          MVI   IBDXVERT,ABDXVERE
          MVI   IBDXVERN,ABDXVERC
          MVI   IBDXID,ABDXQIB
-         MVC   IBDXSIZE+4(4),=F'100'
+         MVC   IBDXSIZE+4(4),=A(NREC)
 *
 *
          MVC   ACBXCMD,=CL2'OP'
@@ -588,8 +618,8 @@ A0011O   EQU   *
          MVC   ACBXADD3,SPACES
          MVC   ACBXADD4,SPACES
          MVC   ACBXADD5,SPACES
-         MVC   RBDXDATA(07),=CL7'ACC=47.'
-         MVC   RBDXSEND+4(4),=F'7'
+         MVC   RBDXDATA(07),=CL7'ACC=47.' NXB
+         MVC   RBDXSEND+4(4),=F'7'        NXB
          LA    R1,ADAPAL
          L     R15,WKAADA
          LR    R11,R13
@@ -631,7 +661,7 @@ A0012O   EQU   *                       Set for first read command
          XC    ACBXISQ,ACBXISQ
 *
          MVC   FBDXDATA(21),=CL21'AA,AB,AC,AD,AE,AF,AG.'
-         MVC   FBDXSEND+4(4),=F'21'
+         MVC   FBDXSEND+4(4),FFBL
 *
          XC    RBDXSEND,RBDXSEND
          MVC   RBDXRECV+4(4),FRBSIZE
@@ -640,7 +670,7 @@ A0012O   EQU   *                       Set for first read command
          MVC   MBDXRECV+4(4),FMBSIZE
 *
          MVC   SBDXDATA(03),=CL3'AA.'
-         MVC   SBDXSEND+4(4),=F'3'
+         MVC   SBDXSEND+4(4),=FSBL
 *
          MVC   VBDXDATA(10),=CL10'0000000000'
          MVC   VBDXSEND+4(4),=F'10'
@@ -825,7 +855,7 @@ A001400  EQU   *
          CLC   MBRESP,=F'0'      All good
          JE    A001402
          CLC   MBRESP,=F'3'      Then at least we have a partial block
-         JE    A0015
+         JE    A0015E
          MVC   WORKMSG(2),ACBXCMD
          LH    R15,ACBXRSP
          CVD   R15,WKDBLWK
@@ -858,7 +888,7 @@ A001402  EQU   *
          ST    R0,WKRECCNT       total records so far
          J     FETCHOK           read one block only, i.e. one L3.
 *
-A0015    EQU   *
+A0015E   EQU   *
          MVI   WKEOF,C'Y'        End of file pending return partial blk
 *
 ***********************************************************************
@@ -999,6 +1029,131 @@ parsv_dcb ds   0h
          BR    R9                 NO  - USE "GVBMR95" CALL   ADDRESS
 *
          DROP  R13
+***********************************************************************
+* Routines to obtain parameters: R1 -> sub parameter, R2 == length    *
+***********************************************************************
+SUBSB    DS    0H
+         stm   R14,R12,12(r13)
+         la    r0,wksave2
+         st    r13,wksave2+4
+         st    r0,8(,r13)
+         lr    r13,r0
+*
+         la    R14,WKL3SB
+         la    R1,3(,R1)
+         aghi  r2,-3
+         st    r2,FSBL
+         bctr  r2,0
+         exrl  r2,PARMMVC
+*
+         l     r13,wksave2+4
+         lm    r14,r12,12(r13)
+         BR    R14
+***********************************************************************
+SUBFB    DS    0H
+         stm   R14,R12,12(r13)
+         la    r0,wksave2
+         st    r13,wksave2+4
+         st    r0,8(,r13)
+         lr    r13,r0
+*
+         la    r14,WKL3FB
+         la    R1,3(,R1)
+         aghi  r2,-3
+         st    r2,FFBL
+         bctr  r2,0
+         exrl  r2,PARMMVC
+*
+         l     r13,wksave2+4
+         lm    r14,r12,12(r13)
+         BR    R14
+***********************************************************************
+SUBDBID  DS    0H
+         stm   R14,R12,12(r13)
+         la    r0,wksave2
+         st    r13,wksave2+4
+         st    r0,8(,r13)
+         lr    r13,r0
+*
+         CHI   R2,6                    Too little
+         JL    DBID17
+         CHI   R2,15                   Too much
+         JH    DBID17
+         LA    R4,5(,R1)
+         LR    R3,R2
+         AHI   R3,-5
+DBID19   EQU   *                       Check for numerics
+         CLI   0(R4),C'0'
+         JL    DBID17
+         CLI   0(R4),C'9'
+         JH    DBID17
+         LA    R4,1(,R4)
+         BRCT  R3,DBID19
+*
+         LA    R1,5(,R1)               First digit of number
+         AHI   R2,-6                   Number length - 1 =L2
+         OY    R2,=Xl4'00000070'       Set L1 in pack's L1L2
+         EXRL  R2,EXEPACK
+         CVB   R0,WKDBL1
+         ST    R0,FDBID
+         J     DBID18
+DBID17   EQU   *
+         wto 'error in DBID sub parameter'
+DBID18   EQU   *
+*
+         l     r13,wksave2+4
+         lm    r14,r12,12(r13)
+         BR    R14
+***********************************************************************
+SUBFNR   DS    0H
+         stm   R14,R12,12(r13)
+         la    r0,wksave2
+         st    r13,wksave2+4
+         st    r0,8(,r13)
+         lr    r13,r0
+*
+         CHI   R2,5                    Too little
+         JL    FNR17
+         CHI   R2,14                   Too much
+         JH    FNR17
+         LA    R4,4(,R1)
+         LR    R3,R2
+         AHI   R3,-4
+FNR19    EQU   *                       Check for numerics
+         CLI   0(R4),C'0'
+         JL    FNR17
+         CLI   0(R4),C'9'
+         JH    FNR17
+         LA    R4,1(,R4)
+         BRCT  R3,FNR19
+*
+         LA    R1,4(,R1)               First digit of number
+         AHI   R2,-5                   Number length - 1 =L2
+         LR    R3,R2                   Number length - 1
+         OY    R2,=Xl4'00000070'       Set L1 in pack's L1L2
+         EXRL  R2,EXEPACK
+         CVB   R0,WKDBL1
+         ST    R0,FFNR
+         LA    R14,WKOPRB
+         AGHI  R1,-4                   Back to beginning of string
+         EXRL  R3,PARMMVC
+         MVC   WKOPRB(4),=CL4'ACC='
+         LA    R3,5(,R3)
+         AR    R14,R3
+         MVI   0(R14),C'.'
+         LA    R3,1(,R3)
+         ST    R3,FOPRBL
+         J     FNR18
+FNR17    EQU   *
+         wto 'error in FNR sub parameter'
+FNR18    EQU   *
+*
+         l     r13,wksave2+4
+         lm    r14,r12,12(r13)
+         BR    R14
+*
+PARMMVC  MVC   0(0,R14),0(R1)
+EXEPACK  PACK  WKDBL1(0),0(0,R1)
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
@@ -1007,7 +1162,6 @@ parsv_dcb ds   0h
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 static   loctr
 F10K     equ   10240
-BLOCKSZ  equ   8192
 *
 HLREC    DC    Y(LREC)
 HNREC    DC    Y(NREC)
@@ -1039,9 +1193,6 @@ HWTYPE   DC    H'500'              NOTNULL SMALLINT TYPE
 DATETYP  DC    H'384'              NOTNULL DATE TYPE
 TIMETYP  DC    H'388'              NOTNULL TIME TYPE
 TIMES    DC    H'392'              NOTNULL TIMESTAMP TYPE
-*
-DBID300  DC    F'300'
-FNR0047  DC    F'47'
 *
          DS    0F
 HEXTR    DS    XL256'00'
