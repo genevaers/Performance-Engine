@@ -409,6 +409,7 @@ A000103  EQU   *
          CLI   0(R9),C'|'         was there a delimiter ?
          JNE   A00011             no, go
          LA    R9,1(,R9)          account for 1st delimiter
+         AGHI  R1,-1
 *
          AGHI  R5,1
          ST    R9,WKSUBPA2
@@ -425,6 +426,7 @@ A000105  EQU   *
          CLI   0(R9),C'|'         was there a delimiter ?
          JNE   A00011             no, go
          LA    R9,1(,R9)          account for delimiter
+         AGHI  R1,-1
 *
          AGHI  R5,1
          ST    R9,WKSUBPA3
@@ -441,6 +443,7 @@ A000107  EQU   *
          CLI   0(R9),C'|'         was there a delimiter ?
          JNE   A00011             no, go
          LA    R9,1(,R9)          account for delimiter
+         AGHI  R1,-1
 *
          AGHI  R5,1
          ST    R9,WKSUBPA4
@@ -457,6 +460,7 @@ A000109  EQU   *
          CLI   0(R9),C'|'         was there a delimiter ?
          JNE   A00011             no, go
          LA    R9,1(,R9)          account for delimiter
+         AGHI  R1,-1
 *
          AGHI  R5,1
          ST    R9,WKSUBPA5
@@ -1148,14 +1152,13 @@ FNR19    EQU   *                       Check for numerics
          EXRL  R2,EXEPACK
          CVB   R0,WKDBL1
          ST    R0,FFNR
-         LA    R14,WKOPRB
-         AGHI  R1,-4                   Back to beginning of string
+         LA    R14,WKOPRB+4
          EXRL  R3,PARMMVC
          MVC   WKOPRB(4),=CL4'ACC='
-         LA    R3,5(,R3)
+         LA    R3,1(,R3)
          AR    R14,R3
          MVI   0(R14),C'.'
-         LA    R3,1(,R3)
+         LA    R3,5(,R3)
          ST    R3,FOPRBL
          J     FNR18
 FNR17    EQU   *
