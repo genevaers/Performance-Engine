@@ -354,7 +354,7 @@ A0046    EQU   *
          ay    r15,dblwork2        add to storage total
          sty   r15,dblwork2        and save it
 *
-         GETMAIN R,LV=(0),LOC=(ANY)
+         GETMAIN RU,LV=(0),LOC=(ANY)
          LR    R7,R1
          ST    R7,SQLTADDR
          USING SQLTAREA,R7
