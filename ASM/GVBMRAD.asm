@@ -398,7 +398,7 @@ INITLEN  STH   R9,SQLBUFFR        SAVE  ACTUAL  TEXT LENGTH
          LR    R15,R9
          LGHI  R5,1
 A000102  EQU   *
-         CLI   0(R9),C','
+         CLI   0(R9),C'|'
          JE    A000103
          LA    R9,1(,R9)
          BRCT  R1,A000102
@@ -406,15 +406,15 @@ A000103  EQU   *
          LR    R0,R9
          SR    R0,R15
          ST    R0,WKSUBPL1        length of first parameter
-         CLI   0(R9),C','         was there a comma ?
+         CLI   0(R9),C'|'         was there a delimiter ?
          JNE   A00011             no, go
-         LA    R9,1(,R9)          account for 1st comma
+         LA    R9,1(,R9)          account for 1st delimiter
 *
          AGHI  R5,1
          ST    R9,WKSUBPA2
          LR    R15,R9     
 A000104  EQU   *
-         CLI   0(R9),C','
+         CLI   0(R9),C'|'
          JE    A000105
          LA    R9,1(,R9)
          BRCT  R1,A000104
@@ -422,15 +422,15 @@ A000105  EQU   *
          LR    R0,R9
          SR    R0,R15
          ST    R0,WKSUBPL2        length of second parameter
-         CLI   0(R9),C','         was there a comma ?
+         CLI   0(R9),C'|'         was there a delimiter ?
          JNE   A00011             no, go
-         LA    R9,1(,R9)          account for comma
+         LA    R9,1(,R9)          account for delimiter
 *
          AGHI  R5,1
          ST    R9,WKSUBPA3
          LR    R15,R9     
 A000106  EQU   *
-         CLI   0(R9),C','
+         CLI   0(R9),C'|'
          JE    A000107
          LA    R9,1(,R9)
          BRCT  R1,A000106
@@ -438,15 +438,15 @@ A000107  EQU   *
          LR    R0,R9
          SR    R0,R15
          ST    R0,WKSUBPL3        length of third parameter
-         CLI   0(R9),C','         was there a comma ?
+         CLI   0(R9),C'|'         was there a delimiter ?
          JNE   A00011             no, go
-         LA    R9,1(,R9)          account for comma
+         LA    R9,1(,R9)          account for delimiter
 *
          AGHI  R5,1
          ST    R9,WKSUBPA4
          LR    R15,R9     
 A000108  EQU   *
-         CLI   0(R9),C','
+         CLI   0(R9),C'|'
          JE    A000109
          LA    R9,1(,R9)
          BRCT  R1,A000108
@@ -454,22 +454,22 @@ A000109  EQU   *
          LR    R0,R9
          SR    R0,R15
          ST    R0,WKSUBPL4        length of fourth parameter
-         CLI   0(R9),C','         was there a comma ?
+         CLI   0(R9),C'|'         was there a delimiter ?
          JNE   A00011             no, go
-         LA    R9,1(,R9)          account for comma
+         LA    R9,1(,R9)          account for delimiter
 *
          AGHI  R5,1
          ST    R9,WKSUBPA5
          LR    R15,R9     
 A000110  EQU   *
-         CLI   0(R9),C','
+         CLI   0(R9),C'|'
          JE    A000111
          LA    R9,1(,R9)
          BRCT  R1,A000110
 A000111  EQU   *
          LR    R0,R9
          SR    R0,R15
-         ST    R0,WKSUBPL5        length of fourth parameter
+         ST    R0,WKSUBPL5        length of fifth parameter
 A00011   EQU   *   
 *
          LA    R6,WKSUBPA1
@@ -664,7 +664,7 @@ A0011O   EQU   *
          LHI   R15,12
          J     RETURNE
 *
-A0012O   EQU   *                       Set for first read command
+A0012O   EQU   *                       Set for first L3 read command
          MVC   ACBXCMD,=CL2'L3'
          MVI   ACBXCOP1,C'M'
          MVI   ACBXCOP2,C'V'
