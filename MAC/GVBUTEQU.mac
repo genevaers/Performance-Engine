@@ -232,6 +232,11 @@ DB2_HPU_TOKN EQU 204 Unable to create/locate token for DB2 HPU
 ADA_BADRSP   EQU 210 &&1 - Bad Adabas response to command XX: XXXX/XXXX
 ADA_NOLINK   EQU 211 &&1 - Adabas link module not found
 ADABAS_UNAVAILABLE EQU 212 - Source file type Adabas not available
+ADABAS_SBL   EQU 213 - Adabas seach buffer length must be defined
+ADABAS_FBL   EQU 214 - Adabas format buffer length must be defined
+ADABAS_DBID  EQU 215 - Adabas DBID must be defined
+ADABAS_FNR   EQU 216 - Adabas FNR must be defined
+ADABAS_LREC  EQU 217 - Adabas returned record buffer length must be
 *
 DB2_VSAM_OPEN_FAIL EQU   300 - Unable to open Db2 base VSAM file
 MSG#301  EQU   301 (301U) - Error on Db2 base VSAM SHOWCB

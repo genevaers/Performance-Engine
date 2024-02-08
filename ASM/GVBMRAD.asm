@@ -388,10 +388,79 @@ INITLOOP BCTR  R1,0               BACKUP  TO PRECEEDING BYTE
 *
 INITLEN  STH   R9,SQLBUFFR        SAVE  ACTUAL  TEXT LENGTH
 *
+**********************************************************************
+* DISPLAY ADABAS parameters IN MR95 TRACE FILE IF OPEN               *
+**********************************************************************
+         ENQ   (GENEVA,TRACNAME,E,,STEP),RNL=NO
+*
+         L     R2,TRACDCBA             LOAD  DCB ADDRESS
+         TM    48(R2),X'10'            OPEN  SUCCESSFUL   ???
+         BRNO  TRACDEQ                 NO  - BYPASS SAVING OF PUT ADDR
+*
+         MVI   PRNTLINE+0,C'*'
+         MVC   PRNTLINE+1(L'PRNTLINE-1),PRNTLINE+0
+         MVI   PRNTCC,C'1'             START NEW   PAGE
+*
+         MVI   PRNTCNT+0,C' '
+         MVC   PRNTCNT+1(L'DBSUBSYS),DBSUBSYS
+         MVI   PRNTCNT+1+L'DBSUBSYS,C' '
+*
+         MVI   PRNTFILE+0,C' '
+         MVC   PRNTFILE+1(8),GPDDNAME
+         MVI   PRNTFILE+1+8,C' '
+*
+         LA    R0,PRNTLINE             PRINT TRACE LINE
+         LR    R1,R2
+         XR    R15,R15
+         ICM   R15,B'0111',DCBPUTA-IHADCB(R1)
+         BASR  R14,R15
+*
+         LA    R3,SQLTEXT              PRINT SQL   TEXT
+*
+TRACLOOP LA    R15,SQLTEXT
+         AH    R15,SQLBUFFR
+         SR    R15,R3
+         BRNP  TRACDONE
+*
+         CHI   R15,80
+         BRNH  *+8
+         LHI   R15,80
+*
+         BCTR  R15,0
+         MVC   PRNTLINE,SPACES
+         EXRL  R15,TRACMVC
+         LA    R3,1(R3,R15)
+*
+         LA    R0,PRNTLINE             PRINT TRACE LINE
+         LR    R1,R2
+         XR    R15,R15
+         ICM   R15,B'0111',DCBPUTA-IHADCB(R1)
+         BASR  R14,R15
+*
+         BRC   15,TRACLOOP
+*
+TRACDONE MVI   PRNTLINE+0,C'*'
+         MVC   PRNTLINE+1(L'PRNTLINE-1),PRNTLINE+0
+         MVI   PRNTCC,C' '
+*
+         LA    R0,PRNTLINE             PRINT TRACE LINE
+         LR    R1,R2
+         XR    R15,R15
+         ICM   R15,B'0111',DCBPUTA-IHADCB(R1)
+         BASR  R14,R15
+*
+TRACDEQ  DEQ   (GENEVA,TRACNAME,,STEP),RNL=NO
+         J     A0100
+*
+static   loctr ,
+TRACMVC  MVC   PRNTLINE+1(0),0(R3)     * * * * E X E C U T E D * * *
+code     loctr
+*
 ***********************************************************************
 *  PARSE ADABAS RELATED PARAMETERS                                    *
 ***********************************************************************
 *
+A0100    EQU   *
          LA    R9,SQLTEXT         first sub parameter
          ST    R9,WKSUBPA1
          LH    R1,SQLBUFFR
@@ -474,7 +543,8 @@ A000111  EQU   *
          LR    R0,R9
          SR    R0,R15
          ST    R0,WKSUBPL5        length of fifth parameter
-A00011   EQU   *   
+A00011   EQU   *
+         DROP  R7 SQLTAREA
 *
          LA    R6,WKSUBPA1
          LA    R7,WKSUBPL1
@@ -509,8 +579,74 @@ A0015    EQU   *
          LA    R7,4(,R7)
          BRCT  R5,A0010
 *
+*   validations
+*
+         CLC   FSBL,=A(3)
+         JL    ERRSB
+         CLC   FSBL,=A(8)
+         JH    ERRSB
+         CLC   FFBL,=A(3)
+         JL    ERRFB
+         CLC   FFBL,=A(256)
+         JH    ERRFB
+         CLC   FDBID,=A(1)
+         JL    ERRDBID
+         CLC   FDBID,=A(65535)
+         JH    ERRDBID
+         CLC   FFNR,=A(1)
+         JL    ERRFNR
+         CLC   FFNR,=A(5000)
+         JH    ERRFNR
+         CLC   HLREC,=Y(1)
+         JL    ERRLREC
+         CLC   HLREC,=Y(4096)
+         JH    ERRLREC
+         J     A0016
+*
+ERRSB    EQU   *
+         GVBMSG LOG,MSGNO=ADABAS_SBL,SUBNO=1,                          +
+               GENENV=GENENV,                                          +
+               SUB1=(PGMNAME,8),                                       +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+         LHI   R15,12
+         J     RETURNE
+ERRFB    EQU   *
+         GVBMSG LOG,MSGNO=ADABAS_FBL,SUBNO=1,                          +
+               GENENV=GENENV,                                          +
+               SUB1=(PGMNAME,8),                                       +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+         LHI   R15,12
+         J     RETURNE
+ERRDBID  EQU   *
+         GVBMSG LOG,MSGNO=ADABAS_DBID,SUBNO=1,                         +
+               GENENV=GENENV,                                          +
+               SUB1=(PGMNAME,8),                                       +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+         LHI   R15,12
+         J     RETURNE
+ERRFNR   EQU   *
+         GVBMSG LOG,MSGNO=ADABAS_FNR,SUBNO=1,                          +
+               GENENV=GENENV,                                          +
+               SUB1=(PGMNAME,8),                                       +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+         LHI   R15,12
+         J     RETURNE
+ERRLREC  EQU   *
+         GVBMSG LOG,MSGNO=ADABAS_LREC,SUBNO=1,                         +
+               GENENV=GENENV,                                          +
+               SUB1=(PGMNAME,8),                                       +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+         LHI   R15,12
+         J     RETURNE
+*
 *   obtain record buffer
 *
+A0016    EQU   *
          LH    R0,HNREC          Recored buffer
          MH    R0,HLREC
          AGHI  R0,RBDXQLL        Plus fixed header
@@ -673,12 +809,12 @@ A0012O   EQU   *                       Set for first L3 read command
          MVI   ACBXCOP1,C'M'
          MVI   ACBXCOP2,C'V'
          MVC   ACBXADD1,=CL8'        '
-         MVC   ACBXADD1(2),WKL3SB      =CL8'AA      '
+         MVC   ACBXADD1(2),WKL3SB
          XC    ACBXISN,ACBXISN
          XC    ACBXISL,ACBXISL
          XC    ACBXISQ,ACBXISQ
 *
-         MVC   FBDXDATA(256),WKL3FB    =CL21'AA,AB,AC,AD,AE,AF,AG.'
+         MVC   FBDXDATA(256),WKL3FB
          MVC   FBDXSEND+4(4),FFBL
 *
          XC    RBDXSEND,RBDXSEND
@@ -687,81 +823,14 @@ A0012O   EQU   *                       Set for first L3 read command
          XC    MBDXSEND,MBDXSEND
          MVC   MBDXRECV+4(4),FMBSIZE
 *
-         MVC   SBDXDATA(08),WKL3SB     =CL3'AA.'
+         MVC   SBDXDATA(08),WKL3SB
          MVC   SBDXSEND+4(4),FSBL
 *
-         XC    VBDXDATA(10),VBDXDATA   ,=CL10'0000000000' ???? NXB
+         XC    VBDXDATA(10),VBDXDATA
          MVC   VBDXSEND+4(4),=F'10'
 *
-**********************************************************************
-* DISPLAY SQL IN MR95 TRACE FILE IF OPEN                             *
-**********************************************************************
-         ENQ   (GENEVA,TRACNAME,E,,STEP),RNL=NO
+* Accumulate read storage totals across threads
 *
-         L     R2,TRACDCBA             LOAD  DCB ADDRESS
-         TM    48(R2),X'10'            OPEN  SUCCESSFUL   ???
-         BRNO  TRACDEQ                 NO  - BYPASS SAVING OF PUT ADDR
-*
-         MVI   PRNTLINE+0,C'*'
-         MVC   PRNTLINE+1(L'PRNTLINE-1),PRNTLINE+0
-         MVI   PRNTCC,C'1'             START NEW   PAGE
-*
-         MVI   PRNTCNT+0,C' '
-         MVC   PRNTCNT+1(L'DBSUBSYS),DBSUBSYS
-         MVI   PRNTCNT+1+L'DBSUBSYS,C' '
-*
-         MVI   PRNTFILE+0,C' '
-         MVC   PRNTFILE+1(8),GPDDNAME
-         MVI   PRNTFILE+1+8,C' '
-*
-         LA    R0,PRNTLINE             PRINT TRACE LINE
-         LR    R1,R2
-         XR    R15,R15
-         ICM   R15,B'0111',DCBPUTA-IHADCB(R1)
-         BASR  R14,R15
-*
-         LA    R3,SQLTEXT              PRINT SQL   TEXT
-*
-TRACLOOP LA    R15,SQLTEXT
-         AH    R15,SQLBUFFR
-         SR    R15,R3
-         BRNP  TRACDONE
-*
-         CHI   R15,80
-         BRNH  *+8
-         LHI   R15,80
-*
-         BCTR  R15,0
-         MVC   PRNTLINE,SPACES
-         EXRL  R15,TRACMVC
-         LA    R3,1(R3,R15)
-*
-         LA    R0,PRNTLINE             PRINT TRACE LINE
-         LR    R1,R2
-         XR    R15,R15
-         ICM   R15,B'0111',DCBPUTA-IHADCB(R1)
-         BASR  R14,R15
-*
-         BRC   15,TRACLOOP
-*
-TRACDONE MVI   PRNTLINE+0,C'*'
-         MVC   PRNTLINE+1(L'PRNTLINE-1),PRNTLINE+0
-         MVI   PRNTCC,C' '
-*
-         LA    R0,PRNTLINE             PRINT TRACE LINE
-         LR    R1,R2
-         XR    R15,R15
-         ICM   R15,B'0111',DCBPUTA-IHADCB(R1)
-         BASR  R14,R15
-*
-TRACDEQ  DEQ   (GENEVA,TRACNAME,,STEP),RNL=NO
-         J     A0100
-*
-TRACMVC  MVC   PRNTLINE+1(0),0(R3)     * * * * E X E C U T E D * * *
-*
-* Accumulate read buffer totals across threads
-*
-A0100    EQU   *
          ENQ (GENEVA,ENQSTAT,E,,STEP),RNL=NO
          if LTR,R15,R15,nz
 *          Issue a warning message
@@ -1206,6 +1275,7 @@ LREC18   EQU   *
          lm    r14,r12,12(r13)
          BR    R14
 *
+static   loctr
 PARMMVC  MVC   0(0,R14),0(R1)
 EXEPACK  PACK  WKDBL1(0),0(0,R1)
 *
@@ -1214,7 +1284,6 @@ EXEPACK  PACK  WKDBL1(0),0(0,R1)
 *        C O N S T A N T S                                            *
 *                                                                     *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-static   loctr
 F10K     equ   10240
 *
 *HLREC    DC    Y(LREC)
@@ -1229,24 +1298,7 @@ STGBLKLN DC    A(WKLEN+8)
 GVBUR33  DC    V(GVBUR33)
 DSNTIAR  DC    V(DSNTIAR)
 *
-H750     DC    H'750'
 FFFF     DC    XL4'FFFFFFFF'
-*
-*        DATA TYPES FOUND IN SQLTYPE, AFTER REMOVING THE NULL BIT
-*
-VARCTYPE DC    H'448'              NOTNULL VARCHAR TYPE
-CHARTYPE DC    H'452'              NOTNULL FIXED CHAR TYPE
-VARLTYPE DC    H'456'              NOTNULL LONG VARCHAR TYPE
-VARGTYPE DC    H'464'              NOTNULL VARGRAPHIC TYPE
-GTYPE    DC    H'468'              NOTNULL GRAPHIC TYPE
-LVARGTYP DC    H'472'              NOTNULL LONG VARGRAPHIC TYPE
-FLOATYPE DC    H'480'              NOTNULL FLOAT TYPE
-DECTYPE  DC    H'484'              NOTNULL DECIMAL TYPE
-INTTYPE  DC    H'496'              NOTNULL INTEGER TYPE
-HWTYPE   DC    H'500'              NOTNULL SMALLINT TYPE
-DATETYP  DC    H'384'              NOTNULL DATE TYPE
-TIMETYP  DC    H'388'              NOTNULL TIME TYPE
-TIMES    DC    H'392'              NOTNULL TIMESTAMP TYPE
 *
          DS    0F
 HEXTR    DS    XL256'00'
