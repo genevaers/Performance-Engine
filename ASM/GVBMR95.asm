@@ -2855,6 +2855,8 @@ INITRETN   llgt R8,THRDES          LOAD "ES"  ROW ADDR
 
            LH  R0,LTACCMTH        LOAD  ACCESS METHOD ID
            if Cij,R0,ne,DB2SQL,and,     Not DB2   EVENT  FILE  ???     +
+               Cij,R0,ne,DB2HPU,and,    Not DB2   EVENT  FILE ?        +
+               Cij,R0,ne,CALLADA,and,   Not Adabas event file ?        +
                Cij,R0,ne,MSGQUEUE,andif, and not MQI   EVENT  FILE  ???+
                CLC,LTDSNAME,ne,SPACES    Data set NAME"  AVAILABLE  ???
              LARL R15,DYNALLOC    DYNAMICALLY ALLOCATE DATASET (IF NOT)
@@ -2875,26 +2877,30 @@ INITRETN   llgt R8,THRDES          LOAD "ES"  ROW ADDR
              llgf R15,GVBMRVK
 
            when   DB2SQL          DB2   EVENT  FILE  ???
-             llgt r15,execdadr    get address of exec area
-             USING EXECDATA,R15
-             if (cli,EXEC_DB2HPU,eq,c'Y')
-               llgf R15,MRSUADDR
-               if ltr,r15,r15,z   Not available
-                 LHI r14,DB2_HPU_UNAVAILABLE
-                 LHI R15,8
-                 JZ ERRMSG#
-               endif
-               drop r15
-             else
-               llgf R15,MRSQADDR
-               if ltr,r15,r15,z     Not available
-                 LHI r14,DB2_SQL_UNAVAILABLE
-                 LHI R15,8
-                 JZ ERRMSG#
-               endif
+             llgf R15,MRSQADDR
+             if ltr,r15,r15,z     Not available
+               LHI r14,DB2_SQL_UNAVAILABLE
+               LHI R15,8
+               JZ ERRMSG#
              endif
 
-           when   DB2VSAM         DB2 via VSAM?
+           when   DB2HPU          DB2HPU EVENT FILE ?
+             llgf R15,MRSUADDR
+             if ltr,r15,r15,z   Not available
+               LHI r14,DB2_HPU_UNAVAILABLE
+               LHI R15,8
+               JZ ERRMSG#
+             endif
+
+           when   CALLADA         Adabas EVENT FILE ?
+             llgf R15,MRADADDR
+             if ltr,r15,r15,z   Not available
+               LHI r14,ADABAS_UNAVAILABLE
+               LHI R15,8
+               JZ ERRMSG#
+             endif
+
+           when   DB2VSAM         DB2 via VSAM ?
              llgf R15,MRDVADDR
              if ltr,r15,r15,z     Not available
                LHI r14,DB2_VSAM_UNAVAILABLE
@@ -5096,6 +5102,8 @@ ZIIPADDR DC    V(GVBMRZP)
 MRSQADDR DC    V(GVBMRSQ)         DB2 SQL TEXT READ ROUTINE
          WXTRN GVBMRSU
 MRSUADDR DC    V(GVBMRSU)         DB2 HPU ROUTINE
+         WXTRN GVBMRAD
+MRADADDR DC    V(GVBMRAD)         Adabas ROUTINE
 *
          WXTRN GVBMRDV
 MRDVADDR DC    V(GVBMRDV)
@@ -12339,7 +12347,8 @@ ES_RE    USING LOGICTBL,R2
                (chi,r15,eq,TAPEDEV)
 *
            LH  R0,ES_RE.LTACCMTH               LOAD  ACCESS METHOD ID
-           if  (chi,R0,eq,DB2SQL),or,(chi,r0,eq,DB2VSAM)
+           if  (chi,R0,eq,DB2SQL),or,(chi,r0,eq,DB2VSAM),or,           +
+               (chi,R0,eq,DB2HPU),or,(chi,r0,eq,CALLADA)
              alsi event_database_cnt,1         DB2 via SQL or VSAM
              lg   r14,event_dbms_rec_cnt
              lg   r0,es_re.ltfilcnt

@@ -319,6 +319,21 @@
                e definition',TYPE=W
  GVBMSGDF 204,'&&1 - Unable to create/locate token for DB2 HPU',TYPE=U
 *
+ GVBMSGDF 210,'&&1 - Bad Adabas response to command &&2: &&3/&&4',TYPE=+
+               U
+ GVBMSGDF 211,'&&1 - Adabas link module not found',TYPE=U
+ GVBMSGDF 212,'&&1 - Source file type Adabas not available',TYPE=U
+ GVBMSGDF 213,'&&1 - Adabas seach buffer must be defined in physical fi+
+               le',TYPE=U
+ GVBMSGDF 214,'&&1 - Adabas format buffer must be defined in physical f+
+               ile',TYPE=U
+ GVBMSGDF 215,'&&1 - Adabas DBID must be defined in physical file',TYPE+
+               =U
+ GVBMSGDF 216,'&&1 - Adabas FNR must be defined in physical file',TYPE=+
+               U
+ GVBMSGDF 217,'&&1 - Adabas returned record buffer length (LREC) must b+
+               e defined in physical file',TYPE=U
+*
 *  Message from GVBMRDV - Db2 via VSAM
 *
  GVBMSGDF 300,'&&1 - Unable to open Db2 base VSAM file &&2',TYPE=U
