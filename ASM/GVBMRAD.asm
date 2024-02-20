@@ -347,7 +347,7 @@ A0046    EQU   *
          MVC   LKUPKEY,SPACES
 *
 **********************************************************************
-* COPY SQL TEXT FROM V4 "VDP" INTO EXPANSION BUFFER                  *
+* COPY ADABAS related parameters FROM V4 "VDP" INTO EXPANSION BUFFER *
 **********************************************************************
          Lhi   R0,F10K              GET BUFFER FOR EXPANDED SQL TEXT
          lr    r15,r0
@@ -1286,7 +1286,6 @@ EXEPACK  PACK  WKDBL1(0),0(0,R1)
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 F10K     equ   10240
 *
-*HLREC    DC    Y(LREC)
 HNREC    DC    Y(NREC)
 HMISN    DC    Y(MISN)
 *
@@ -1296,7 +1295,6 @@ MODE31   DC    XL4'80000000'
 STGBLKLN DC    A(WKLEN+8)
 *
 GVBUR33  DC    V(GVBUR33)
-DSNTIAR  DC    V(DSNTIAR)
 *
 FFFF     DC    XL4'FFFFFFFF'
 *
