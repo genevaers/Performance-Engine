@@ -2619,6 +2619,7 @@ fiscexit    ds 0h
         enddo
       endif ,                     comment test
     enddo ,                       infinite loop (PARMLOOP)
+    MVC  ERRDATA,SPACES           BLANK OUT INDICATIVE ERROR DATA
 *
   endif          End PARM File Open Success
 *
