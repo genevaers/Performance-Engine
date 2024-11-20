@@ -22,3 +22,4 @@ GVBUTHDR,Header format builder,Subprogram,Performance-Engine,ASM,asm,HLASM,,LOAD
 GVBUTMSG,Message Builder,Subprogram,Performance-Engine,ASM,asm,HLASM,,LOADMOD
 GVBUTMUE,Mixed-Case Message Table,Subroutine,Performance-Engine,ASM,asm,HLASM,,OBJONLY
 GVBMRHPU,Db2 HPU Inzexit,Main Program,Performance-Engine,ASM,asm,HLASM,,LOADMOD
+GVBMRAD,Adabas I/O Handler,Main Program,Performance-Engine,ASM,asm,HLASM,,LOADMOD
