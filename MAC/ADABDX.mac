@@ -1,0 +1,75 @@
+         Macro
+&LABEL   ADABDX &TYPE=EQ
+.*
+.*       Modified form of ADABDX to map the various Adabas buffers
+.*       To define the ADABDX TYPE e.g. FB, RB, SB, VB, IB
+.*
+.*                 ADABDX
+.*
+         AIF   ('&TYPE' EQ 'EQ').EQU
+         AIF   ('&TYPE' EQ 'FB').DSECT
+         AIF   ('&TYPE' EQ 'RB').DSECT
+         AIF   ('&TYPE' EQ 'MB').DSECT
+         AIF   ('&TYPE' EQ 'SB').DSECT
+         AIF   ('&TYPE' EQ 'VB').DSECT
+         AIF   ('&TYPE' EQ 'IB').DSECT
+         AIF   ('&TYPE' EQ 'PB').DSECT
+         AIF   ('&TYPE' EQ 'UB').DSECT
+         MNOTE 8,'*** ADABDX: Bad TYPE parameter ***'
+         AGO   .END
+.*
+.EQU     ANOP
+*
+*              ADABAS Equates
+*
+ABDXVERE Equ     C'G'          Type is ABDX
+ABDXVERC Equ     C'2'          Current version number is 2
+ABDXVER2 Equ     C'2'          Initial release - version 2
+ABDXVCUR Equ     256*ABDXVERE+ABDXVERC  2-byte current version
+ABDXV2   Equ     256*ABDXVERE+ABDXVER2  Initial release - version 2
+ABDXQFB  Equ     C'F'          Format Buffer
+ABDXQRB  Equ     C'R'          Record Buffer
+ABDXQMB  Equ     C'M'          Multifetch Buffer
+ABDXQSB  Equ     C'S'          Search Buffer
+ABDXQVB  Equ     C'V'          Value Buffer
+ABDXQIB  Equ     C'I'          ISN Buffer
+ABDXQPB  Equ     C'P'          Performance Buffer
+ABDXQUI  Equ     C'U'          User Info Buffer
+ABDXQSTD Equ     C' '          At end of ABDX (standard)
+ABDXQIND Equ     C'I'          Indirectly addressed
+ABDXQDSP Equ     C'D'          ALET-qualified (data or address space)
+         AGO   .END
+*
+*
+.DSECT   ANOP
+*
+*              ADABAS Buffer Descriptor DSECT
+*
+&TYPE.BDX    DSECT ,           Adabas Buffer Descriptor
+&TYPE.DX     DS    0D
+&TYPE.DXLEN  DS    H         +00 Fixed length of ABDX structure (X'30')
+&TYPE.DXVER  DS    0CL2      +02 Structure block type and version
+&TYPE.DXVERT DS    C              ABDX type identifier
+&TYPE.DXVERN DS    C              ABDX version number
+&TYPE.DXID   DS    C         +04 Buffer ID
+&TYPE.DXRSV1 DS    B         +05 Reserved for future use, must be X'00'
+&TYPE.DXLOC  DS    C         +06 Buffer location flag
+&TYPE.DXRSV2 DS    X         +07 Reserved for future use, must be X'00'
+&TYPE.DXRSV3 DS    F         +08 Reserved for future use, must be X'00'
+&TYPE.DXALET DS    F         +0C ALET for buffer (ABDXLOC=C'D')
+&TYPE.DXSIZE DS    D         +10 Buffer size (allocated length)
+&TYPE.DXSEND DS    D         +18 Length of data to send to server
+&TYPE.DXRECV DS    D         +20 Length of data received from server
+&TYPE.DXADRG DS    0D,XL4    +28 64-bit address of indirectly addressed
+*                              buffer in primary address space or CSA
+*                              (ABDXLOC=C'I') or address space
+*                              (ABDXLOC=C'D')
+&TYPE.DXADR  DS     A        +2C 31-bit address of indirectly addressed
+*                              buffer in primary address space or CSA
+*                              (ABDXLOC=C'I') or dataspace/address
+*                              space (ABDXLOC=C'D')
+&TYPE.DXQLL  Equ   *-&TYPE.BDX 30  ADABDX structure length
+&TYPE.DXDATA Equ   *         +30  Actual buffer (ABDXLOC=C' ')
+.*
+.END     ANOP
+         Mend
