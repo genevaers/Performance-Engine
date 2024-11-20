@@ -7,7 +7,7 @@ GVBMR95,View Extract Process,Main Program,Performance-Engine,ASM,asm,HLASM,,LOAD
 GVBMR96,Initialization for GVBMR95,Subroutine,Performance-Engine,ASM,asm,HLASM,,OBJONLY
 GVBMRBS,BSAM Initialization for GVBMR95,Subroutine,Performance-Engine,ASM,asm,HLASM,,OBJONLY
 GVBMRSQ,Db2 I/O Handler for GVBMR95,Subroutine,Performance-Engine,ASM,asm,HLASM,Y,OBJONLY
-GVBMRSU,Db2 SQL Handler for GVBMR95,Subroutine,Performance-Engine,ASM,asm,HLASM,Y,OBJONLY
+GVBMRSU,Db2 HPU Handler for GVBMR95,Subroutine,Performance-Engine,ASM,asm,HLASM,Y,OBJONLY
 GVBMRVK,VSAM Keyed I/O Handler for GVBMR95,Subroutine,Performance-Engine,ASM,asm,HLASM,,OBJONLY
 GVBSRCHR,Lookup routines with keylen 1 to 256,Subroutine,Performance-Engine,ASM,asm,HLASM,,OBJONLY
 GVBTP90,VSAM/QSAM I/O Handler,Subprogram,Performance-Engine,ASM,asm,HLASM,,LOADMOD
