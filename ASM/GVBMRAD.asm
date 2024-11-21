@@ -1,4 +1,4 @@
-         TITLE 'GVBMRAD - ADABAS I/O INITIALIZATION FOR GVBMR96'
+         TITLE 'GVBMRAD - ADABAS I/O INITIALIZATION FOR GVBMR95'
 **********************************************************************
 *
 * (C) COPYRIGHT IBM CORPORATION 2022, 2023.
@@ -23,7 +23,7 @@
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
 *   GVBMRAD -                                                         *
-*            ADABAS I/O -- initialization                             *
+*            ADABAS I/O -- initialization (invoked by GVBMR96)        *
 *                                                                     *
 *                                                                     *
 *  NOTE:     GVBMRAD RUNS IN 31-BIT ADDRESSING MODE.                  *
@@ -48,21 +48,21 @@
 *        R12 -                                                        *
 *        R11 -                                                        *
 *                                                                     *
-*        R10 - BASE                                                   *
+*        R10 - PROGRAM BASE                                           *
 *        R9  - INTERNAL  SUBROUTINE  RETURN ADDRESS                   *
 *                                                                     *
-*        R8  - SQL CALL  WORK AREA ADDRESS                            *
+*        R8  - WKAREA Dsect base address                              *
 *                                                                     *
 *        R7  - SQL DESCRIPTOR AREA ADDRESS ("SQLDA")                  *
 *            - SQL TEXT       AREA ADDRESS ("SQLTAREA")               *
+*        This is used to obtain the Adabas access information needed  *
+*        contained in vdp0200b record field vdp0200b_DBMS_SQL, e.g.   *
+*        DBID=300|FNR=47|SB=AA.|FB=AA,AB,AC,AD,AE,AF,AG.|LREC=96      *
+*        or enclosed withing the <DBMSSQL> tag in the VDP XML         *
 *                                                                     *
-*        R6  - CURRENT   ROW       ADDRESS                            *
-*                                                                     *
+*        R6  -                                                        *
 *        R5  -                                                        *
-*                                                                     *
-*        R4  - WORK      REGISTER                                     *
-*            - "SQLVARN" DSECT BASE REGISTER                          *
-*                                                                     *
+*        R4  - WORK                                                   *
 *        R3  - WORK      REGISTER                                     *
 *        R2  - WORK      REGISTER                                     *
 *                                                                     *
@@ -101,186 +101,6 @@ LEAVE    OPSYN ASM_LEAVE
 *
          ihasaver
                         EJECT
-SQLTAREA DSECT                    SQL STATEMENT TEXT AREA
-*
-SQLBUFFR DS    HL2,CL10238        SQL STATEMENT LENGTH, STATEMENT TEXT
-         ORG   SQLBUFFR
-         DS    HL2
-SQLTEXT  DS    CL10238
-         ORG
-*
-*        Adabas dsects
-*
-ADACBX   DSECT ,              Adabas Control Block Extended
-ACBX     DS    0D        +00
-ACBXTYP  DS    X         +00  ADALNK function code
-ACBXTUSR Equ    X'00'           User logical call
-ACBXRSV1 DS    X         +01  Reserved - set to zero
-ACBXVER  DS    0CL2      +02  Control block type and version
-ACBXVERT DS     C               ADACBX type identifier
-ACBXVERE Equ     C'F'             Type is ADACBX
-ACBXVERN DS     C               ADACBX version number
-ACBXVERC Equ     C'2'             Current version number is 2
-ACBXVER2 Equ     C'2'             Initial release - version 2
-ACBXVCUR Equ     256*ACBXVERE+ACBXVERC  2-byte current version
-ACBXV2   Equ     256*ACBXVERE+ACBXVER2  Initial release - version 2
-ACBXLEN  DS    H         +04  ACB Length (= ACBXQLL)
-ACBXCMD  DS    CL2       +06  Command Code
-ACBXRSV2 DS    H         +08  Reserved - set to zero
-ACBXRSP  DS    H         +0A  Response code
-ACBXCID  DS    XL4       +0C  Command ID
-ACBXDBID DS    F         +10  Database ID
-ACBXFNR  DS    F         +14  File number
-ACBXISNG DS    0D,F      +18  8-byte ISN - not in use
-ACBXISN  DS    F         +1C  ISN
-ACBXISLG DS    0D,F      +20  8-byte ISN lower limit - not in use
-ACBXISL  DS    F         +24  ISN lower limit
-ACBXISQG DS    0D,F      +28  8-byte ISN quantity - not in use
-ACBXISQ  DS    F         +2C  ISN quantity
-ACBXCOP1 DS    C         +30  Command option 1
-ACBXCOP2 DS    C         +31  Command option 2
-ACBXCOP3 DS    C         +32  Command option 3
-ACBXCOP4 DS    C         +33  Command option 4
-ACBXCOP5 DS    C         +34  Command option 5
-ACBXCOP6 DS    C         +35  Command option 6
-ACBXCOP7 DS    C         +36  Command option 7
-ACBXCOP8 DS    C         +37  Command option 8
-ACBXADD1 DS    CL8       +38  Additions 1
-ACBXADD2 DS    XL4       +40  Additions 2
-ACBXADD3 DS    CL8       +44  Additions 3
-ACBXADD4 DS    CL8       +4C  Additions 4
-ACBXADD5 DS    XL8       +54  Additions 5
-ACBXADD6 DS    CL8       +5C  Additions 6
-ACBXRSV3 DS    XL4       +64  Reserved - must be zero
-ACBXERR  DS    0XL16     +68  Supplemental error information
-ACBXERRG DS     0D,F     +68  Error offset in buffer (64 bit)
-ACBXERRA DS      F       +6C  Error offset in buffer (32 bit)
-ACBXERRB DS     CL2      +70  Error character field (field name)
-ACBXERRC DS     H        +72  Error subcode
-ACBXERRD DS     C        +74  Error buffer ID
-ACBXERRE DS     X        +75  Reserved for future use
-ACBXERRF DS     H        +76  Error buffer sequence number (per ID)
-ACBXSUB  DS    0XL8      +78  Subcomponent error information
-ACBXSUBR DS     H        +78  Subcomponent response code
-ACBXSUBS DS     H        +7A  Subcomponent response subcode
-ACBXSUBT DS     CL4      +7C  Subcomponent error text
-ACBXLCMP DS    D         +80  Compressed record length
-ACBXLDEC DS    D         +88  Decompressed length of all returned data
-ACBXCMDT DS    D         +90  Command time (in 1/4096 microsecs units)
-ACBXUSER DS    XL16      +98  User field (not touched by Adabas)
-ACBXRSV4 DS    XL24      +A8  Reserved - used by Adabas (do not touch)
-ACBXQLL  Equ   *-ADACBX   C0  ACBX structure length
-*
-         ADABDX TYPE=EQ
-*
-         ADABDX TYPE=FB
-         ADABDX TYPE=RB
-         ADABDX TYPE=SB
-         ADABDX TYPE=VB
-         ADABDX TYPE=IB
-         ADABDX TYPE=MB
-*
-*        Multifetch buffer segment
-*
-MBDSECT  DSECT
-MBRECL   DS    F
-MBRESP   DS    F
-MBISN    DS    F
-MBISNQ   DS    F
-*
-*        Workarea
-*
-WKAREA   DSECT
-         ds    Xl(SAVF4SA_LEN)
-WKSUBADA DS  18fd                 Savearea for calling ADABAS
-WKSAVE2  DS  18f                  Sub savearea
-*
-WKDBLWK  DS    XL08               Double work workarea
-WKDBL1   DS    D
-*
-WKTRACE  DS    CL1                Tracing
-WKEOF    DS    CL1
-WKTHRDNO DS    H
-*
-         DS    0F
-FDBID    DS    F
-FFNR     DS    F
-FSBL     DS    F
-FFBL     DS    F
-FRBSIZE  DS    F
-FMBSIZE  DS    F
-WKRECCNT DS    F                  NUMBER OF RECORDS READ
-WKRECBUF DS    F                  NUMBER OF RECORDS IN BUFFER
-WKBUFRET DS    F                  NUMBER OF BUFFERS RETURNED
-HLREC    DS    H                  RETURNED RECORD LENGTH
-         DS    H
-FOPRBL   DS    F
-WKSUBPA1 DS    A
-WKSUBPA2 DS    A
-WKSUBPA3 DS    A
-WKSUBPA4 DS    A
-WKSUBPA5 DS    A
-WKSUBPL1 DS    F
-WKSUBPL2 DS    F
-WKSUBPL3 DS    F
-WKSUBPL4 DS    F
-WKSUBPL5 DS    F
-WKOPRB   DS    CL16
-WKL3FB   DS    CL256
-WKL3SB   DS    CL8
-
-*
-WKWTOPRM WTO   TEXT=(R2),MF=L
-WKWTOLEN EQU   *-WKWTOPRM
-*
-*WK_MSG   GVBMSG PREFIX=WMSG,MF=L
-*
-         DS   0A
-WKTXTBUF DS    CL135              Message buffer
-WKTXTLEN DS    0HL002
-WKPRTTXT DS    CL133
-*
-ADAPAL   DS   0F
-         DS  11F
-*
-LINKWORK DS    XL256
-APLXLINK DS    F
-WKCID    DS   0F
-WKCID1   DS    X
-WKCID23  DS    XL2
-WKCID4   DS    X
-WKAADA   DS    F
-WKARB    DS    F
-*
-CB       DS    XL(ACBXQLL)
-*
-FB       DS    XL(FBDXQLL)
-         DS    CL256
-*
-SB       DS    XL(SBDXQLL)
-         DS    CL8
-*
-VB       DS    XL(VBDXQLL)
-         DS    CL56
-*
-IB       DS    XL(IBDXQLL)
-         DS    XL100
-*
-MB       DS    XL(MBDXQLL)
-MBCOUNT  DS    F
-MBAREA   DS (NREC)CL(MISN)        100 * 16 byte ISN areas
-*
-*RB       DS    XL(RBDXQLL)
-*RBAREA   DS (NREC)CL(LREC)        100 * 96 byte records
-*
-WORKLEN  EQU   (*-WORKAREA)
-*
-*LREC     EQU   96                  To be determined..
-NREC     EQU   100                 Arbitrary
-MISN     EQU   16                  Fixed
-
-WKLEN    EQU   (*-WKAREA)
-*
          YREGS
 *
 RSA14    EQU   12
@@ -289,9 +109,6 @@ RSA0     EQU   20
 RSA1     EQU   24
 RSA6     EQU   44
 *
-SUBSOFF  EQU   297         DB2 SUBSYSTEM ID OFFSET IN REFERENCE RECORD
-TEXTOFF  EQU   301         DB2 SQL  TEXT    OFFSET IN REFERENCE RECORD
-ERRTXTLN EQU   80          DB2  ERROR DESCRIPTION  LINE LENGTH
          PRINT GEN
          SYSSTATE ARCHLVL=2
          print off
@@ -1342,26 +1159,17 @@ EXEPACK  PACK  WKDBL1(0),0(0,R1)
 *        C O N S T A N T S                                            *
 *                                                                     *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-F10K     equ   10240
-*
+         DS    0F
 HNREC    DC    Y(NREC)
 HMISN    DC    Y(MISN)
-*
-         DS    0F
 MODE31   DC    XL4'80000000'
-*
 STGBLKLN DC    A(WKLEN+8)
-*
 GVBUR33  DC    V(GVBUR33)
-*
 FFFF     DC    XL4'FFFFFFFF'
-*
-         DS    0F
 HEXTR    DS    XL256'00'
          ORG   HEXTR+240
          DC    C'0123456789ABCDEF'
          ORG   ,
-*
 ENQSTAT  DC    CL8'ENQSTAT '      MINOR  ENQ NODE  (Stats)
 TRACNAME DC    CL8'MR95TRAC'      MINOR  ENQ NODE  (MR95 TRACE FILE)
 ZEROES   DC   8CL01'0'
@@ -1374,13 +1182,346 @@ LINKNAME DC    CL8'ADAUSER'
 NUMMSK   DC    XL12'402020202020202020202021'
 *
          LTORG ,
+***********************************************************************
+*        EQUATES                                                      *
+***********************************************************************
 *
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-*                                                                     *
-*        D A T A   C O N T R O L   B L O C K S                        *
-*                                                                     *
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+F10K     equ   10240
+NREC     EQU   100                 Arbitrary number of records per call
+MISN     EQU   MBDXSEGL            Fixed == length of MBDSECT (16)
 *
+*        ADABAS Equates                                        
+*                                                                    
+ABDXVERE equ   C'G'          Type is ABDX                          
+ABDXVERC equ   C'2'          Current version number is 2           
+ABDXVER2 equ   C'2'          Initial release - version 2           
+ABDXVCUR equ   256*ABDXVERE+ABDXVERC  2-byte current version       
+ABDXV2   equ   256*ABDXVERE+ABDXVER2  Initial release - version 2  
+ABDXQFB  equ   C'F'          Format Buffer                         
+ABDXQRB  equ   C'R'          Record Buffer                         
+ABDXQMB  equ   C'M'          Multifetch Buffer                     
+ABDXQSB  equ   C'S'          Search Buffer                         
+ABDXQVB  equ   C'V'          Value Buffer                          
+ABDXQIB  equ   C'I'          ISN Buffer                            
+ABDXQPB  equ   C'P'          Performance Buffer                    
+ABDXQUI  equ   C'U'          User Info Buffer                      
+ABDXQSTD equ   C' '          At end of ABDX (standard)             
+ABDXQIND equ   C'I'          Indirectly addressed                  
+ABDXQDSP equ   C'D'          ALET-qualified (data or address space)
+*
+***********************************************************************
+*        DSECTS                                                       *
+***********************************************************************
+*
+*        Workarea
+*
+WKAREA   DSECT
+         ds    Xl(SAVF4SA_LEN)
+WKSUBADA DS  18fd                 Savearea for calling ADABAS
+WKSAVE2  DS  18f                  Sub savearea
+WKDBLWK  DS    XL08               Double work workarea
+WKDBL1   DS    D
+WKTRACE  DS    CL1                Tracing
+WKEOF    DS    CL1
+WKTHRDNO DS    H
+         DS    0F
+FDBID    DS    F
+FFNR     DS    F
+FSBL     DS    F
+FFBL     DS    F
+FRBSIZE  DS    F
+FMBSIZE  DS    F
+WKRECCNT DS    F                  NUMBER OF RECORDS READ
+WKRECBUF DS    F                  NUMBER OF RECORDS IN BUFFER
+WKBUFRET DS    F                  NUMBER OF BUFFERS RETURNED
+HLREC    DS    H                  RETURNED RECORD LENGTH
+         DS    H
+FOPRBL   DS    F
+WKSUBPA1 DS    A
+WKSUBPA2 DS    A
+WKSUBPA3 DS    A
+WKSUBPA4 DS    A
+WKSUBPA5 DS    A
+WKSUBPL1 DS    F
+WKSUBPL2 DS    F
+WKSUBPL3 DS    F
+WKSUBPL4 DS    F
+WKSUBPL5 DS    F
+WKOPRB   DS    CL16
+WKL3FB   DS    CL256
+WKL3SB   DS    CL8
+WKWTOPRM WTO   TEXT=(R2),MF=L
+WKWTOLEN EQU   *-WKWTOPRM
+         DS   0A
+WKTXTBUF DS    CL135              Message buffer
+WKTXTLEN DS    0HL002
+WKPRTTXT DS    CL133
+ADAPAL   DS   0F
+         DS  11F
+LINKWORK DS    XL256
+APLXLINK DS    F
+WKCID    DS   0F
+WKCID1   DS    X
+WKCID23  DS    XL2
+WKCID4   DS    X
+WKAADA   DS    F
+WKARB    DS    F
+CB       DS    XL(ACBXQLL)
+FB       DS    XL(FBDXQLL)
+         DS    CL256
+SB       DS    XL(SBDXQLL)
+         DS    CL8
+VB       DS    XL(VBDXQLL)
+         DS    CL56
+IB       DS    XL(IBDXQLL)
+         DS    XL100
+MB       DS    XL(MBDXQLL)
+MBCOUNT  DS    F
+MBAREA   DS (NREC)CL(MISN)        100 * 16 byte ISN areas
+WKLEN    EQU   (*-WKAREA)
+*
+*
+SQLTAREA DSECT ,     SQL STATEMENT TEXT AREA
+SQLBUFFR DS    HL2,CL10238        SQL STATEMENT LENGTH, STATEMENT TEXT
+         ORG   SQLBUFFR
+         DS    HL2
+SQLTEXT  DS    CL10238
+         ORG
+*
+*
+ADACBX   DSECT ,     Adabas control block (extended)
+ACBX     DS   0D         +00
+ACBXTYP  DS    X         +00  ADALNK function code
+ACBXTUSR EQU   X'00'           User logical call
+ACBXRSV1 DS    X         +01  Reserved - set to zero
+ACBXVER  DS   0CL2       +02  Control block type and version
+ACBXVERT DS    C                ADACBX type identifier
+ACBXVERE EQU   C'F'             Type is ADACBX
+ACBXVERN DS    C               ADACBX version number
+ACBXVERC EQU   C'2'             Current version number is 2
+ACBXVER2 EQU   C'2'             Initial release - version 2
+ACBXVCUR EQU   256*ACBXVERE+ACBXVERC  2-byte current version
+ACBXV2   EQU   256*ACBXVERE+ACBXVER2  Initial release - version 2
+ACBXLEN  DS    H         +04  ACB Length (= ACBXQLL)
+ACBXCMD  DS    CL2       +06  Command Code
+ACBXRSV2 DS    H         +08  Reserved - set to zero
+ACBXRSP  DS    H         +0A  Response code
+ACBXCID  DS    XL4       +0C  Command ID
+ACBXDBID DS    F         +10  Database ID
+ACBXFNR  DS    F         +14  File number
+ACBXISNG DS    0D,F      +18  8-byte ISN - not in use
+ACBXISN  DS    F         +1C  ISN
+ACBXISLG DS    0D,F      +20  8-byte ISN lower limit - not in use
+ACBXISL  DS    F         +24  ISN lower limit
+ACBXISQG DS    0D,F      +28  8-byte ISN quantity - not in use
+ACBXISQ  DS    F         +2C  ISN quantity
+ACBXCOP1 DS    C         +30  Command option 1
+ACBXCOP2 DS    C         +31  Command option 2
+ACBXCOP3 DS    C         +32  Command option 3
+ACBXCOP4 DS    C         +33  Command option 4
+ACBXCOP5 DS    C         +34  Command option 5
+ACBXCOP6 DS    C         +35  Command option 6
+ACBXCOP7 DS    C         +36  Command option 7
+ACBXCOP8 DS    C         +37  Command option 8
+ACBXADD1 DS    CL8       +38  Additions 1
+ACBXADD2 DS    XL4       +40  Additions 2
+ACBXADD3 DS    CL8       +44  Additions 3
+ACBXADD4 DS    CL8       +4C  Additions 4
+ACBXADD5 DS    XL8       +54  Additions 5
+ACBXADD6 DS    CL8       +5C  Additions 6
+ACBXRSV3 DS    XL4       +64  Reserved - must be zero
+ACBXERR  DS   0XL16      +68  Supplemental error information
+ACBXERRG DS    0D,F      +68  Error offset in buffer (64 bit)
+ACBXERRA DS    F         +6C  Error offset in buffer (32 bit)
+ACBXERRB DS    CL2       +70  Error character field (field name)
+ACBXERRC DS    H         +72  Error subcode
+ACBXERRD DS    C         +74  Error buffer ID
+ACBXERRE DS    X         +75  Reserved for future use
+ACBXERRF DS    H         +76  Error buffer sequence number (per ID)
+ACBXSUB  DS   0XL8       +78  Subcomponent error information
+ACBXSUBR DS    H         +78  Subcomponent response code
+ACBXSUBS DS    H         +7A  Subcomponent response subcode
+ACBXSUBT DS    CL4       +7C  Subcomponent error text
+ACBXLCMP DS    D         +80  Compressed record length
+ACBXLDEC DS    D         +88  Decompressed length of all returned data
+ACBXCMDT DS    D         +90  Command time (in 1/4096 microsecs units)
+ACBXUSER DS    XL16      +98  User field (not touched by Adabas)
+ACBXRSV4 DS    XL24      +A8  Reserved - used by Adabas (do not touch)
+ACBXQLL  EQU   *-ADACBX   C0  ACBX structure length
+*
+*
+FBBDX    DSECT ,     Adabas Format Buffer Descriptor                
+FBDX     DS   0D                                                  
+FBDXLEN  DS    H         +00 Fixed length of ABDX structure (X'30')
+FBDXVER  DS    0CL2      +02 Structure block type and version      
+FBDXVERT DS    C              ABDX type identifier                 
+FBDXVERN DS    C              ABDX version number                  
+FBDXID   DS    C         +04 Buffer ID                             
+FBDXRSV1 DS    B         +05 Reserved for future use, must be X'00'
+FBDXLOC  DS    C         +06 Buffer location flag                  
+FBDXRSV2 DS    X         +07 Reserved for future use, must be X'00'
+FBDXRSV3 DS    F         +08 Reserved for future use, must be X'00'
+FBDXALET DS    F         +0C ALET for buffer (ABDXLOC=C'D')        
+FBDXSIZE DS    D         +10 Buffer size (allocated length)        
+FBDXSEND DS    D         +18 Length of data to send to server      
+FBDXRECV DS    D         +20 Length of data received from server   
+FBDXADRG DS    0D,XL4    +28 64-bit address of indirectly addressed
+*                              buffer in primary address space or CSA  
+*                              (ABDXLOC=C'I') or address space         
+*                              (ABDXLOC=C'D')                          
+FBDXADR  DS    A         +2C 31-bit address of indirectly addressed
+*                              buffer in primary address space or CSA  
+*                              (ABDXLOC=C'I') or dataspace/address     
+*                              space (ABDXLOC=C'D')                    
+FBDXQLL  EQU   *-FBBDX     30  ADABDX structure length             
+FBDXDATA EQU   *         +30  Actual buffer (ABDXLOC=C' ')         
+*
+*
+RBBDX    DSECT ,     Adabas Record Buffer Descriptor                
+RBDX     DS   0D                                                  
+RBDXLEN  DS    H         +00 Fixed length of ABDX structure (X'30')
+RBDXVER  DS    0CL2      +02 Structure block type and version      
+RBDXVERT DS    C              ABDX type identifier                 
+RBDXVERN DS    C              ABDX version number                  
+RBDXID   DS    C         +04 Buffer ID                             
+RBDXRSV1 DS    B         +05 Reserved for future use, must be X'00'
+RBDXLOC  DS    C         +06 Buffer location flag                  
+RBDXRSV2 DS    X         +07 Reserved for future use, must be X'00'
+RBDXRSV3 DS    F         +08 Reserved for future use, must be X'00'
+RBDXALET DS    F         +0C ALET for buffer (ABDXLOC=C'D')        
+RBDXSIZE DS    D         +10 Buffer size (allocated length)        
+RBDXSEND DS    D         +18 Length of data to send to server      
+RBDXRECV DS    D         +20 Length of data received from server   
+RBDXADRG DS    0D,XL4    +28 64-bit address of indirectly addressed
+*                              buffer in primary address space or CSA  
+*                              (ABDXLOC=C'I') or address space         
+*                              (ABDXLOC=C'D')                          
+RBDXADR  DS    A         +2C 31-bit address of indirectly addressed
+*                              buffer in primary address space or CSA  
+*                              (ABDXLOC=C'I') or dataspace/address     
+*                              space (ABDXLOC=C'D')                    
+RBDXQLL  EQU   *-RBBDX     30  ADABDX structure length             
+RBDXDATA EQU   *         +30  Actual buffer (ABDXLOC=C' ')         
+*
+*
+SBBDX    DSECT ,     Adabas Search Buffer Descriptor                
+SBDX     DS   0D                                                  
+SBDXLEN  DS    H         +00 Fixed length of ABDX structure (X'30')
+SBDXVER  DS    0CL2      +02 Structure block type and version      
+SBDXVERT DS    C              ABDX type identifier                 
+SBDXVERN DS    C              ABDX version number                  
+SBDXID   DS    C         +04 Buffer ID                             
+SBDXRSV1 DS    B         +05 Reserved for future use, must be X'00'
+SBDXLOC  DS    C         +06 Buffer location flag                  
+SBDXRSV2 DS    X         +07 Reserved for future use, must be X'00'
+SBDXRSV3 DS    F         +08 Reserved for future use, must be X'00'
+SBDXALET DS    F         +0C ALET for buffer (ABDXLOC=C'D')        
+SBDXSIZE DS    D         +10 Buffer size (allocated length)        
+SBDXSEND DS    D         +18 Length of data to send to server      
+SBDXRECV DS    D         +20 Length of data received from server   
+SBDXADRG DS    0D,XL4    +28 64-bit address of indirectly addressed
+*                              buffer in primary address space or CSA  
+*                              (ABDXLOC=C'I') or address space         
+*                              (ABDXLOC=C'D')                          
+SBDXADR  DS    A         +2C 31-bit address of indirectly addressed
+*                              buffer in primary address space or CSA  
+*                              (ABDXLOC=C'I') or dataspace/address     
+*                              space (ABDXLOC=C'D')                    
+SBDXQLL  EQU   *-SBBDX     30  ADABDX structure length             
+SBDXDATA EQU   *         +30  Actual buffer (ABDXLOC=C' ')         
+*
+*
+VBBDX    DSECT ,     Adabas Value Buffer Descriptor                
+VBDX     DS   0D                                                  
+VBDXLEN  DS    H         +00 Fixed length of ABDX structure (X'30')
+VBDXVER  DS    0CL2      +02 Structure block type and version      
+VBDXVERT DS    C              ABDX type identifier                 
+VBDXVERN DS    C              ABDX version number                  
+VBDXID   DS    C         +04 Buffer ID                             
+VBDXRSV1 DS    B         +05 Reserved for future use, must be X'00'
+VBDXLOC  DS    C         +06 Buffer location flag                  
+VBDXRSV2 DS    X         +07 Reserved for future use, must be X'00'
+VBDXRSV3 DS    F         +08 Reserved for future use, must be X'00'
+VBDXALET DS    F         +0C ALET for buffer (ABDXLOC=C'D')        
+VBDXSIZE DS    D         +10 Buffer size (allocated length)        
+VBDXSEND DS    D         +18 Length of data to send to server      
+VBDXRECV DS    D         +20 Length of data received from server   
+VBDXADRG DS    0D,XL4    +28 64-bit address of indirectly addressed
+*                              buffer in primary address space or CSA  
+*                              (ABDXLOC=C'I') or address space         
+*                              (ABDXLOC=C'D')                          
+VBDXADR  DS    A         +2C 31-bit address of indirectly addressed
+*                              buffer in primary address space or CSA  
+*                              (ABDXLOC=C'I') or dataspace/address     
+*                              space (ABDXLOC=C'D')                    
+VBDXQLL  EQU   *-VBBDX     30  ADABDX structure length             
+VBDXDATA EQU   *         +30  Actual buffer (ABDXLOC=C' ')         
+*
+*
+IBBDX    DSECT ,     Adabas ISN Buffer Descriptor                
+IBDX     DS   0D                                                  
+IBDXLEN  DS    H         +00 Fixed length of ABDX structure (X'30')
+IBDXVER  DS    0CL2      +02 Structure block type and version      
+IBDXVERT DS    C              ABDX type identifier                 
+IBDXVERN DS    C              ABDX version number                  
+IBDXID   DS    C         +04 Buffer ID                             
+IBDXRSV1 DS    B         +05 Reserved for future use, must be X'00'
+IBDXLOC  DS    C         +06 Buffer location flag                  
+IBDXRSV2 DS    X         +07 Reserved for future use, must be X'00'
+IBDXRSV3 DS    F         +08 Reserved for future use, must be X'00'
+IBDXALET DS    F         +0C ALET for buffer (ABDXLOC=C'D')        
+IBDXSIZE DS    D         +10 Buffer size (allocated length)        
+IBDXSEND DS    D         +18 Length of data to send to server      
+IBDXRECV DS    D         +20 Length of data received from server   
+IBDXADRG DS    0D,XL4    +28 64-bit address of indirectly addressed
+*                              buffer in primary address space or CSA  
+*                              (ABDXLOC=C'I') or address space         
+*                              (ABDXLOC=C'D')                          
+IBDXADR  DS    A         +2C 31-bit address of indirectly addressed
+*                              buffer in primary address space or CSA  
+*                              (ABDXLOC=C'I') or dataspace/address     
+*                              space (ABDXLOC=C'D')                    
+IBDXQLL  EQU   *-IBBDX     30  ADABDX structure length             
+IBDXDATA EQU   *         +30  Actual buffer (ABDXLOC=C' ')         
+*
+*
+MBBDX    DSECT ,     Adabas Multifetch Buffer Descriptor                
+MBDX     DS   0D                                                  
+MBDXLEN  DS    H         +00 Fixed length of ABDX structure (X'30')
+MBDXVER  DS    0CL2      +02 Structure block type and version      
+MBDXVERT DS    C              ABDX type identifier                 
+MBDXVERN DS    C              ABDX version number                  
+MBDXID   DS    C         +04 Buffer ID                             
+MBDXRSV1 DS    B         +05 Reserved for future use, must be X'00'
+MBDXLOC  DS    C         +06 Buffer location flag                  
+MBDXRSV2 DS    X         +07 Reserved for future use, must be X'00'
+MBDXRSV3 DS    F         +08 Reserved for future use, must be X'00'
+MBDXALET DS    F         +0C ALET for buffer (ABDXLOC=C'D')        
+MBDXSIZE DS    D         +10 Buffer size (allocated length)        
+MBDXSEND DS    D         +18 Length of data to send to server      
+MBDXRECV DS    D         +20 Length of data received from server   
+MBDXADRG DS    0D,XL4    +28 64-bit address of indirectly addressed
+*                              buffer in primary address space or CSA  
+*                              (ABDXLOC=C'I') or address space         
+*                              (ABDXLOC=C'D')                          
+MBDXADR  DS    A         +2C 31-bit address of indirectly addressed
+*                              buffer in primary address space or CSA  
+*                              (ABDXLOC=C'I') or dataspace/address     
+*                              space (ABDXLOC=C'D')                    
+MBDXQLL  EQU   *-MBBDX     30  ADABDX structure length             
+MBDXDATA EQU   *         +30  Actual buffer (ABDXLOC=C' ')         
+*
+*
+MBDSECT  DSECT ,     Adabas Multifetch Buffer Segment
+MBRECL   DS    F
+MBRESP   DS    F
+MBISN    DS    F
+MBISNQ   DS    F
+MBDXSEGL EQU   *-MBDSECT
+*
+***********************************************************************
+*        DATA CONTROL BLOCKS                                          *
+***********************************************************************
          DCBD  DSORG=PS
          ihadcbe
 *
