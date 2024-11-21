@@ -2626,7 +2626,8 @@ fiscexit    ds 0h
 ***********************************************************************
 * EOF  FOR PARAMETER FILE                                             *
 ***********************************************************************
-PARMEOF CLOSE ((R2)),MODE=31,MF=(E,RENTPARM)
+PARMEOF  CLOSE ((R2)),MODE=31,MF=(E,RENTPARM)
+         MVC  ERRDATA,SPACES           BLANK OUT INDICATIVE ERROR DATA
 ***********************************************************************
 *rtc19876 Check parms passed in MR88PARM file                         *
 ***********************************************************************
