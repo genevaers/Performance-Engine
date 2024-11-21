@@ -12921,9 +12921,29 @@ Filleof  ds    0h
            logit
          endif
 *
-         IARV64 REQUEST=GETSTOR,SEGMENTS=DBLWORK,ORIGIN=dblwork2,      X
-               FPROT=NO,SVCDUMPRGN=YES,USERTKN=NO_USERTKN,             X
+MR96 - implement 'include reference tables in dumps'
+*
+         LLGT  R14,EXECDADR
+         Using EXECDATA,R14
+*
+         CLI   EXEC_Dump_Ref,C'Y'                     Include RefPools?
+         JNE   Exclude_Reference_Tables_From_Dumps    If NO, Exclude
+*
+         Drop R14
+*
+Include_Reference_Tables_In_Dumps  DC  0H
+         IARV64 REQUEST=GETSTOR,SEGMENTS=DBLWORK,ORIGIN=DBLWORK2,      +
+               FPROT=NO,SVCDUMPRGN=YES,SADMP=YES,USERTKN=NO_USERTKN,   +
                MF=(E,GET64MEM,COMPLETE)
+*
+         J     Reference_Tables_Storage_Obtained
+*
+Exclude_Reference_Tables_From_Dumps  DC  0H
+         IARV64 REQUEST=GETSTOR,SEGMENTS=DBLWORK,ORIGIN=DBLWORK2,      +
+               FPROT=NO,SVCDUMPRGN=NO,SADMP=NO,USERTKN=NO_USERTKN,     +
+               MF=(E,GET64MEM,COMPLETE)
+*
+Reference_Tables_Storage_Obtained  DC  0H
 *
          lg    r1,dblwork2        Get beginning address
          stg   r1,Refpoolb        Save it  as beginning address
