@@ -58,7 +58,7 @@
 *        This is used to obtain the Adabas access information needed  *
 *        contained in vdp0200b record field vdp0200b_DBMS_SQL, e.g.   *
 *        DBID=300|FNR=47|SB=AA.|FB=AA,AB,AC,AD,AE,AF,AG.|LREC=96      *
-*        or enclosed withing the <DBMSSQL> tag in the VDP XML         *
+*        or enclosed within the <DBMSSQL> tag in the VDP XML          *
 *                                                                     *
 *        R6  -                                                        *
 *        R5  -                                                        *
