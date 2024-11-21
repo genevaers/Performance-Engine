@@ -111,7 +111,65 @@ SQLTEXT  DS    CL10238
 *
 *        Adabas dsects
 *
-         ADACBX DSECT=YES
+ADACBX   DSECT ,              Adabas Control Block Extended
+ACBX     DS    0D        +00
+ACBXTYP  DS    X         +00  ADALNK function code
+ACBXTUSR Equ    X'00'           User logical call
+ACBXRSV1 DS    X         +01  Reserved - set to zero
+ACBXVER  DS    0CL2      +02  Control block type and version
+ACBXVERT DS     C               ADACBX type identifier
+ACBXVERE Equ     C'F'             Type is ADACBX
+ACBXVERN DS     C               ADACBX version number
+ACBXVERC Equ     C'2'             Current version number is 2
+ACBXVER2 Equ     C'2'             Initial release - version 2
+ACBXVCUR Equ     256*ACBXVERE+ACBXVERC  2-byte current version
+ACBXV2   Equ     256*ACBXVERE+ACBXVER2  Initial release - version 2
+ACBXLEN  DS    H         +04  ACB Length (= ACBXQLL)
+ACBXCMD  DS    CL2       +06  Command Code
+ACBXRSV2 DS    H         +08  Reserved - set to zero
+ACBXRSP  DS    H         +0A  Response code
+ACBXCID  DS    XL4       +0C  Command ID
+ACBXDBID DS    F         +10  Database ID
+ACBXFNR  DS    F         +14  File number
+ACBXISNG DS    0D,F      +18  8-byte ISN - not in use
+ACBXISN  DS    F         +1C  ISN
+ACBXISLG DS    0D,F      +20  8-byte ISN lower limit - not in use
+ACBXISL  DS    F         +24  ISN lower limit
+ACBXISQG DS    0D,F      +28  8-byte ISN quantity - not in use
+ACBXISQ  DS    F         +2C  ISN quantity
+ACBXCOP1 DS    C         +30  Command option 1
+ACBXCOP2 DS    C         +31  Command option 2
+ACBXCOP3 DS    C         +32  Command option 3
+ACBXCOP4 DS    C         +33  Command option 4
+ACBXCOP5 DS    C         +34  Command option 5
+ACBXCOP6 DS    C         +35  Command option 6
+ACBXCOP7 DS    C         +36  Command option 7
+ACBXCOP8 DS    C         +37  Command option 8
+ACBXADD1 DS    CL8       +38  Additions 1
+ACBXADD2 DS    XL4       +40  Additions 2
+ACBXADD3 DS    CL8       +44  Additions 3
+ACBXADD4 DS    CL8       +4C  Additions 4
+ACBXADD5 DS    XL8       +54  Additions 5
+ACBXADD6 DS    CL8       +5C  Additions 6
+ACBXRSV3 DS    XL4       +64  Reserved - must be zero
+ACBXERR  DS    0XL16     +68  Supplemental error information
+ACBXERRG DS     0D,F     +68  Error offset in buffer (64 bit)
+ACBXERRA DS      F       +6C  Error offset in buffer (32 bit)
+ACBXERRB DS     CL2      +70  Error character field (field name)
+ACBXERRC DS     H        +72  Error subcode
+ACBXERRD DS     C        +74  Error buffer ID
+ACBXERRE DS     X        +75  Reserved for future use
+ACBXERRF DS     H        +76  Error buffer sequence number (per ID)
+ACBXSUB  DS    0XL8      +78  Subcomponent error information
+ACBXSUBR DS     H        +78  Subcomponent response code
+ACBXSUBS DS     H        +7A  Subcomponent response subcode
+ACBXSUBT DS     CL4      +7C  Subcomponent error text
+ACBXLCMP DS    D         +80  Compressed record length
+ACBXLDEC DS    D         +88  Decompressed length of all returned data
+ACBXCMDT DS    D         +90  Command time (in 1/4096 microsecs units)
+ACBXUSER DS    XL16      +98  User field (not touched by Adabas)
+ACBXRSV4 DS    XL24      +A8  Reserved - used by Adabas (do not touch)
+ACBXQLL  Equ   *-ADACBX   C0  ACBX structure length
 *
          ADABDX TYPE=EQ
 *
