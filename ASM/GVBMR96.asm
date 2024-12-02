@@ -6450,7 +6450,7 @@ prev             USING vdp0200b_FILE_RECORD,R14
            agf R0,VDP_seg_len            space
            sgr R0,R7                      remaining
            if CGHI,R0,lt,VDPCUSHN       Are we likely to run out?
-             LGHI  R4,4*VDPCUSHN        another 32K
+             LGHI  R4,4*VDPCUSHN        another 16K
              STY   R4,VDP_seg_len       keep total
              LLGT  R0,VDPSIZE           current memory used for VDP
              AR    R0,R4                add size of next segment
