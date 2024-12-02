@@ -6495,7 +6495,8 @@ VDPEOF   llgt  R7,PREVVDPA        LOAD    PREVIOUS  "VDP" RECORD  ADDR
 *        has current (last) segment ever been used ?
 
          LLGT  R1,VDP_ADDR_CURR_SEG
-         ICM   R0,B'0011',VDP0200B_REC_LEN-VDP0200B_FILE_RECORD(,R1)
+         LGH   R0,VDP0200B_REC_LEN-VDP0200B_FILE_RECORD(,R1)
+         LTR   R0,R0
          JP    VDPSEGNU             Yes, segment has been used: go
          LLGT  R0,VDP_SEG_LEN       No, never used so get it's length
          J     VDPRELFR             release all of last segment then
