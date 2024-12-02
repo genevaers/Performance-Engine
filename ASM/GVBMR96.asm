@@ -6460,7 +6460,7 @@ prev             USING vdp0200b_FILE_RECORD,R14
 *
              LGR   R7,R1                Next VDP slot
              STY   R7,vdp_addr_curr_seg Current segment address
-             asi   vdp_seg_cnt,1        Segment count
+             asi   vdp_seg_cnt,1        Increment segment count
            endif
 
 *          do chaining using common start of element
