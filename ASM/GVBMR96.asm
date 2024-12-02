@@ -6452,9 +6452,9 @@ prev             USING vdp0200b_FILE_RECORD,R14
            if CGHI,R0,lt,VDPCUSHN       Are we likely to run out?
              LGHI  R4,4*VDPCUSHN        another 32K
              STY   R4,VDP_seg_len       keep total
-             Agf   R4,VDPSIZE           add existing amount
-             ST    R4,VDPSIZE           keep running total
-
+             LLGT  R0,VDPSIZE           current memory used for VDP
+             AR    R0,R4                add size of next segment
+             ST    R0,VDPSIZE           keep running total
 *
              STORAGE OBTAIN,LENGTH=(4),LOC=(ANY),BNDRY=PAGE
 *
@@ -6492,8 +6492,17 @@ VDPEOF   llgt  R7,PREVVDPA        LOAD    PREVIOUS  "VDP" RECORD  ADDR
            nill r7,x'fff8'
          endif
 
+*        has current (last) segment ever been used ?
+
+         LLGT  R1,VDP_ADDR_CURR_SEG
+         ICM   R0,B'0011',VDP0200B_REC_LEN-VDP0200B_FILE_RECORD(,R1)
+         JP    VDPSEGNU             Yes, segment has been used: go
+         LLGT  R0,VDP_SEG_LEN       No, never used so get it's length
+         J     VDPRELFR             release all of last segment then
+
 *        free what's unused
 
+VDPSEGU  EQU   *
          llgt  R1,vdp_addr_curr_seg COMPUTE REMAINING TABLE SPACE
          agf   R1,VDP_seg_len
          lgr   R0,R1
@@ -6504,9 +6513,10 @@ VDPEOF   llgt  R7,PREVVDPA        LOAD    PREVIOUS  "VDP" RECORD  ADDR
          Sgr   R7,R0              with the amount we're going to free
          ST    R7,VDPSIZE
          ltgr  R0,R0              Do we have an exact fit ?
-         jnp   VDPEOF02             don't release
+         jnp   VDPEOF02           Then don't release anything
 *                                 but what if we find this negative ?
-*
+*                                 Then don't release anything
+VDPRELFR EQU   *
          STORAGE RELEASE,ADDR=(1),LENGTH=(0) release unused space
 VDPEOF02 DS    0H
 *
