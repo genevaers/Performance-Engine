@@ -3046,18 +3046,38 @@ callexit_lp ds 0h
 ***********************************************************************
                    if (oc,gp_error_reason,gp_error_reason,nz)          +
                                       is the code non zero ==> text
-                     lgr r9,r15             save r15
-                     l r15,gp_error_buffer_len get length of text
-                     sthy r15,error_bufl    and save in prefix
-                     lay r3,error_bufl
+                     lgr   r9,r15     save r15
+                     LTGF  R14,GP_ERROR_BUFFER_PTR
+                     JZ    NOLKUPERROR_BUFFER  
+                     LTGF  r15,gp_error_buffer_len get length of text
+                     JNZ   LKUPERROR_BUFFER
+NOLKUPERROR_BUFFER   EQU   *
+                     MVC   GP_ERROR_BUFFER_LEN,=F'64'
+                     MVC   ERROR_BUFFER(66),=CL66' ** GVB00068E GVBMR95+
+                 - EXIT XXXXXXXX RETURNS ERROR REASON XXXXXX'
+                     MVC   ERROR_BUFFER+30(8),LBSUBNAM exit ddname
+                     LLGF  R15,GP_ERROR_REASON
+                     CVD   R15,DBLWORK                 reason code
+                     OI    DBLWORK+L'DBLWORK-1,X'0F'
+                     UNPK  ERROR_BUFFER+60(6),DBLWORK
+                     MVC   ERROR_BUFL,=H'66'
+                     J     LKUPERROR_BUFFER02
+LKUPERROR_BUFFER     EQU   *
+                     LAY   R1,ERROR_BUFFER
+                     BCTR  R15,R0
+                     EXRL  R15,MVCR1R14     copy the text
+                     LA    R15,1(,R15)
+                     sthy  r15,error_bufl   and save in prefix length
+LKUPERROR_BUFFER02   EQU   *
+                     lay   r3,error_bufl
                      WTO TEXT=(3),MF=(E,WTOPARM)
-                     l r15,gp_error_buffer_len get length of text
+                     LHY   r15,error_bufl  get length of text again
                      ahi   r15,4
                      sthy  r15,error_bufl
                      ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
                      logit msg=error_bufl
                      DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
-                     lgr r15,r9             restore r15
+                     lgr   r15,r9           restore r15
                    endif
                    if cgij,r15,gt,8 higher than 8 is bad
 *
