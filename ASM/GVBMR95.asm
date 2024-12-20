@@ -3052,7 +3052,6 @@ callexit_lp ds 0h
                      LTGF  r15,gp_error_buffer_len get length of text
                      JNZ   LKUPERROR_BUFFER
 NOLKUPERROR_BUFFER   EQU   *
-                     MVC   GP_ERROR_BUFFER_LEN,=F'64'
                      MVC   ERROR_BUFFER(66),=CL66' ** GVB00068E GVBMR95+
                  - EXIT XXXXXXXX RETURNS ERROR REASON XXXXXX'
                      MVC   ERROR_BUFFER+30(8),LBSUBNAM exit ddname
