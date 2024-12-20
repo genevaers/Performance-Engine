@@ -233,6 +233,7 @@ gvbmr95  csect
 *
                         EJECT
 *
+*PROCESS  FLAG(NOALIGN)
 *
 GVBMR95  CSECT
 *
@@ -3052,14 +3053,16 @@ callexit_lp ds 0h
                      LTGF  r15,gp_error_buffer_len get length of text
                      JNZ   LKUPERROR_BUFFER
 NOLKUPERROR_BUFFER   EQU   *
-                     MVC   ERROR_BUFFER(66),=CL66' ** GVB00068E GVBMR95+
-                 - EXIT XXXXXXXX RETURNS ERROR REASON XXXXXX'
-                     MVC   ERROR_BUFFER+30(8),LBSUBNAM exit ddname
+                     LAY   R14,ERROR_BUFFER
+                     MVC   0(66,R14),=CL66' ** GVB00068E GVBMR95 - EXIT+
+                XXXXXXXX RETURNS ERROR REASON XXXXXX'
+                     MVC   30(8,R14),LBSUBNAM exit ddname
                      LLGF  R15,GP_ERROR_REASON
                      CVD   R15,DBLWORK                 reason code
                      OI    DBLWORK+L'DBLWORK-1,X'0F'
-                     UNPK  ERROR_BUFFER+60(6),DBLWORK
-                     MVC   ERROR_BUFL,=H'66'
+                     UNPK  60(6,R14),DBLWORK
+                     LA    R0,66
+                     STY   R0,ERROR_BUFL
                      J     LKUPERROR_BUFFER02
 LKUPERROR_BUFFER     EQU   *
                      LAY   R1,ERROR_BUFFER
