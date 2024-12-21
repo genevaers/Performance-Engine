@@ -233,7 +233,7 @@ gvbmr95  csect
 *
                         EJECT
 *
-*PROCESS  FLAG(NOALIGN)
+*PROCESS  OVERRIDE FLAG(NOALIGN)
 *
 GVBMR95  CSECT
 *
@@ -3067,7 +3067,9 @@ NOLKUPERROR_BUFFER   EQU   *
 LKUPERROR_BUFFER     EQU   *
                      LAY   R1,ERROR_BUFFER
                      BCTR  R15,R0
-                     EXRL  R15,MVCR1R14     copy the text
+                     EXRL  R15,MVCR1R14     copy text to error buffer
+                     LAY   R1,PRNTLINE
+                     EXRL  R15,MVCR1R14     copy text to pint log line
                      LA    R15,1(,R15)
                      sthy  r15,error_bufl   and save in prefix length
 LKUPERROR_BUFFER02   EQU   *
