@@ -3052,27 +3052,39 @@ callexit_lp ds 0h
                      JZ    NOLKUPERROR_BUFFER  
                      LTGF  r15,gp_error_buffer_len get length of text
                      JNZ   LKUPERROR_BUFFER
+*
 NOLKUPERROR_BUFFER   EQU   *
-                     LAY   R14,ERROR_BUFFER
-                     MVC   0(66,R14),=CL66' ** GVB00068E GVBMR95 - EXIT+
-                XXXXXXXX RETURNS ERROR REASON XXXXXX'
-                     MVC   30(8,R14),LBSUBNAM exit ddname
                      LLGF  R15,GP_ERROR_REASON
                      CVD   R15,DBLWORK                 reason code
                      OI    DBLWORK+L'DBLWORK-1,X'0F'
-                     UNPK  60(6,R14),DBLWORK
-                     LA    R0,66
-                     STY   R0,ERROR_BUFL
+                     UNPK  ERRDATA(6),DBLWORK
+*
+                     GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,         +
+               GENENV=GENENV,                                          +
+               SUB1=(PGMNAME,L'PGMNAME),                               +
+               SUB2=(LBSUBNAM,8),                                      +
+               SUB3=(DBLWORK,6),                                       +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+*
+                     GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=3,         +
+               GENENV=GENENV,                                          +
+               SUB1=(PGMNAME,L'PGMNAME),                               +
+               SUB2=(LBSUBNAM,8),                                      +
+               SUB3=(DBLWORK,6),                                       +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
                      J     LKUPERROR_BUFFER02
+
+
 LKUPERROR_BUFFER     EQU   *
                      LAY   R1,ERROR_BUFFER
                      BCTR  R15,R0
                      EXRL  R15,MVCR1R14     copy text to error buffer
                      LAY   R1,PRNTLINE
-                     EXRL  R15,MVCR1R14     copy text to pint log line
+                     EXRL  R15,MVCR1R14     copy text to print log line
                      LA    R15,1(,R15)
                      sthy  r15,error_bufl   and save in prefix length
-LKUPERROR_BUFFER02   EQU   *
                      lay   r3,error_bufl
                      WTO TEXT=(3),MF=(E,WTOPARM)
                      LHY   r15,error_bufl  get length of text again
@@ -3081,6 +3093,8 @@ LKUPERROR_BUFFER02   EQU   *
                      ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
                      logit msg=error_bufl
                      DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
+*
+LKUPERROR_BUFFER02   EQU   *
                      lgr   r15,r9           restore r15
                    endif
                    if cgij,r15,gt,8 higher than 8 is bad
