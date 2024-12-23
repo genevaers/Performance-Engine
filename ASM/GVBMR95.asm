@@ -3063,7 +3063,7 @@ NOLKUPERROR_BUFFER   EQU   *
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(LBSUBNAM,8),                                      +
-               SUB3=(DBLWORK,6),                                       +
+               SUB3=(ERRDATA,6),                                       +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
 *
@@ -3071,7 +3071,7 @@ NOLKUPERROR_BUFFER   EQU   *
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(LBSUBNAM,8),                                      +
-               SUB3=(DBLWORK,6),                                       +
+               SUB3=(ERRDATA,6),                                       +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
                      J     LKUPERROR_BUFFER02
