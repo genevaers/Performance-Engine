@@ -3057,21 +3057,21 @@ NOLKUPERROR_BUFFER   EQU   *
                      LLGF  R15,GP_ERROR_REASON
                      CVD   R15,DBLWORK                 reason code
                      OI    DBLWORK+L'DBLWORK-1,X'0F'
-                     UNPK  ERRDATA(6),DBLWORK
+                     UNPK  ERRDATA+8(6),DBLWORK
 *
                      GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,         +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
-               SUB2=(LBSUBNAM,8),                                      +
-               SUB3=(ERRDATA,6),                                       +
+               SUB2=(ERRDATA,8),                                       +
+               SUB3=(ERRDATA+8,6),                                     +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
 *
                      GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=3,         +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
-               SUB2=(LBSUBNAM,8),                                      +
-               SUB3=(ERRDATA,6),                                       +
+               SUB2=(ERRDATA,8),                                       +
+               SUB3=(ERRDATA+8,6),                                     +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
                      J     LKUPERROR_BUFFER02
