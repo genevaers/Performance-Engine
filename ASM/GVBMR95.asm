@@ -8866,10 +8866,10 @@ SK_E_18  DC    CL4'SKE ',AL1(FC_RTYP05)               SORT KEY AREA
          DC    AL2(MDLSK19L),AL2(MDLSK19P)
          DC    AL4(MDLSK19),AL4(MDLSK19R)
          DC    AL2(FCSUBbun),AL2(0),AL2(0)
-*
+* This should point to new model SK19_b8
 SK_E_18_b8 dc CL4'SKE ',AL1(FC_RTYP05)               SORT KEY AREA
-         DC    AL2(MDLSK54_b8L),AL2(MDLSK54_b8P)
-         DC    AL4(MDLSK54_b8),AL4(MDLSK54_b8R)
+         DC    AL2(MDLSK19_b8L),AL2(MDLSK19_b8P)   
+         DC    AL4(MDLSK19_b8),AL4(MDLSK19_b8R)    
          DC    AL2(FCSUBb8),AL2(0),AL2(0)
 *
 SK_E_18a DC    CL4'SKE ',AL1(FC_RTYP05)               SORT KEY AREA
@@ -26677,6 +26677,38 @@ MDLSK19R DC    AL1(CSBYTMSS),AL1(MDLSK19A+01-MDLSK19) ICM  BYTE MASK
          DC    AL1(CSSDNLN),AL1(MDLSK19X+01-MDLSK19)  SORT DESCEND LEN
          DC   2XL1'FF'
                         SPACE 3
+*********************************************************************** 
+*        ASSIGN/MOVE FIELD     (BINARY TO NUMERIC - UNSIGNED/unSigned)* 
+*********************************************************************** 
+mdlsk19_b8 LG  R0,0(0,0)          LOAD BINARY NUMBER                    
+mdlsk19_b8la LAY R14,0(0,0)         get address                         
+         cxgtr fp0,r0             convert to DFP                        
+mdlsk19_b8j jnop  mdlsk19_b8lp                                          
+mdlsk19_b8se lghi r15,*-*                                               
+         iextr fp4,fp0,r15        set quantum of source                 
+mdlsk19_b8te lghi r15,*-*                                               
+         iextr fp8,fp8,r15        set quantum of target                 
+         qaxtr fp0,fp4,fp8,0      and quantise souce to target          
+mdlsk19_b8lp lpdfr fp0,fp0                                              
+         csxtr r0,fp0,1                                                 
+         stmg  r0,r1,workarea                                           
+         OI    workarea+L'workarea-1,X'0F'                              
+MDLsk19_b8C UNPK 0(0,r14),workarea                                      
+MDLSK19_b8X XC 0(0,r14),HEXFF     COMPLEMENT  IF DESCENDING  (OPTIONAL) 
+mdlsk19_b8L EQU *-mdlsk19_b8                                            
+*                                                                       
+mdlsk19_b8P EQU 0                 LITERAL POOL USAGE (EXCL FIELD LEN)   
+*                                                                       
+mdlsk19_b8R Ds 0h                                                       
+         DC    AL1(CSSRCLoF),AL1(mdlsk19_b8+02-mdlsk19_b8) SOURCE OFF   
+         DC    AL1(CStgtlof),AL1(mdlsk19_b8la+02-mdlsk19_b8) fld 2 off  
+         DC    AL1(CSSRPsrc),AL1(mdlsk19_b8j+01-mdlsk19_b8) skip if 0   
+         DC    AL1(CSdfpexps),AL1(MDLsk19_b8se+02-MDLsk19_b8) dfp exp   
+         DC    AL1(CSdfpexp),AL1(MDLsk19_b8te+02-MDLsk19_b8) dfp exp    
+         DC    AL1(CSTGTLNL),AL1(mdlsk19_b8C+01-mdlsk19_b8) TARGET LEN  
+         DC    AL1(CSSDNLN),AL1(MDLSK19_b8X+01-MDLSK19_b8) SORTd LEN    
+         DC   2XL1'FF'                                                  
+                        SPACE 3                                        
 ***********************************************************************
 *        ASSIGN/MOVE FIELD     (BINARY TO NUMERIC - UNSIGNED/Signed)  *
 ***********************************************************************
