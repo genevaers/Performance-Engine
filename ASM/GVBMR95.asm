@@ -2977,20 +2977,55 @@ callexit_lp ds 0h
                if (oc,gp_error_reason,gp_error_reason,nz) is the       +
                                            code non zero ==> text
                  lgr r9,r15               save r15
-                 l r15,gp_error_buffer_len get length of text
-                 sthy r15,error_bufl        and save in prefix
-                 lay r3,error_bufl
+                 LTGF  R14,GP_ERROR_BUFFER_PTR
+                 JZ    NOWRNVERROR_BUFFER  
+                 LTGF  r15,gp_error_buffer_len get length of text
+                 JNZ   WRNVERROR_BUFFER
+*
+NOWRNVERROR_BUFFER EQU   *
+                 LLGF  R15,GP_ERROR_REASON
+                 CVD   R15,DBLWORK                 reason code
+                 OI    DBLWORK+L'DBLWORK-1,X'0F'
+                 UNPK  ERRDATA+8(8),DBLWORK
+*
+                 GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,             +
+               GENENV=GENENV,                                          +
+               SUB1=(PGMNAME,L'PGMNAME),                               +
+               SUB2=(ERRDATA,8),                                       +
+               SUB3=(ERRDATA+8,8),                                     +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+*
+                 GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=3,             +
+               GENENV=GENENV,                                          +
+               SUB1=(PGMNAME,L'PGMNAME),                               +
+               SUB2=(ERRDATA,8),                                       +
+               SUB3=(ERRDATA+8,8),                                     +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+                 J     WRNVERROR_BUFFER02
+*
+WRNVERROR_BUFFER EQU   *
+                 LAY   R1,ERROR_BUFFER
+                 BCTR  R15,R0
+                 EXRL  R15,MVCR1R14     copy text to error buffer
+                 LAY   R1,PRNTLINE
+                 EXRL  R15,MVCR1R14     copy text to print log line
+                 LA    R15,1(,R15)
+                 sthy  r15,error_bufl   and save in prefix length
+                 lay   r3,error_bufl
                  WTO TEXT=(3),MF=(E,WTOPARM)
-                 l r15,gp_error_buffer_len get length of text
+                 LHY   r15,error_bufl  get length of text again
                  ahi   r15,4
                  sthy  r15,error_bufl
                  ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
                  logit msg=error_bufl
                  DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
+WRNVERROR_BUFFER02 EQU   *
                  lgr   r15,r9              restore r15
                endif
-               if cij,r15,gt,8    higher than 8 is bad
 *
+               if cij,r15,gt,8    higher than 8 is bad
                  if cij,r15,eq,12 ==> disable view
                    BRAS R9,DISABREQ DISABLE VIEW
                  else
@@ -3057,13 +3092,13 @@ NOLKUPERROR_BUFFER   EQU   *
                      LLGF  R15,GP_ERROR_REASON
                      CVD   R15,DBLWORK                 reason code
                      OI    DBLWORK+L'DBLWORK-1,X'0F'
-                     UNPK  ERRDATA+8(6),DBLWORK
+                     UNPK  ERRDATA+8(8),DBLWORK
 *
                      GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,         +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
-               SUB3=(ERRDATA+8,6),                                     +
+               SUB3=(ERRDATA+8,8),                                     +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
 *
@@ -3071,12 +3106,10 @@ NOLKUPERROR_BUFFER   EQU   *
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
-               SUB3=(ERRDATA+8,6),                                     +
+               SUB3=(ERRDATA+8,8),                                     +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
                      J     LKUPERROR_BUFFER02
-
-
 LKUPERROR_BUFFER     EQU   *
                      LAY   R1,ERROR_BUFFER
                      BCTR  R15,R0
@@ -3097,8 +3130,8 @@ LKUPERROR_BUFFER     EQU   *
 LKUPERROR_BUFFER02   EQU   *
                      lgr   r15,r9           restore r15
                    endif
-                   if cgij,r15,gt,8 higher than 8 is bad
 *
+                   if cgij,r15,gt,8 higher than 8 is bad
                      if cgij,r15,eq,12 ==> disable view
                        BRAS R9,DISABREQ DISABLE VIEW
                      else
@@ -5273,6 +5306,11 @@ errwto   j     errwtoa              go to the real code
 *                                                                     *
 *        I S S U E   "W T O"  F O R   C A L L E D   E X I T S         *
 *                                                                     *
+*        Note: gp_error_buffer_ptr already contained the address of   *
+*              error_buffer (located immediately after error_bufl)    *
+*              so it's the responsibility of the WRITE exit to assign *
+*              an error message using pointer to this 126 byte field. *
+*                                                                     *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 code     loctr ,
            push  using
@@ -5631,7 +5669,7 @@ SYNADEX0 larl  R12,gvbmr95
 * error from User exit ?
          OC    gp_error_reason,gp_error_reason
          BRZ   SYNADMSG
-* Then WTO the returned error message
+* Then WTO the returned error message ??????????????????????
          L     R15,gp_error_buffer_len
          STH   R15,PRNTLEN
          BCTR  R15,0
@@ -11691,6 +11729,7 @@ r1_ltwr  using ltwrarea,r1
 *
          if    (oc,gp_error_reason,gp_error_reason,nz)
            bras  r9,errwtoa       issue "wto" if non-zero reason code
+           llgt  R9,wrlogic.LTWREXTA   LOAD EXTRACT FILE CONTROL ADDR
          endif
 *
          lg    R7,RETNPTR         LOAD RETURN POINTER
@@ -12039,6 +12078,7 @@ CLLULOOP ltgr  R5,R5
          xc    gp_error_buffer_len,gp_error_buffer_len
          mvi   gp_error_buffer_len+3,(l'error_buffer) set max length
          xc    gp_error_reason,gp_error_reason        clear reason
+         MVC   ERRDATA(8),LBSUBNAM   EXIT NAME
          LA    R1,LBPARML            LOAD PARAMETER LIST ADDR
          llgf  R15,LBSUBADR          LOOK-UP   EXIT ADDRESS
          bassm R14,R15               CALL  EXIT WITH close OPTION
@@ -12049,16 +12089,51 @@ CLLULOOP ltgr  R5,R5
          drop  r14
          if    (oc,gp_error_reason,gp_error_reason,nz) is the          +
                                      code non zero ==> text
-           l     r15,gp_error_buffer_len   get length of text
-           sthy   r15,error_bufl            and save in prefix
-           lay    r3,error_bufl
-           WTO   TEXT=(3),MF=(E,WTOPARM)
-           l     r15,gp_error_buffer_len get length of text
+           LTGF  R14,GP_ERROR_BUFFER_PTR
+           JZ    NOLKUPERR_BUFC  
+           LTGF  r15,gp_error_buffer_len get length of text
+           JNZ   LKUPERRBC
+*
+NOLKUPERR_BUFC EQU   *
+           LLGF  R15,GP_ERROR_REASON
+           CVD   R15,DBLWORK                 reason code
+           OI    DBLWORK+L'DBLWORK-1,X'0F'
+           UNPK  ERRDATA+8(8),DBLWORK
+*
+           GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,                   +
+               GENENV=GENENV,                                          +
+               SUB1=(PGMNAME,L'PGMNAME),                               +
+               SUB2=(ERRDATA,8),                                       +
+               SUB3=(ERRDATA+8,8),                                     +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+*
+           GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=3,                   +
+               GENENV=GENENV,                                          +
+               SUB1=(PGMNAME,L'PGMNAME),                               +
+               SUB2=(ERRDATA,8),                                       +
+               SUB3=(ERRDATA+8,8),                                     +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+           J   LKUPERRBX
+*
+LKUPERRBC  EQU   *
+           LAY   R1,ERROR_BUFFER
+           BCTR  R15,R0
+           EXRL  R15,MVCR1R14     copy text to error buffer
+           LAY   R1,PRNTLINE
+           EXRL  R15,MVCR1R14     copy text to print log line
+           LA    R15,1(,R15)
+           sthy  r15,error_bufl   and save in prefix length
+           lay   r3,error_bufl
+           WTO TEXT=(3),MF=(E,WTOPARM)
+           LHY   r15,error_bufl  get length of text again
            ahi   r15,4
            sthy  r15,error_bufl
            ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
            logit msg=error_bufl
            DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
+LKUPERRBX  EQU   *
          endif
 *
 ***********************************************************************
@@ -12089,22 +12164,60 @@ CLWRLOOP ltgr  R5,R5                      END-OF-WR LIST    ???
          xc    gp_error_reason,gp_error_reason        clear reason
          lay   R1,PARM_AREA
          llgf  R15,LTWRADDR-LOGICTBL(,R5)    LOAD EXIT ADDRESS
+*
          if ltgr,r15,r15,nz
+           MVC   ERRDATA(8),LTWRNAME-LOGICTBL(,R5)
            bassm R14,R15            CALL  EXIT WITH CLOSE   OPTION
          endif
          L     R15,RETNCODE
          if    (oc,gp_error_reason,gp_error_reason,nz)     is the      +
                                      code non zero ==> text
-           l     r15,gp_error_buffer_len   get length of text
-           sthy   r15,error_bufl            and save in prefix
-           lay    r3,error_bufl
-           WTO   TEXT=(3),MF=(E,WTOPARM)
-           l     r15,gp_error_buffer_len get length of text
+
+           LTGF  R14,GP_ERROR_BUFFER_PTR
+           JZ    NOWRTEERR_BUFC  
+           LTGF  r15,gp_error_buffer_len get length of text
+           JNZ   WRTEERRBC
+*
+NOWRTEERR_BUFC EQU   *
+           LLGF  R15,GP_ERROR_REASON
+           CVD   R15,DBLWORK                 reason code
+           OI    DBLWORK+L'DBLWORK-1,X'0F'
+           UNPK  ERRDATA+8(8),DBLWORK
+*
+           GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,                   +
+               GENENV=GENENV,                                          +
+               SUB1=(PGMNAME,L'PGMNAME),                               +
+               SUB2=(ERRDATA,8),                                       +
+               SUB3=(ERRDATA+8,8),                                     +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+*
+           GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=3,                   +
+               GENENV=GENENV,                                          +
+               SUB1=(PGMNAME,L'PGMNAME),                               +
+               SUB2=(ERRDATA,8),                                       +
+               SUB3=(ERRDATA+8,8),                                     +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+           J   WRTEERRBX
+*
+WRTEERRBC  EQU   *
+           LAY   R1,ERROR_BUFFER
+           BCTR  R15,R0
+           EXRL  R15,MVCR1R14     copy text to error buffer
+           LAY   R1,PRNTLINE
+           EXRL  R15,MVCR1R14     copy text to print log line
+           LA    R15,1(,R15)
+           sthy  r15,error_bufl   and save in prefix length
+           lay   r3,error_bufl
+           WTO TEXT=(3),MF=(E,WTOPARM)
+           LHY   r15,error_bufl  get length of text again
            ahi   r15,4
            sthy  r15,error_bufl
            ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
            logit msg=error_bufl
            DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
+WRTEERRBX  EQU   *
          endif
 *
 ***********************************************************************
@@ -15658,11 +15771,11 @@ PATTERN4 DC    XL15'402020206B2020206B2021204B2020'
 *
 code     loctr ,
 
-********************************************************************
+***********************************************************************
 *                                                                     *
-*        Close User Exits (if assembler ones)                         *
+*        Terminate User Exits (if assembler ones)                     *
 *                                                                     *
-********************************************************************
+***********************************************************************
 term_uexits ds 0h
          stmg  R14,R12,SAVEZIIP                   store registers
 *
@@ -15700,14 +15813,51 @@ term_uexits ds 0h
              BASSM R14,R15          CALL EXIT WITH TERM OPTION
 *
              if (oc,gp_error_reason,gp_error_reason,nz) success?
-               l r15,gp_error_buffer_len get length of text
-               sthy r15,error_bufl        and save in prefix
-               lay r9,error_bufl
-               WTO TEXT=(9),MF=(E,WTOPARM)
-               l r15,gp_error_buffer_len get length of text
-               ahi  r15,4
-               sthy r15,error_bufl
+               LTGF  R14,GP_ERROR_BUFFER_PTR
+               JZ    NOWRTTERROR_BUFFER   
+               LTGF  r15,gp_error_buffer_len get length of text
+               JNZ   WRTTERROR_BUFFER
+*
+NOWRTTERROR_BUFFER   EQU   *
+               LLGF  R15,GP_ERROR_REASON
+               CVD   R15,DBLWORK                 reason code
+               OI    DBLWORK+L'DBLWORK-1,X'0F'
+               UNPK  ERRDATA+8(8),DBLWORK
+*
+               GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,               +
+               GENENV=GENENV,                                          +
+               SUB1=(PGMNAME,L'PGMNAME),                               +
+               SUB2=(ERRDATA,8),                                       +
+               SUB3=(ERRDATA+8,8),                                     +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+*
+               GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=3,               +
+               GENENV=GENENV,                                          +
+               SUB1=(PGMNAME,L'PGMNAME),                               +
+               SUB2=(ERRDATA,8),                                       +
+               SUB3=(ERRDATA+8,8),                                     +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+               J     WRTTERROR_BUFFER02
+
+WRTTERROR_BUFFER     EQU   *
+               LAY   R1,ERROR_BUFFER
+               BCTR  R15,R0
+               EXRL  R15,MVCR1R14     copy text to error buffer
+               LAY   R1,PRNTLINE
+               EXRL  R15,MVCR1R14     copy text to print log line
+               LA    R15,1(,R15)
+               sthy  r15,error_bufl   and save in prefix length
+               lay   r3,error_bufl
+               WTO TEXT=(3),MF=(E,WTOPARM)
+               LHY   r15,error_bufl  get length of text again
+               ahi   r15,4
+               sthy  r15,error_bufl
+               ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
                logit msg=error_bufl
+               DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
+WRTTERROR_BUFFER02   EQU   *
              endif
 *
              L     R15,RETNCODE
@@ -16458,7 +16608,7 @@ MDLLUEX  llgt  R5,0(,R2)                  LOAD LOOKUP  BUFFER  ADDRESS
 *
          llgf  R15,LBSUBADR-LKUPBUFR(,R5) LOAD SUBROUTINE ADDR
          BASsm R14,R15                    CALL SUBROUTINE
-*
+* ?????????????????????????
          if    (oc,gp_error_reason,gp_error_reason,nz)
            bas  r9,errwto         issue "wto" if non-zero reason code
          endif
