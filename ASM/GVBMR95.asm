@@ -1,4 +1,7 @@
          TITLE 'GVBMR95  - BATCH EVENT EXTRACT PROGRAM'
+*
+*PROCESS  OVERRIDE FLAG(NOALIGN)
+*
 **********************************************************************
 *
 * (C) COPYRIGHT IBM CORPORATION 2003, 2022.
@@ -232,9 +235,6 @@ gvbmr95  csect
                        EJECT
 *
                         EJECT
-*
-*PROCESS  OVERRIDE FLAG(NOALIGN)
-*
 GVBMR95  CSECT
 *
 GVBMR95  RMODE 31
