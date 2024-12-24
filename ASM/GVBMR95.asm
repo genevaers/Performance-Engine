@@ -1,6 +1,6 @@
          TITLE 'GVBMR95  - BATCH EVENT EXTRACT PROGRAM'
 *
-*PROCESS  OVERRIDE FLAG(NOALIGN)
+*PROCESS FLAG(NOALIGN)
 *
 **********************************************************************
 *
@@ -12166,7 +12166,7 @@ CLWRLOOP ltgr  R5,R5                      END-OF-WR LIST    ???
          llgf  R15,LTWRADDR-LOGICTBL(,R5)    LOAD EXIT ADDRESS
 *
          if ltgr,r15,r15,nz
-           MVC   ERRDATA(8),LTWRNAME-LOGICTBL(,R5)
+           MVC   ERRDATA(8),LTWRNAME-LOGICTBL(R5)
            bassm R14,R15            CALL  EXIT WITH CLOSE   OPTION
          endif
          L     R15,RETNCODE
