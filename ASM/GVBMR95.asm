@@ -5320,7 +5320,7 @@ errwtoa    stg   r3,SAVF4SAG64RS3          save r3
            LTGF  r15,gp_error_buffer_len get length of text
            JNZ   ERRWTO02
 ERRWTO01   EQU   *
-           MVC   ERRDATA(8),LBSUBNAM EXIT NAME
+**         MVC   ERRDATA(8),LBSUBNAM EXIT NAME -- not available here
            LLGF  R0,GP_ERROR_REASON
            CVD   R0,DBLWORK                 reason code
            OI    DBLWORK+L'DBLWORK-1,X'0F'
@@ -5691,9 +5691,9 @@ SYNADEX0 larl  R12,gvbmr95
          LTGF  R14,GP_ERROR_BUFFER_PTR
          JZ    SYNAD01
          LTGF  r15,gp_error_buffer_len get length of text
-         JNZ   SYSAD02
+         JNZ   SYNAD02
 *
-SYSAD01  EQU   *
+SYNAD01  EQU   *
          LLGF  R15,GP_ERROR_REASON
          CVD   R15,DBLWORK                 reason code
          OI    DBLWORK+L'DBLWORK-1,X'0F'
@@ -5714,8 +5714,8 @@ SYSAD01  EQU   *
                SUB3=(ERRDATA+8,8),                                     +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
-         J     SYSAD03
-SYSAD02  EQU   *
+         J     SYNAD03
+SYNAD02  EQU   *
          LAY   R1,ERROR_BUFFER
          BCTR  R15,R0
          EXRL  R15,MVCR1R14     copy text to error buffer
@@ -5731,7 +5731,7 @@ SYSAD02  EQU   *
          ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
          logit msg=error_bufl
          DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
-SYSAD03  EQU   *
+SYNAD03  EQU   *
 *
 * Otherwise I/O error
 synadmsg ds    0h
