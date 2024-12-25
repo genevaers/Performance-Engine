@@ -4193,6 +4193,7 @@ r1logic  using logictbl,r1
          JZ    WRTXENQ            NO  - BYPASS CALL
 *
 WRTXCALL DS    0H
+         MVC   ERRDATA(8),LTWRNAME
          LA    R0,LTWRPARM        POINT  TO WRITE    PARAMETERS
          sty   R0,GPSTARTA
          LA    R0,LTWRWORK
@@ -4224,7 +4225,7 @@ WRTXCALL DS    0H
          llgt  R9,LTWREXTA                 RESTORE FILE CONT AREA ADDR
          J     WRTXXIT
 *
-WRTXABOR MVC   ERRDATA(8),LTWRNAME
+WRTXABOR EQU   *
          B     ABORTEX            ABORT RUN          (16)
                         SPACE 3
 wrtxdchk ds    0h
@@ -4636,7 +4637,7 @@ wrtdbypd ds    0h
          JZ    WRTDENQ            NO  - BYPASS CALL
 *
 WRTDCALL DS    0H
-*
+         MVC   ERRDATA(8),LTWRNAME
          LA    R0,LTWRPARM        POINT  TO WRITE    PARAMETERS
          sty   R0,GPSTARTA
          LA    R0,LTWRWORK
@@ -4668,7 +4669,7 @@ WRTDCALL DS    0H
          llgt  R9,LTWREXTA                 RESTORE FILE CONT AREA ADDR
          J     WRTDXIT
 *
-WRTDABOR MVC   ERRDATA(8),LTWRNAME
+WRTDABOR EQU   *
          B     ABORTEX            ABORT RUN          (16)
                         SPACE 3
 WRTDENQ  LA    R1,WAITECB         LOAD THIS THREAD'S WAIT   ECB ADDRESS
@@ -10139,6 +10140,7 @@ wrttbypd ds    0h
          ltgr  r15,r15            Test value
          jz    wrttnew            None:                           pgc1
 *
+         MVC   ERRDATA(8),LTWRNAME
          LA    R0,LTWRPARM        POINT  TO WRITE    PARAMETERS
          sty   R0,GPSTARTA
          lgf   R1,LTWREXTO        POINT  TO WRITE    ANCHOR
@@ -10756,8 +10758,9 @@ WRTSSUMX LGF   R15,SUMRTNC        LOAD    RETURN    CODE
          xc    gp_error_buffer_len,gp_error_buffer_len
          mvi   gp_error_buffer_len+3,(l'error_buffer) set max length
          xc    gp_error_reason,gp_error_reason        clear reason
+
 WRTSCALL DS    0H
-*
+         MVC   ERRDATA(8),LTWRNAME
          LA    R0,LTWRPARM        POINT  TO WRITE    PARAMETERS
          sty   R0,GPSTARTA
          lgf   R1,LTWREXTO        POINT  TO WRITE    ANCHOR
@@ -10793,7 +10796,7 @@ WRTSCALL DS    0H
          llgt  R9,LTWREXTA                 RESTORE FILE CONT AREA ADDR
          J     WRTSXIT
 *
-WRTSABOR MVC   ERRDATA(8),LTWRNAME
+WRTSABOR EQU   *
          B     ABORTEX            ABORT RUN          (16)
                         SPACE 3
 WRTSENQ  LA    R1,WAITECB         LOAD THIS THREAD'S WAIT   ECB ADDRESS
@@ -11757,7 +11760,9 @@ WRTHSTDX LH    R0,LTWREXT#-LOGICTBL(,R5) STANDARD  EXTRACT FILE ???
          JNE   WRTHDEQ                   NO - BYPASS WRITE
          J     WRTHDROK
 *
-WRTHCALL LA    R0,wrlogic.LTWRPARM       POINT TO WRITE PARAMETERS
+WRTHCALL EQU   *
+         MVC   ERRDATA(8),LTWRNAME-LOGICTBL(R5)
+         LA    R0,wrlogic.LTWRPARM       POINT TO WRITE PARAMETERS
          sty   R0,GPSTARTA
          lgf   R1,wrlogic.LTWREXTO       POINT TO WRITE EXIT ANCHOR
          agr   R1,R2
@@ -15831,7 +15836,7 @@ term_uexits ds 0h
          do from=(r7)
            if CLC,LTFUNC(2),eq,WR_EX
 *
-* CALL EXIT INIT function for ASM exits only
+* CALL EXIT TERM function for ASM exits only
 *
              LT    R15,LTWRADDR       USER EXIT SPECIFIED ?
              JZ    exittex            no, go
