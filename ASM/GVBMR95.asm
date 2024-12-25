@@ -1,7 +1,5 @@
-         TITLE 'GVBMR95  - BATCH EVENT EXTRACT PROGRAM'
-*
 *PROCESS FLAG(NOALIGN)
-*
+         TITLE 'GVBMR95  - BATCH EVENT EXTRACT PROGRAM'
 **********************************************************************
 *
 * (C) COPYRIGHT IBM CORPORATION 2003, 2022.
@@ -5317,7 +5315,27 @@ code     loctr ,
            using savf4sa,savesubr          map the savearea
 errwtoa    stg   r3,SAVF4SAG64RS3          save r3
 *
-           l     r15,gp_error_buffer_len   get length of text
+           LTGF  R14,GP_ERROR_BUFFER_PTR
+           JZ    ERRWTO01
+           LTGF  r15,gp_error_buffer_len get length of text
+           JNZ   ERRWTO02
+ERRWTO01   EQU   *
+           MVC   ERRDATA(8),LBSUBNAM EXIT NAME
+           LLGF  R0,GP_ERROR_REASON
+           CVD   R0,DBLWORK                 reason code
+           OI    DBLWORK+L'DBLWORK-1,X'0F'
+           UNPK  ERRDATA+8(8),DBLWORK
+           GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,                   +
+               GENENV=GENENV,                                          +
+               SUB1=(PGMNAME,L'PGMNAME),                               +
+               SUB2=(ERRDATA,8),                                       +
+               SUB3=(ERRDATA+8,8),                                     +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+           J     ERRWTO03
+*
+ERRWTO02   EQU   *
+*           l     r15,gp_error_buffer_len   get length of text
            sthy   r15,error_bufl            and save in prefix
            LAy    R3,ERROR_BUFL
            IF  (cli,localziip,eq,c'Y'),and,      TCB/SRB switch allowed+
@@ -5337,6 +5355,7 @@ errwtoa    stg   r3,SAVF4SAG64RS3          save r3
            else ,
              WTO TEXT=(3),MF=(E,WTOPARM)
            endif
+ERRWTO03   EQU   *
 *
            lg    r3,SAVF4SAG64RS14        restore r3
            br    r9
@@ -5666,23 +5685,54 @@ SYNADEX0 larl  R12,gvbmr95
            la     r1,TCB_switch          Switch to TCB mode
            bassm r14,r15                 Call zIIP module
          endif
-* error from User exit ?
+* error from User exit ? Then WTO the returned error message
          OC    gp_error_reason,gp_error_reason
          BRZ   SYNADMSG
-* Then WTO the returned error message ??????????????????????
-         L     R15,gp_error_buffer_len
-         STH   R15,PRNTLEN
-         BCTR  R15,0
-         LA    R14,PRNTLINE
-         L     R1,gp_error_buffer_ptr
-         EX    R15,MVCR14R1
-         WTO TEXT=PRNTLEN,MF=(E,WTOPARM)
-         l     r15,gp_error_buffer_len get length of text
+         LTGF  R14,GP_ERROR_BUFFER_PTR
+         JZ    SYNAD01
+         LTGF  r15,gp_error_buffer_len get length of text
+         JNZ   SYSAD02
+*
+SYSAD01  EQU   *
+         LLGF  R15,GP_ERROR_REASON
+         CVD   R15,DBLWORK                 reason code
+         OI    DBLWORK+L'DBLWORK-1,X'0F'
+         UNPK  ERRDATA+8(8),DBLWORK
+*
+         GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,                     +
+               GENENV=GENENV,                                          +
+               SUB1=(PGMNAME,L'PGMNAME),                               +
+               SUB2=(ERRDATA,8),                                       +
+               SUB3=(ERRDATA+8,8),                                     +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+*
+         GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=3,                     +
+               GENENV=GENENV,                                          +
+               SUB1=(PGMNAME,L'PGMNAME),                               +
+               SUB2=(ERRDATA,8),                                       +
+               SUB3=(ERRDATA+8,8),                                     +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+         J     SYSAD03
+SYSAD02  EQU   *
+         LAY   R1,ERROR_BUFFER
+         BCTR  R15,R0
+         EXRL  R15,MVCR1R14     copy text to error buffer
+         LAY   R1,PRNTLINE
+         EXRL  R15,MVCR1R14     copy text to print log line
+         LA    R15,1(,R15)
+         sthy  r15,error_bufl   and save in prefix length
+         lay   r3,error_bufl
+         WTO TEXT=(3),MF=(E,WTOPARM)
+         LHY   r15,error_bufl  get length of text again
          ahi   r15,4
          sthy  r15,error_bufl
          ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
          logit msg=error_bufl
          DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
+SYSAD03  EQU   *
+*
 * Otherwise I/O error
 synadmsg ds    0h
          LH    R0,gpthrdno        INDICATE WHICH THREAD
@@ -5696,12 +5746,6 @@ synadmsg ds    0h
                SUB3=(ERRDATA,3),                                       +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
-*        ly    r9,msg_bufl        get the message length
-*        sth   r9,prntlen
-*
-*        WTO TEXT=PRNTLEN,MF=(E,WTOPARM)
-*        ahi   r9,4
-*        sth   r9,prntlen
 *
          ABEND 998
 *
