@@ -16657,8 +16657,9 @@ MDLLUEX  llgt  R5,0(,R2)                  LOAD LOOKUP  BUFFER  ADDRESS
 *
          llgf  R15,LBSUBADR-LKUPBUFR(,R5) LOAD SUBROUTINE ADDR
          BASsm R14,R15                    CALL SUBROUTINE
-* ?????????????????????????
+*
          if    (oc,gp_error_reason,gp_error_reason,nz)
+           MVC   ERRDATA(8),LBSUBNAM-LKUPBUFR(R5)
            bas  r9,errwto         issue "wto" if non-zero reason code
          endif
 *
