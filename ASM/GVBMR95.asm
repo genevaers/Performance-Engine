@@ -5312,55 +5312,54 @@ errwto   j     errwtoa              go to the real code
 *                                                                     *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 code     loctr ,
-           push  using
-           using savf4sa,savesubr          map the savearea
-errwtoa    stg   r3,SAVF4SAG64RS3          save r3
+         push  using
+         using savf4sa,savesubr          map the savearea
+errwtoa  stg   r3,SAVF4SAG64RS3          save r3
 *
-           LTGF  R14,GP_ERROR_BUFFER_PTR
-           JZ    ERRWTO01
-           LTGF  r15,gp_error_buffer_len get length of text
-           JNZ   ERRWTO02
-ERRWTO01   EQU   *
+         LTGF  R14,GP_ERROR_BUFFER_PTR
+         JZ    ERRWTO01
+         LTGF  r15,gp_error_buffer_len   get length of text
+         JNZ   ERRWTO02
+ERRWTO01 EQU   *
 **         MVC   ERRDATA(8),LBSUBNAM EXIT NAME -- not available here
-           LLGF  R0,GP_ERROR_REASON
-           CVD   R0,DBLWORK                 reason code
-           OI    DBLWORK+L'DBLWORK-1,X'0F'
-           UNPK  ERRDATA+8(8),DBLWORK
-           GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,                   +
+         LLGF  R0,GP_ERROR_REASON
+         CVD   R0,DBLWORK                reason code
+         OI    DBLWORK+L'DBLWORK-1,X'0F'
+         UNPK  ERRDATA+8(8),DBLWORK
+         GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,                     +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
                SUB3=(ERRDATA+8,8),                                     +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
-           J     ERRWTO03
+         J     ERRWTO03
 *
-ERRWTO02   EQU   *
-*           l     r15,gp_error_buffer_len   get length of text
-           sthy   r15,error_bufl            and save in prefix
-           LAy    R3,ERROR_BUFL
-           IF  (cli,localziip,eq,c'Y'),and,      TCB/SRB switch allowed+
+ERRWTO02 EQU   *
+         sthy  r15,error_bufl            store in prefix
+         LAY   R3,ERROR_BUFL
+         IF  (cli,localziip,eq,c'Y'),and,        TCB/SRB switch allowed+
                (cli,thread_mode,eq,C'S')        and we are in SRB mode
-             xr r0,r0             clear r9
-             stg r2,dblwork
-             xr r2,r2             clear r9
-             ipk ,                save current key in r2
-             spka 0(r0)            and flip to key 0
-             sam31
-             sysstate amode64=NO
-             WTO TEXT=(3),MF=(E,WTOPARM),LINKAGE=BRANCH
-             sysstate amode64=YES
-             sam64
-             spka 0(r2)            and flip to key 0
-             lg  r2,dblwork
-           else ,
-             WTO TEXT=(3),MF=(E,WTOPARM)
-           endif
-ERRWTO03   EQU   *
+           xr  r0,r0                     clear r0
+           stg r2,dblwork                preserve r2
+           xr  r2,r2                     clear r2
+           ipk ,                         save current key in r2
+           spka 0(r0)                    and flip to key 0
+           sam31
+           sysstate amode64=NO
+           WTO TEXT=(3),MF=(E,WTOPARM),LINKAGE=BRANCH
+           sysstate amode64=YES
+           sam64
+           spka 0(r2)                    and flip to original key
+           lg  r2,dblwork                restore r2
+         else ,
+           WTO TEXT=(3),MF=(E,WTOPARM)
+         endif
+ERRWTO03 EQU   *
 *
-           lg    r3,SAVF4SAG64RS14        restore r3
-           br    r9
-           pop   using
+         lg    r3,SAVF4SAG64RS14        restore r3
+         br    r9
+         pop   using
                         EJECT
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
@@ -5695,6 +5694,7 @@ SYNADEX0 larl  R12,gvbmr95
          JNZ   SYNAD02
 *
 SYNAD01  EQU   *
+         MVC   ERRDATA(8),EVNTSUBR
          LLGF  R15,GP_ERROR_REASON
          CVD   R15,DBLWORK                 reason code
          OI    DBLWORK+L'DBLWORK-1,X'0F'
