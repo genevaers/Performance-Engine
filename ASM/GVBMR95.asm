@@ -2987,7 +2987,7 @@ NOWRNVERROR_BUFFER EQU   *
                  UNPK  ERRDATA+8(8),DBLWORK
                  MVC   ERRDATA+16(2),GPPHASE
 *
-                 GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,             +
+                 GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=4,             +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
@@ -2996,7 +2996,7 @@ NOWRNVERROR_BUFFER EQU   *
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
 *
-                 GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=3,             +
+                 GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=4,             +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
@@ -3096,7 +3096,7 @@ NOLKUPERROR_BUFFER   EQU   *
                      UNPK  ERRDATA+8(8),DBLWORK
                      MVC   ERRDATA+16(2),GPPHASE
 *
-                     GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,         +
+                     GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=4,         +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
@@ -3105,7 +3105,7 @@ NOLKUPERROR_BUFFER   EQU   *
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
 *
-                     GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=3,         +
+                     GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=4,         +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
@@ -5332,7 +5332,7 @@ ERRWTO01 EQU   *
          OI    DBLWORK+L'DBLWORK-1,X'0F'
          UNPK  ERRDATA+8(8),DBLWORK
          MVC   ERRDATA+16(2),GPPHASE
-         GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,                     +
+         GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=4,                     +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
@@ -5708,7 +5708,7 @@ SYNAD01  EQU   *
          UNPK  ERRDATA+8(8),DBLWORK
          MVC   ERRDATA+16(2),GPPHASE
 *
-         GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,                     +
+         GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=4,                     +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
@@ -5717,7 +5717,7 @@ SYNAD01  EQU   *
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
 *
-         GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=3,                     +
+         GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=4,                     +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
@@ -12160,7 +12160,7 @@ NOLKUPERR_BUFC EQU   *
            UNPK  ERRDATA+8(8),DBLWORK
            MVC   ERRDATA+16(2),GPPHASE
 *
-           GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,                   +
+           GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=4,                   +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
@@ -12169,7 +12169,7 @@ NOLKUPERR_BUFC EQU   *
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
 *
-           GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=3,                   +
+           GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=4,                   +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
@@ -12247,7 +12247,7 @@ NOWRTEERR_BUFC EQU   *
            UNPK  ERRDATA+8(8),DBLWORK
            MVC   ERRDATA+16(2),GPPHASE
 *
-           GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,                   +
+           GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=4,                   +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
@@ -12256,7 +12256,7 @@ NOWRTEERR_BUFC EQU   *
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
 *
-           GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=3,                   +
+           GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=4,                   +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
@@ -15890,7 +15890,7 @@ NOWRTTERROR_BUFFER   EQU   *
                UNPK  ERRDATA+8(8),DBLWORK
                MVC   ERRDATA+16(2),GPPHASE
 *
-               GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,               +
+               GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=4,               +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
@@ -15899,7 +15899,7 @@ NOWRTTERROR_BUFFER   EQU   *
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
 *
-               GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=3,               +
+               GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=4,               +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
