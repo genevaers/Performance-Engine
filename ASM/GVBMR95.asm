@@ -2985,12 +2985,14 @@ NOWRNVERROR_BUFFER EQU   *
                  CVD   R15,DBLWORK                 reason code
                  OI    DBLWORK+L'DBLWORK-1,X'0F'
                  UNPK  ERRDATA+8(8),DBLWORK
+                 MVC   ERRDATA+16(2),GPPHASE
 *
                  GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,             +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
                SUB3=(ERRDATA+8,8),                                     +
+               SUB4=(ERRDATA+16,2),                                    +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
 *
@@ -2999,6 +3001,7 @@ NOWRNVERROR_BUFFER EQU   *
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
                SUB3=(ERRDATA+8,8),                                     +
+               SUB4=(ERRDATA+16,2),                                    +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
                  J     WRNVERROR_BUFFER02
@@ -3091,12 +3094,14 @@ NOLKUPERROR_BUFFER   EQU   *
                      CVD   R15,DBLWORK                 reason code
                      OI    DBLWORK+L'DBLWORK-1,X'0F'
                      UNPK  ERRDATA+8(8),DBLWORK
+                     MVC   ERRDATA+16(2),GPPHASE
 *
                      GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,         +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
                SUB3=(ERRDATA+8,8),                                     +
+               SUB4=(ERRDATA+16,2),                                    +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
 *
@@ -3105,6 +3110,7 @@ NOLKUPERROR_BUFFER   EQU   *
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
                SUB3=(ERRDATA+8,8),                                     +
+               SUB4=(ERRDATA+16,2),                                    +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
                      J     LKUPERROR_BUFFER02
@@ -5321,16 +5327,17 @@ errwtoa  stg   r3,SAVF4SAG64RS3          save r3
          LTGF  r15,gp_error_buffer_len   get length of text
          JNZ   ERRWTO02
 ERRWTO01 EQU   *
-**         MVC   ERRDATA(8),LBSUBNAM EXIT NAME -- not available here
          LLGF  R0,GP_ERROR_REASON
          CVD   R0,DBLWORK                reason code
          OI    DBLWORK+L'DBLWORK-1,X'0F'
          UNPK  ERRDATA+8(8),DBLWORK
+         MVC   ERRDATA+16(2),GPPHASE
          GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,                     +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
                SUB3=(ERRDATA+8,8),                                     +
+               SUB4=(ERRDATA+16,2),                                    +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
          J     ERRWTO03
@@ -5699,12 +5706,14 @@ SYNAD01  EQU   *
          CVD   R15,DBLWORK                 reason code
          OI    DBLWORK+L'DBLWORK-1,X'0F'
          UNPK  ERRDATA+8(8),DBLWORK
+         MVC   ERRDATA+16(2),GPPHASE
 *
          GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,                     +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
                SUB3=(ERRDATA+8,8),                                     +
+               SUB4=(ERRDATA+16,2),                                    +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
 *
@@ -5713,6 +5722,7 @@ SYNAD01  EQU   *
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
                SUB3=(ERRDATA+8,8),                                     +
+               SUB4=(ERRDATA+16,2),                                    +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
          J     SYNAD03
@@ -12148,12 +12158,14 @@ NOLKUPERR_BUFC EQU   *
            CVD   R15,DBLWORK                 reason code
            OI    DBLWORK+L'DBLWORK-1,X'0F'
            UNPK  ERRDATA+8(8),DBLWORK
+           MVC   ERRDATA+16(2),GPPHASE
 *
            GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,                   +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
                SUB3=(ERRDATA+8,8),                                     +
+               SUB4=(ERRDATA+16,2),                                    +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
 *
@@ -12162,6 +12174,7 @@ NOLKUPERR_BUFC EQU   *
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
                SUB3=(ERRDATA+8,8),                                     +
+               SUB4=(ERRDATA+16,2),                                    +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
            J   LKUPERRBX
@@ -12232,12 +12245,14 @@ NOWRTEERR_BUFC EQU   *
            CVD   R15,DBLWORK                 reason code
            OI    DBLWORK+L'DBLWORK-1,X'0F'
            UNPK  ERRDATA+8(8),DBLWORK
+           MVC   ERRDATA+16(2),GPPHASE
 *
            GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,                   +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
                SUB3=(ERRDATA+8,8),                                     +
+               SUB4=(ERRDATA+16,2),                                    +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
 *
@@ -12246,6 +12261,7 @@ NOWRTEERR_BUFC EQU   *
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
                SUB3=(ERRDATA+8,8),                                     +
+               SUB4=(ERRDATA+16,2),                                    +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
            J   WRTEERRBX
@@ -15872,12 +15888,14 @@ NOWRTTERROR_BUFFER   EQU   *
                CVD   R15,DBLWORK                 reason code
                OI    DBLWORK+L'DBLWORK-1,X'0F'
                UNPK  ERRDATA+8(8),DBLWORK
+               MVC   ERRDATA+16(2),GPPHASE
 *
                GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=3,               +
                GENENV=GENENV,                                          +
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
                SUB3=(ERRDATA+8,8),                                     +
+               SUB4=(ERRDATA+16,2),                                    +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
 *
@@ -15886,6 +15904,7 @@ NOWRTTERROR_BUFFER   EQU   *
                SUB1=(PGMNAME,L'PGMNAME),                               +
                SUB2=(ERRDATA,8),                                       +
                SUB3=(ERRDATA+8,8),                                     +
+               SUB4=(ERRDATA+16,2),                                    +
                MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
                MF=(E,MSG_AREA)
                J     WRTTERROR_BUFFER02

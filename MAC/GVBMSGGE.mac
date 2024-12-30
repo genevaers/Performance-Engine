@@ -127,7 +127,8 @@
  GVBMSGDF 066,'&&1 - Unsupported logic table function (DIM3) &&2',     +
                TYPE=S
  GVBMSGDF 067,'&&1 - Unrecoverable error in user exit &&2',TYPE=U
- GVBMSGDF 068,'&&1 - Exit &&2 returns error reason &&3',TYPE=U
+ GVBMSGDF 068,'&&1 - Exit &&2 returns error reason &&3 in phase &&4',TY+
+               PE=U
  GVBMSGDF 069,'&&1 - Missing target field position &&2',TYPE=S
  GVBMSGDF 070,'&&1 - Missing target field length &&2',TYPE=S
  GVBMSGDF 071,'&&1 - Missing target field data format &&2',TYPE=S
