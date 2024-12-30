@@ -231,8 +231,6 @@ gvbmr95  csect
 *
          YREGS
                        EJECT
-*
-                        EJECT
 GVBMR95  CSECT
 *
 GVBMR95  RMODE 31
