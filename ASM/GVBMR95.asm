@@ -2978,7 +2978,7 @@ callexit_lp ds 0h
                  LTGF  r15,gp_error_buffer_len get length of text
                  JNZ   WRNVERROR_BUFFER
 *
-NOWRNVERROR_BUFFER EQU   *
+NOWRNVERROR_BUFFER EQU *
                  LLGF  R15,GP_ERROR_REASON
                  CVD   R15,DBLWORK                 reason code
                  OI    DBLWORK+L'DBLWORK-1,X'0F'
@@ -3005,22 +3005,17 @@ NOWRNVERROR_BUFFER EQU   *
                  J     WRNVERROR_BUFFER02
 *
 WRNVERROR_BUFFER EQU   *
-                 LAY   R1,ERROR_BUFFER
-                 BCTR  R15,R0
-                 EXRL  R15,MVCR1R14     copy text to error buffer
-                 LAY   R1,PRNTLINE
-                 EXRL  R15,MVCR1R14     copy text to print log line
-                 LA    R15,1(,R15)
-                 sthy  r15,error_bufl   and save in prefix length
-                 lay   r3,error_bufl
+                 STHY  R15,ERROR_BUFL  Length for WTO
+                 LAY   R3,ERROR_BUFL
                  WTO TEXT=(3),MF=(E,WTOPARM)
-                 LHY   r15,error_bufl  get length of text again
-                 ahi   r15,4
-                 sthy  r15,error_bufl
+                 LHY   R3,ERROR_BUFL   Get length again
+                 AGHI  R3,4            Add 4 for RDW used in logit
+                 SLL   R3,16           Copy length into top 2 bytes
+                 ST    R3,ERRBRDW
                  ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
-                 logit msg=error_bufl
+                 logit to=ERRBRDW
                  DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
-WRNVERROR_BUFFER02 EQU   *
+WRNVERROR_BUFFER02 EQU *
                  lgr   r15,r9              restore r15
                endif
 *
@@ -3113,20 +3108,15 @@ NOLKUPERROR_BUFFER   EQU   *
                MF=(E,MSG_AREA)
                      J     LKUPERROR_BUFFER02
 LKUPERROR_BUFFER     EQU   *
-                     LAY   R1,ERROR_BUFFER
-                     BCTR  R15,R0
-                     EXRL  R15,MVCR1R14     copy text to error buffer
-                     LAY   R1,PRNTLINE
-                     EXRL  R15,MVCR1R14     copy text to print log line
-                     LA    R15,1(,R15)
-                     sthy  r15,error_bufl   and save in prefix length
-                     lay   r3,error_bufl
+                     STHY  R15,ERROR_BUFL  Length for WTO
+                     LAY   R3,ERROR_BUFL
                      WTO TEXT=(3),MF=(E,WTOPARM)
-                     LHY   r15,error_bufl  get length of text again
-                     ahi   r15,4
-                     sthy  r15,error_bufl
+                     LHY   R3,ERROR_BUFL   Get length again
+                     AGHI  R3,4            Add 4 for RDW used in logit
+                     SLL   R3,16           Copy length into top 2 bytes
+                     ST    R3,ERRBRDW
                      ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
-                     logit msg=error_bufl
+                     logit to=ERRBRDW
                      DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
 *
 LKUPERROR_BUFFER02   EQU   *
@@ -5725,20 +5715,15 @@ SYNAD01  EQU   *
                MF=(E,MSG_AREA)
          J     SYNAD03
 SYNAD02  EQU   *
-         LAY   R1,ERROR_BUFFER
-         BCTR  R15,R0
-         EXRL  R15,MVCR1R14     copy text to error buffer
-         LAY   R1,PRNTLINE
-         EXRL  R15,MVCR1R14     copy text to print log line
-         LA    R15,1(,R15)
-         sthy  r15,error_bufl   and save in prefix length
-         lay   r3,error_bufl
+         STHY  R15,ERROR_BUFL  Length for WTO
+         LAY   R3,ERROR_BUFL
          WTO TEXT=(3),MF=(E,WTOPARM)
-         LHY   r15,error_bufl  get length of text again
-         ahi   r15,4
-         sthy  r15,error_bufl
+         LHY   R3,ERROR_BUFL   Get length again
+         AGHI  R3,4            Add 4 for RDW used in logit
+         SLL   R3,16           Copy length into top 2 bytes
+         ST    R3,ERRBRDW
          ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
-         logit msg=error_bufl
+         logit to=ERRBRDW
          DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
 SYNAD03  EQU   *
 *
@@ -12178,20 +12163,15 @@ NOLKUPERR_BUFC EQU   *
            J   LKUPERRBX
 *
 LKUPERRBC  EQU   *
-           LAY   R1,ERROR_BUFFER
-           BCTR  R15,R0
-           EXRL  R15,MVCR1R14     copy text to error buffer
-           LAY   R1,PRNTLINE
-           EXRL  R15,MVCR1R14     copy text to print log line
-           LA    R15,1(,R15)
-           sthy  r15,error_bufl   and save in prefix length
-           lay   r3,error_bufl
+           STHY  R15,ERROR_BUFL  Length for WTO
+           LAY   R3,ERROR_BUFL
            WTO TEXT=(3),MF=(E,WTOPARM)
-           LHY   r15,error_bufl  get length of text again
-           ahi   r15,4
-           sthy  r15,error_bufl
+           LHY   R3,ERROR_BUFL   Get length again
+           AGHI  R3,4            Add 4 for RDW used in logit
+           SLL   R3,16           Copy length into top 2 bytes
+           ST    R3,ERRBRDW
            ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
-           logit msg=error_bufl
+           logit to=ERRBRDW
            DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
 LKUPERRBX  EQU   *
          endif
@@ -12265,20 +12245,15 @@ NOWRTEERR_BUFC EQU   *
            J   WRTEERRBX
 *
 WRTEERRBC  EQU   *
-           LAY   R1,ERROR_BUFFER
-           BCTR  R15,R0
-           EXRL  R15,MVCR1R14     copy text to error buffer
-           LAY   R1,PRNTLINE
-           EXRL  R15,MVCR1R14     copy text to print log line
-           LA    R15,1(,R15)
-           sthy  r15,error_bufl   and save in prefix length
-           lay   r3,error_bufl
+           STHY  R15,ERROR_BUFL  Length for WTO
+           LAY   R3,ERROR_BUFL
            WTO TEXT=(3),MF=(E,WTOPARM)
-           LHY   r15,error_bufl  get length of text again
-           ahi   r15,4
-           sthy  r15,error_bufl
+           LHY   R3,ERROR_BUFL   Get length again
+           AGHI  R3,4            Add 4 for RDW used in logit
+           SLL   R3,16           Copy length into top 2 bytes
+           ST    R3,ERRBRDW
            ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
-           logit msg=error_bufl
+           logit to=ERRBRDW
            DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
 WRTEERRBX  EQU   *
          endif
@@ -15908,20 +15883,15 @@ NOWRTTERROR_BUFFER   EQU   *
                J     WRTTERROR_BUFFER02
 
 WRTTERROR_BUFFER     EQU   *
-               LAY   R1,ERROR_BUFFER
-               BCTR  R15,R0
-               EXRL  R15,MVCR1R14     copy text to error buffer
-               LAY   R1,PRNTLINE
-               EXRL  R15,MVCR1R14     copy text to print log line
-               LA    R15,1(,R15)
-               sthy  r15,error_bufl   and save in prefix length
-               lay   r3,error_bufl
+               STHY  R15,ERROR_BUFL  Length for WTO
+               LAY   R3,ERROR_BUFL
                WTO TEXT=(3),MF=(E,WTOPARM)
-               LHY   r15,error_bufl  get length of text again
-               ahi   r15,4
-               sthy  r15,error_bufl
+               LHY   R3,ERROR_BUFL   Get length again
+               AGHI  R3,4            Add 4 for RDW used in logit
+               SLL   R3,16           Copy length into top 2 bytes
+               ST    R3,ERRBRDW
                ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
-               logit msg=error_bufl
+               logit to=ERRBRDW
                DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
 WRTTERROR_BUFFER02   EQU   *
              endif
