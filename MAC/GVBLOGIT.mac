@@ -37,11 +37,14 @@
 .*           otherwise bracket with sysstate/samxx
          sysstate amode64=NO
          sam31
-         put   (1),&to.
+         lay   r0,&to 
+         put   (1),(0)
          sam64
          sysstate amode64=YES
          ago .lastt
-.put31   put   (1),&to.
+.put31   anop
+         lay   r0,&to 
+         put   (1),(0)
 .*
 .lastt   anop
          aif  ('&debug' eq 'y').test2

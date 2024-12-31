@@ -3011,7 +3011,7 @@ WRNVERROR_BUFFER EQU   *
                  LHY   R3,ERROR_BUFL   Get length again
                  AGHI  R3,4            Add 4 for RDW used in logit
                  SLL   R3,16           Copy length into top 2 bytes
-                 ST    R3,ERRBRDW
+                 STY   R3,ERRBRDW
                  ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
                  logit to=ERRBRDW
                  DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
@@ -3114,7 +3114,7 @@ LKUPERROR_BUFFER     EQU   *
                      LHY   R3,ERROR_BUFL   Get length again
                      AGHI  R3,4            Add 4 for RDW used in logit
                      SLL   R3,16           Copy length into top 2 bytes
-                     ST    R3,ERRBRDW
+                     STY   R3,ERRBRDW
                      ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
                      logit to=ERRBRDW
                      DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
@@ -5721,7 +5721,7 @@ SYNAD02  EQU   *
          LHY   R3,ERROR_BUFL   Get length again
          AGHI  R3,4            Add 4 for RDW used in logit
          SLL   R3,16           Copy length into top 2 bytes
-         ST    R3,ERRBRDW
+         STY   R3,ERRBRDW
          ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
          logit to=ERRBRDW
          DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
@@ -12169,7 +12169,7 @@ LKUPERRBC  EQU   *
            LHY   R3,ERROR_BUFL   Get length again
            AGHI  R3,4            Add 4 for RDW used in logit
            SLL   R3,16           Copy length into top 2 bytes
-           ST    R3,ERRBRDW
+           STY   R3,ERRBRDW
            ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
            logit to=ERRBRDW
            DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
@@ -12251,7 +12251,7 @@ WRTEERRBC  EQU   *
            LHY   R3,ERROR_BUFL   Get length again
            AGHI  R3,4            Add 4 for RDW used in logit
            SLL   R3,16           Copy length into top 2 bytes
-           ST    R3,ERRBRDW
+           STY   R3,ERRBRDW
            ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
            logit to=ERRBRDW
            DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
@@ -15889,7 +15889,7 @@ WRTTERROR_BUFFER     EQU   *
                LHY   R3,ERROR_BUFL   Get length again
                AGHI  R3,4            Add 4 for RDW used in logit
                SLL   R3,16           Copy length into top 2 bytes
-               ST    R3,ERRBRDW
+               STY   R3,ERRBRDW
                ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
                logit to=ERRBRDW
                DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
