@@ -15214,21 +15214,56 @@ P1FUNWR  CLC   LTMAJFUN,WR_EX     WRITE ???
          STY   R0,GPWORKA
 *
          mvc   gp_error_buffer_len,=a(l'error_buffer) set max len
-         xc    gp_error_reason,gp_error_reason     clear reason
+         xc    gp_error_reason,gp_error_reason     clear reason ..
 *
          LAy   1,PARM_AREA
          BASSM R14,R15          CALL EXIT WITH INITIALIZE OPTION
 *
          if (oc,gp_error_reason,gp_error_reason,nz) is the       +
 *                                          code non zero ==> text
-          l r15,gp_error_buffer_len get length of text
-          sthy r15,error_bufl        and save in prefix
-          lay r9,error_bufl
-          WTO TEXT=(9),MF=(E,WTOPARM)
-          l r15,gp_error_buffer_len get length of text
-          ahi  r15,4
-          sthy r15,error_bufl
-          logit msg=error_bufl
+           LTGF  R14,GP_ERROR_BUFFER_PTR
+           JZ    NOINITERRB  
+           LTGF  r15,gp_error_buffer_len   get length of text
+           JNZ   INITERRB
+*
+NOINITERRB EQU *
+           LLGF  R15,GP_ERROR_REASON
+           CVD   R15,DBLWORK               reason code
+           OI    DBLWORK+L'DBLWORK-1,X'0F'
+           UNPK  ERRDATA+8(8),DBLWORK
+           MVC   ERRDATA+16(2),GPPHASE
+*
+           GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=4,                   +
+               GENENV=GENENV,                                          +
+               SUB1=(PGMNAME,L'PGMNAME),                               +
+               SUB2=(ERRDATA,8),                                       +
+               SUB3=(ERRDATA+8,8),                                     +
+               SUB4=(ERRDATA+16,2),                                    +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+*
+           GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=4,                   +
+               GENENV=GENENV,                                          +
+               SUB1=(PGMNAME,L'PGMNAME),                               +
+               SUB2=(ERRDATA,8),                                       +
+               SUB3=(ERRDATA+8,8),                                     +
+               SUB4=(ERRDATA+16,2),                                    +
+               MSGBUFFER=(PRNTBUFF,L'PRNTBUFF),                        +
+               MF=(E,MSG_AREA)
+           J     INITERRB2
+*
+INITERRB   EQU   *
+           STHY  R15,ERROR_BUFL  Length for WTO
+           LAY   R3,ERROR_BUFL
+           WTO TEXT=(3),MF=(E,WTOPARM)
+           LHY   R3,ERROR_BUFL   Get length again
+           AGHI  R3,4            Add 4 for RDW used in logit
+           SLL   R3,16           Copy length into top 2 bytes
+           STY   R3,ERRBRDW
+           ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
+           logit to=ERRBRDW
+           DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
+INITERRB2  EQU *
          endif
 *
          L     R15,RETNCODE
