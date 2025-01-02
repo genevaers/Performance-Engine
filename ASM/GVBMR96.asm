@@ -1,3 +1,4 @@
+*PROCESS FLAG(NOALIGN)
          TITLE 'GVBMR96 - INITIALIZATION FOR "GVBMR95"'
 **********************************************************************
 *
@@ -15235,7 +15236,7 @@ NOINITERRB EQU *
 *
            GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=4,                   +
                GENENV=GENENV,                                          +
-               SUB1=(PGMNAME,L'PGMNAME),                               +
+               SUB1=(MODNAME,L'MODNAME),                               +
                SUB2=(ERRDATA,8),                                       +
                SUB3=(ERRDATA+8,8),                                     +
                SUB4=(ERRDATA+16,2),                                    +
@@ -15244,7 +15245,7 @@ NOINITERRB EQU *
 *
            GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=4,                   +
                GENENV=GENENV,                                          +
-               SUB1=(PGMNAME,L'PGMNAME),                               +
+               SUB1=(MODNAME,L'MODNAME),                               +
                SUB2=(ERRDATA,8),                                       +
                SUB3=(ERRDATA+8,8),                                     +
                SUB4=(ERRDATA+16,2),                                    +
@@ -15260,9 +15261,7 @@ INITERRB   EQU   *
            AGHI  R3,4            Add 4 for RDW used in logit
            SLL   R3,16           Copy length into top 2 bytes
            STY   R3,ERRBRDW
-           ENQ   (GENEVA,LOGNAME,E,,STEP),RNL=NO
            logit to=ERRBRDW
-           DEQ   (GENEVA,LOGNAME,,STEP),RNL=NO
 INITERRB2  EQU *
          endif
 *
