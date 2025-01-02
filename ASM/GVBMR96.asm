@@ -15236,7 +15236,7 @@ NOINITERRB EQU *
 *
            GVBMSG WTO,MSGNO=EXIT_REASON_ERR,SUBNO=4,                   +
                GENENV=GENENV,                                          +
-               SUB1=(MODNAME,L'MODNAME),                               +
+               SUB1=(MODNAME,8),                                       +
                SUB2=(ERRDATA,8),                                       +
                SUB3=(ERRDATA+8,8),                                     +
                SUB4=(ERRDATA+16,2),                                    +
@@ -15245,7 +15245,7 @@ NOINITERRB EQU *
 *
            GVBMSG LOG,MSGNO=EXIT_REASON_ERR,SUBNO=4,                   +
                GENENV=GENENV,                                          +
-               SUB1=(MODNAME,L'MODNAME),                               +
+               SUB1=(MODNAME,8),                                       +
                SUB2=(ERRDATA,8),                                       +
                SUB3=(ERRDATA+8,8),                                     +
                SUB4=(ERRDATA+16,2),                                    +
