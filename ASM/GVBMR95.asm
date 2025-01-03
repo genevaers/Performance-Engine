@@ -1,4 +1,3 @@
-*PROCESS FLAG(NOALIGN)
          TITLE 'GVBMR95  - BATCH EVENT EXTRACT PROGRAM'
 **********************************************************************
 *

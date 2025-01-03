@@ -1,4 +1,3 @@
-*PROCESS FLAG(NOALIGN)
          TITLE 'GVBMR96 - INITIALIZATION FOR "GVBMR95"'
 **********************************************************************
 *
