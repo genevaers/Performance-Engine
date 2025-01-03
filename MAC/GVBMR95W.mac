@@ -575,11 +575,19 @@ registers   ds 16fd
 CONVTIME DS    CL16               STCKCONV WORKAREA
          ds    xl2                spare
 printmap_header ds  c             flag for printmap_headings D if done
-         ds    xl3                filler (spare)
-error_bufl     ds   h             Halfword prefix for WTO TEXT
-error_buffer   ds   cl126         buffer for message text (126 is WTO
-aleserv  aleserv  MF=L
+         ds    xl1                filler (spare)
+*
+* dual purpose message buffer for logit and WTO messages
+*
+errb           ds  0CL130
+errbrdw        ds  0XL4   log-->  RDW word
+errbrdwl       ds   H             Halfword length in RDW
+error_bufl     ds   H     wto-->  Halfword prefix for WTO TEXT or Zero
+error_buffer   ds   CL126         Buffer for message text (126 is WTO
 *                                 limit for a single message)
+         ds    0F
+aleserv  aleserv  MF=L
+*
 callparm_list call ,(,,,),MF=L
 *
 *msg_parmlist ds 0f
