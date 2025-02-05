@@ -12921,7 +12921,7 @@ Filleof  ds    0h
            logit
          endif
 *
-MR96 - implement 'include reference tables in dumps'
+* MR96 - implement 'include reference tables in dumps'
 *
          LLGT  R14,EXECDADR
          Using EXECDATA,R14
