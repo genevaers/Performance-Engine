@@ -1,22 +1,22 @@
-PID,PDESC,PPGMTYPE,PSRCREPO,PSRCFLDR,PSRCSFX,PLANG,PSQL,PMODTYPE
-GVBDAYS,Date Difference Calculator,Subprogram,Performance-Engine,ASM,asm,HLASM,,LOADMOD
-GVBDL96,Enhanced Field Format Process,Subprogram,Performance-Engine,ASM,asm,HLASM,,LOADMOD
-GVBMR87,Initialization for GVBMR88,Subroutine,Performance-Engine,ASM,asm,HLASM,,OBJONLY
-GVBMR88,View Format Process,Main Program,Performance-Engine,ASM,asm,HLASM,,LOADMOD
-GVBMR95,View Extract Process,Main Program,Performance-Engine,ASM,asm,HLASM,,LOADMOD
-GVBMR96,Initialization for GVBMR95,Subroutine,Performance-Engine,ASM,asm,HLASM,,OBJONLY
-GVBMRBS,BSAM Initialization for GVBMR95,Subroutine,Performance-Engine,ASM,asm,HLASM,,OBJONLY
-GVBMRSQ,Db2 I/O Handler for GVBMR95,Subroutine,Performance-Engine,ASM,asm,HLASM,Y,OBJONLY
-GVBMRVK,VSAM Keyed I/O Handler for GVBMR95,Subroutine,Performance-Engine,ASM,asm,HLASM,,OBJONLY
-GVBSRCHR,Lookup routines with keylen 1 to 256,Subroutine,Performance-Engine,ASM,asm,HLASM,,OBJONLY
-GVBTP90,VSAM/QSAM I/O Handler,Subprogram,Performance-Engine,ASM,asm,HLASM,,LOADMOD
-GVBUR20,Sequential I/O Handler,Subprogram,Performance-Engine,ASM,asm,HLASM,,LOADMOD
-GVBUR33,Symbolic Variable Substitution Process,Subprogram,Performance-Engine,ASM,asm,HLASM,,LOADMOD
-GVBUR35,Dynamic Allocation Interface,Subprogram,Performance-Engine,ASM,asm,HLASM,,LOADMOD
-GVBUR39,GENWRITE Interface,Subprogram,Performance-Engine,ASM,asm,HLASM,,LOADMOD
-GVBURALI,ALIAS 19722,Subprogram,Performance-Engine,ASM,asm,HLASM,,LOADMOD
-GVBURZTM,CPU time formatter,Subroutine,Performance-Engine,ASM,asm,HLASM,,LOADMOD
-GVBUT99,User Abend Utility,Main Program,Performance-Engine,ASM,asm,HLASM,,LOADMOD
-GVBUTHDR,Header format builder,Subprogram,Performance-Engine,ASM,asm,HLASM,,LOADMOD
-GVBUTMSG,Message Builder,Subprogram,Performance-Engine,ASM,asm,HLASM,,LOADMOD
-GVBUTMUE,Mixed-Case Message Table,Subroutine,Performance-Engine,ASM,asm,HLASM,,OBJONLY
+PID,PDESC,PPGMTYPE,PSRCREPO,PSRCFLDR,PSRCSFX,PLANG,PMODTYPE,PDB2PRE
+GVBDAYS,Date Difference Calculator,Subprogram,Performance-Engine,ASM,asm,HLASM,LOADMOD,
+GVBDL96,Enhanced Field Format Process,Subprogram,Performance-Engine,ASM,asm,HLASM,LOADMOD,
+GVBMR87,Initialization for GVBMR88,Subroutine,Performance-Engine,ASM,asm,HLASM,OBJONLY,
+GVBMR88,View Format Process,Main Program,Performance-Engine,ASM,asm,HLASM,LOADMOD,
+GVBMR95,View Extract Process,Main Program,Performance-Engine,ASM,asm,HLASM,LOADMOD,
+GVBMR96,Initialization for GVBMR95,Subroutine,Performance-Engine,ASM,asm,HLASM,OBJONLY,
+GVBMRBS,BSAM Initialization for GVBMR95,Subroutine,Performance-Engine,ASM,asm,HLASM,OBJONLY,
+GVBMRSQ,Db2 I/O Handler for GVBMR95,Subroutine,Performance-Engine,ASM,asm,HLASM,OBJONLY,Y
+GVBMRVK,VSAM Keyed I/O Handler for GVBMR95,Subroutine,Performance-Engine,ASM,asm,HLASM,OBJONLY,
+GVBSRCHR,Lookup routines with keylen 1 to 256,Subroutine,Performance-Engine,ASM,asm,HLASM,OBJONLY,
+GVBTP90,VSAM/QSAM I/O Handler,Subprogram,Performance-Engine,ASM,asm,HLASM,LOADMOD,
+GVBUR20,Sequential I/O Handler,Subprogram,Performance-Engine,ASM,asm,HLASM,LOADMOD,
+GVBUR33,Symbolic Variable Substitution Process,Subprogram,Performance-Engine,ASM,asm,HLASM,LOADMOD,
+GVBUR35,Dynamic Allocation Interface,Subprogram,Performance-Engine,ASM,asm,HLASM,LOADMOD,
+GVBUR39,GENWRITE Interface,Subprogram,Performance-Engine,ASM,asm,HLASM,LOADMOD,
+GVBURALI,ALIAS 19722,Subprogram,Performance-Engine,ASM,asm,HLASM,LOADMOD,
+GVBURZTM,CPU time formatter,Subroutine,Performance-Engine,ASM,asm,HLASM,LOADMOD,
+GVBUT99,User Abend Utility,Main Program,Performance-Engine,ASM,asm,HLASM,LOADMOD,
+GVBUTHDR,Header format builder,Subprogram,Performance-Engine,ASM,asm,HLASM,LOADMOD,
+GVBUTMSG,Message Builder,Subprogram,Performance-Engine,ASM,asm,HLASM,LOADMOD,
+GVBUTMUE,Mixed-Case Message Table,Subroutine,Performance-Engine,ASM,asm,HLASM,OBJONLY,
