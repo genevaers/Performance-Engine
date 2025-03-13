@@ -8471,6 +8471,7 @@ LTBLFC     stg r9,lt_saver9
 ***********************************************************************
 *    ADJUST FIELD POSITION IF "ENDS WITH"                             *
 ***********************************************************************
+Need to check if it's a CFEC or CFCE .... 
        if CLC,LTRELOPR,eq,EW
 *
          LgH R0,LTFLDLEN           LOAD     FIELD    LENGTH
@@ -10414,6 +10415,27 @@ LTBLV2V      LH R15,LTV2LEN
 
            else ,
 
+***********************************************************************
+*    ADJUST FIELD POSITION IF "ENDS WITH"                             *
+***********************************************************************
+           if CLC,LTRELOPR,eq,EW
+*
+             lgh R0,LTFLDLEN       LOAD     FIELD    LENGTH
+             sgr R0,R15            SUBTRACT STRING   LENGTH
+             lgh R14,LTFLDPOS      COMPUTE  POSITION FOR   "ENDS WITH"
+             agr R0,r14            COMPUTE  POSITION FOR   "ENDS WITH"
+             STH R0,LTFLDPOS
+           endif
+*
+***********************************************************************
+*    ADJUST FIELD LENGTH IF "BEGINS/ENDS" WITH                        *
+***********************************************************************
+           if CLC,LTRELOPR,eq,BW,or,                                   +
+               CLC,LTRELOPR,eq,EW
+               MVC LTFLDLEN,LTCOLLEN
+*             STH R15,LTFLDLEN
+           endif
+*
 ***********************************************************************
 *  CONVERT TARGET POSITION TO MACHINE INSTRUCTION OFFSET(POSITION - 1)*
 ***********************************************************************
