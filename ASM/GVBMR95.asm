@@ -1028,9 +1028,11 @@ done     ds    0h                 PARALLEL THREADS DONE
            basr  r14,r15
            larl  R15,owrt_report
            basr  R14,R15
-*
-           larl  r15,lkup_prepare
-           basr  r14,r15
+* only prepare lkup section if there are any lookups
+           if   (oc,lkuprec_cnt,lkuprec_cnt,nz)
+             larl  r15,lkup_prepare
+             basr  r14,r15
+           endif 
            larl  r15,lkup_report
            basr  r14,r15
          endif
@@ -12952,7 +12954,10 @@ th_re                using logictbl,r15
                        mvi tkupEdate,c'N'
                      endif
 *
-                     aghi  r4,tkuprept_len
+                     aghi  r4,tkuprept_len next slot in table
+                     l r0,lkuprec_cnt
+                     bctr r0,0
+                     st r0,lkuprec_cnt  reduce lkup count
                    endif  , not TOKN (i.e. fake lookup buffer)
 *
                  enddo  , ES lkup buffers
@@ -12963,6 +12968,8 @@ th_re                using logictbl,r15
 *   lookup buffer(s) that are stored somewhere in the literal pool
 *   based upon the literal pool header index associated with each RETK.
 *
+* Only do this if there are any lookups left - check the lkup count
+               if (ltgf,R1,lkuprec_cnt,p)
 *           Look for any tokens associated with ES set
 th_retk        USING LOGICTBL,R15
                if ltgf,r15,th_es.ltesrtkq,p
@@ -13071,7 +13078,7 @@ th_reet            using LOGICTBL,R15
                  enddo  , RETK areas in queue
                  drop  th_reet
                endif
-
+               endif  - lkup count check
              enddo
            endif
          enddo
@@ -13325,7 +13332,7 @@ th_reet            using LOGICTBL,R15
            endif
          enddo
 
-         sty   r10,lkuprec_cnt    OWRT records
+         sty   r10,lkuprec_cnt    LKUP records
 
          lmg   R14,R12,SAVEZIIP   RESTORE RETURN ADDRESS
          br    R14
