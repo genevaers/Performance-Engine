@@ -1029,7 +1029,7 @@ done     ds    0h                 PARALLEL THREADS DONE
            larl  R15,owrt_report
            basr  R14,R15
 * only prepare lkup section if there are any lookups
-           if   (oc,lkuprec_cnt,lkuprec_cnt,nz)
+           if (ltgf,R1,lkuprec_cnt,p)
              larl  r15,lkup_prepare
              basr  r14,r15
            endif 
@@ -12955,9 +12955,6 @@ th_re                using logictbl,r15
                      endif
 *
                      aghi  r4,tkuprept_len next slot in table
-                     l r0,lkuprec_cnt
-                     bctr r0,0
-                     st r0,lkuprec_cnt  reduce lkup count
                    endif  , not TOKN (i.e. fake lookup buffer)
 *
                  enddo  , ES lkup buffers
@@ -12969,7 +12966,7 @@ th_re                using logictbl,r15
 *   based upon the literal pool header index associated with each RETK.
 *
 * Only do this if there are any lookups left - check the lkup count
-               if (ltgf,R1,lkuprec_cnt,p)
+               if (cgf,R10,l,lkuprec_cnt)
 *           Look for any tokens associated with ES set
 th_retk        USING LOGICTBL,R15
                if ltgf,r15,th_es.ltesrtkq,p
@@ -12989,7 +12986,7 @@ th_retk        USING LOGICTBL,R15
                    drop  th_retk
 th_reet            using LOGICTBL,R15
                    lgf   r5,th_reet.ltlbanch
-                   if    tm,th_reet.ltesflg1,ltlbanco,o ltlbanch offset ?
+                   if    tm,th_reet.ltesflg1,ltlbanco,o ltlbanch offset 
                      agr   r5,r2
                      llgt  r5,0(r1,r5)
 *
