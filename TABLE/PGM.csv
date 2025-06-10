@@ -1,4 +1,4 @@
-PID,PDESC,PPGMTYPE,PSRCREPO,PSRCFLDR,PSRCSFX,PLANG,PSQL,PMODTYPE
+PID,PDESC,PPGMTYPE,PSRCREPO,PSRCFLDR,PSRCSFX,PLANG,PDB2PRE,PMODTYPE
 GVBDAYS,Date Difference Calculator,Subprogram,Performance-Engine,ASM,asm,HLASM,,LOADMOD
 GVBDL96,Enhanced Field Format Process,Subprogram,Performance-Engine,ASM,asm,HLASM,,LOADMOD
 GVBMR87,Initialization for GVBMR88,Subroutine,Performance-Engine,ASM,asm,HLASM,,OBJONLY
