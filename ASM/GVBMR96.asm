@@ -433,16 +433,16 @@ mainvdp  ds    0h
          xc  Tlitppct5,Tlitppct5
          drop r14
 *
+         logit msg=tracopb,debug=Y
+         larl  R15,OPENEXTF       OPEN  EXTRACT  FILES
+         BASR  R14,R15
+         logit msg=tracopd,debug=Y
+*
          logit msg=tracp1b,debug=Y
          larl  R15,PASS1          PASS    ONE THROUGH THE  LOGIC TABLE
          BASR  R14,R15
          logit msg=vb_blankl,debug=Y
          logit msg=tracp1d,debug=Y
-*
-         logit msg=tracopb,debug=Y
-         larl  R15,OPENEXTF       OPEN  EXTRACT  FILES
-         BASR  R14,R15
-         logit msg=tracopd,debug=Y
 
 ***********************************************************************
 *  Print the ~VIEW report section to MR95 RTP                         *
@@ -9440,22 +9440,45 @@ LTBLWR30   llgt R1,EXTFILEA        LOAD FIRST EXTRACT FILE ENTRY ADDR
 *
            LgHI R15,1              LOAD CURRENT  SUBSCRIPT VALUE
 *
+* Loop through allocated EXTFILE table entries 
+*
            LH  R0,FILECNT         LOAD LOOP     COUNTER
            LTR R0,R0              ANY  ENTRIES  ASSIGNED  ???
            JNP LTBLWR33           NO  - ASSIGN  FIRST
 *
 LTBLWR32   ds  0h
-           if  CLC,LTWRFILE,eq,extddnam sAME FILE ID/DDNAME ???
+           if  CLC,LTWRFILE,eq,extddnam SAME FILE ID/DDNAME ?
+* already initialised EXTFILE for this ddname
              ST R1,LTWREXTA       SAVE   EXTRACT FILE ENTRY ADDRESS
              STH R15,LTWREXT#     SAVE   SUBSCRIPT
-             j   ltblwr35
+* Is this single threaded?
+            llgt  R14,EXECDADR
+            USING EXECDATA,R14
+            if CLI,EXECSNGL,ne,C'N' 
+              j   ltblwr35        yes single threaded, so skip on
+            endif
+            DROP  R14
+* Count threads writing to this EXTFILE            
+             if CLC,currre,ne,EXTIRE  Is this the same RE/thread?
+               L   R14,currre
+               ST  R14,EXTIRE         Save this RE addr
+               L  R10,LTREPFCNT-LOGICTBL(,R14)  Num of PF/threads for
+*                                               this RE/ddname
+               AH R10,EXTITHRD       Add to num of threads wr to EXTR
+               STH r10,EXTITHRD
+             endif
+             j   ltblwr35 
            endif
 *
            LA  R1,EXTFILEL(,R1)   ADVANCE TO NEXT FILE ENTRY
            AgHI R15,1
            BRCT R0,LTBLWR32       CONTINUE SEARCH
+*           
+LTBLWR33   DS  0H
+*           
+*  No match - set up new EXTFILE area
 *
-LTBLWR33   CH  R15,MAXEXTF#       TABLE  OVERFLOW  ???
+           CH  R15,MAXEXTF#       TABLE  OVERFLOW  ???
            JNH LTBLWR34           NO  -  CONTINUE
 *
            LgHI R14,EXTFILE_TABLE_OVERFLOW msg number
@@ -9470,13 +9493,27 @@ LTBLWR34   STH R15,FILECNT        UPDATE CURRENT ENTRY COUNT
 *
            xc  extcnt,extcnt
            xc  extbytec,extbytec
+*  
+*  Save RE address (to assess number of threads)    
+*
+           L   R14,currre
+           ST  R14,EXTIRE
+LTRE       USING LOGICTBL,R14           
+           MVC EXTITHRD,LTRE.LTREPFCNT+2 Num of threads writing to EXT
+           DROP LTRE 
+* Just check for single threaded mode
+           llgt  R14,EXECDADR
+           USING EXECDATA,R14
+           if CLI,EXECSNGL,ne,C'N' 
+             MVC EXTITHRD,H1  yes single threaded, so set one
+           endif
 *
            ST  R1,LTWREXTA        SAVE   EXTRACT FILE ENTRY ADDRESS
            OC  LTWREXT#,LTWREXT#
-           JNZ *+8
+           JNZ ltblwr35
            STH R15,LTWREXT#       SAVE   SUBSCRIPT
 *
-ltblwr35 ds    0h                                                pgc110
+ltblwr35 ds    0h                                                
            llgt R14,ltlognv           LOCATE VDP VIEW ("1000") RECORD
 wrnv       using logictbl,r14
            lb r14,wrnv.ltviewtp            .Get view type
@@ -9484,7 +9521,7 @@ wrnv       using logictbl,r14
              oi extflag,extfmtph  Y:signal this DD going format phase
            endif
            drop wrnv
-ltblwr36 ds    0h                                                pgc110
+ltblwr36 ds    0h                                                
            llgt R14,LTWR200A       VERSION  4 VDP RECORD ADDRESS
            LTgR R15,R14
            JNP LTBLWR39
@@ -12143,11 +12180,73 @@ openokay   ds    0h
 OPENBUFR ds    0h
          doexit oc,extdecbf,extdecbf,nz       DECB's already done?
 *
+* Note that this is creating buffers for the single thread case.
+* The number of threads writing to the EXTFILE will be checked
+* in PASS1 and DECB and buffers allocated accordingly.
+*
+         L     R1,LTWREXTA       Address the EXTFILE area
+         USING EXTFILE,R1
+         LH    r15,EXTITHRD      Input thread count (calc in LTBLLOAD)
+         if CHI,R15,le,1         One thread writing to EXTRFILE  
+*
+         BRAS  R9,GETBUFF         Get DECBs and buffers
+         endif
+*
+*
+       endif ,               not a write
+     enddo ,
+     lgh  R1,ltrowlen        ADVANCE TO NEXT LOGIC TABLE  ROW
+     agr  R7,r1              ADVANCE TO NEXT LOGIC TABLE  ROW
+   enddo
+   lmg  R14,R12,SAVF4SAG64RS14  RESTORE  REGISTERS
+   BR   R14                     RETURN
+                        SPACE 3
+OPENERR1 lghi  R0,C'1'
+         BRU   OPENERR
+OPENERR2 lghi  R0,C'2'
+         BRU   OPENERR
+OPENERR3 lghi  R0,C'3'
+         BRU   OPENERR
+OPENERR4 lghi  R0,C'4'
+         BRU   OPENERR
+OPENERR5 lghi  R0,C'5'
+         BRU   OPENERR
+OPENERR6 lghi  R0,C'6'
+         BRU   OPENERR
+OPENERR7 lghi  R0,C'7'
+         BRU   OPENERR
+OPENERR8 lghi  R0,C'8'
+*
+OPENERR  lghi  R14,EXTR_DCB_ERR   INDICATE MISSING DCB INFORMATION
+         MVC   ERRDATA(L'EXTDDNAM),EXTDDNAM
+         MVI   ERRDATA+L'EXTDDNAM+0,C'-'
+         STC   R0,ERRDATA+L'EXTDDNAM+1
+         BRU   RTNERROR
+*
+         DROP  R2
+         DROP  R3
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+* Get EXTRACT file DECB and I/O buffers, and chain together
+* R7 -> LOGICTBL WR entry
+* R9    Return address
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+GETBUFF  DS    0H
+*         
+*        USING LOGICTBL,R7
+         llgt r3,ltwrexta
+         USING EXTFILE,R3
+*
+* Number of buffers - calculated in open exit
+*
          lgh   R15,EXTBUFNO       LOAD  NO. OF BUFFERS
          if    ltr,r15,r15,z      If exit did not set NCP (DUMMY?)
            lhi   r15,2              then set default of 2
            sth   r15,extbufno
          endif
+*
+* Calculate and allocate storage for DECBs 
 *
          LA    R14,MDLWRTL+4      GET  DECB POOL
          MR    R14,R14            COMPUTE DECB    POOL SIZE
@@ -12160,6 +12259,8 @@ OPENBUFR ds    0h
          ST    R1,EXTDECBF        POINT   TO FIRST DECB
          ST    R1,EXTDECBC
          lgr   R4,R1              SAVE    DECB  ADDRESS
+*
+* Calculate and allocate storage for buffers 
 *
          LH    R14,EXTBLKSI       LOAD PHYSICAL BLOCKSIZE
          AHI   R14,7              ROUND TO NEXT DOUBLEWORD
@@ -12176,7 +12277,6 @@ OPENBUFR ds    0h
 *
          llgt  R14,EXECDADR       LOAD PARAMETER AREA  ADDRESS
          USING EXECDATA,R14
-*        if  CLI,EXECTRAC,EQ,C'Y'      TRACE OPTION SPECIFIED ??
          if  CLC,EXEC_LOGLVL,EQ,LOG_DEBUG DEBUG level logging?
            drop r14
 trace_sa   using savf4sa,savesrb
@@ -12218,7 +12318,10 @@ trace_sa   using savf4sa,savesrb
            endif
          endif
          drop r14
-         llgt  r2,extdcba           point to DCB again
+*
+* Save address of first buffer in EXTRFILE
+*
+         llgt  r2,extdcba         point to DCB again
 *
          LA    R0,4(,R5)          SAVE FIRST RECORD ADDRESS (SKIP BDW)
          TM    EXTRECFM,X'40'     VARIABLE/UNDEFINED    ???
@@ -12229,6 +12332,8 @@ trace_sa   using savf4sa,savesrb
          lgh   R1,EXTBLKSI
          agr   R14,r1
          ST    R14,EXTEOBAD
+*
+* Chain DECBs and buffers together - Save first DECB addr in EXTRFILE
 *
          LH    R0,EXTBUFNO        INITIALIZE LOOP COUNTER
 OPENRING LA    R14,MDLWRTL+4(,R4) LOAD ADDRESS OF NEXT DECB
@@ -12256,40 +12361,9 @@ OPENRING LA    R14,MDLWRTL+4(,R4) LOAD ADDRESS OF NEXT DECB
 *        L     R9,EXTDECBF
 *          ly  r2,SNAPDCBA
 *        SNAP  DCB=(r2),PDATA=(REGS),ID=121,STORAGE=((R9),(R5))
-*
-*
-       endif ,               not a write
-     enddo ,
-     lgh  R1,ltrowlen        ADVANCE TO NEXT LOGIC TABLE  ROW
-     agr  R7,r1              ADVANCE TO NEXT LOGIC TABLE  ROW
-   enddo
-   lmg  R14,R12,SAVF4SAG64RS14  RESTORE  REGISTERS
-   BR   R14                     RETURN
-                        SPACE 3
-OPENERR1 lghi  R0,C'1'
-         BRU   OPENERR
-OPENERR2 lghi  R0,C'2'
-         BRU   OPENERR
-OPENERR3 lghi  R0,C'3'
-         BRU   OPENERR
-OPENERR4 lghi  R0,C'4'
-         BRU   OPENERR
-OPENERR5 lghi  R0,C'5'
-         BRU   OPENERR
-OPENERR6 lghi  R0,C'6'
-         BRU   OPENERR
-OPENERR7 lghi  R0,C'7'
-         BRU   OPENERR
-OPENERR8 lghi  R0,C'8'
-*
-OPENERR  lghi  R14,EXTR_DCB_ERR   INDICATE MISSING DCB INFORMATION
-         MVC   ERRDATA(L'EXTDDNAM),EXTDDNAM
-         MVI   ERRDATA+L'EXTDDNAM+0,C'-'
-         STC   R0,ERRDATA+L'EXTDDNAM+1
-         BRU   RTNERROR
-*
-         DROP  R2
-         DROP  R3
+
+         BR    R9
+
                         EJECT
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
@@ -14043,15 +14117,15 @@ P1LOOP   CLC   LTMAJFUN,RE_NX     READ  EVENT   ???
 ***********************************************************************
 *  PROCESS CLONED "RE/ES" SETS                                        *
 ***********************************************************************
-p1funre  ds    0h                                                 pgc99
-         st    r7,currre                                          pgc99
-         xc    parent_token,parent_token    Zero by default       pgc99
+p1funre  ds    0h                                                 
+         st    r7,currre                                          
+         xc    parent_token,parent_token    Zero by default       
          TM    LTFLAG1,LTESCLON   CLONED  "RE" ROW ???
          JNO   P1FUNRE0           NO  - BYPASS CLONING OF LITERAL POOL
 *
          llgt  R9,LTCLONRE        LOAD  CLONED "RE"   ROW ADDRESS
          MVC   LTCODSEG,LTCODSEG-LOGICTBL(R9)
-         mvc   ltnxrtkn,ltnxrtkn-logictbl(r9)                    pgc110
+         mvc   ltnxrtkn,ltnxrtkn-logictbl(r9)                    
 *
          llgt  R9,LTREES-LOGICTBL(,R9)  CLONED "ES"   ROW ADDRESS
          llgt  R14,LTESLPAD-LOGICTBL(,R9) ORIG LITERAL POOL ADDR
@@ -15168,7 +15242,7 @@ P1FUNLK  CLC   LTLUSTEP,H1        Is this top of LU path?
 P1FUNWR  CLC   LTMAJFUN,WR_EX     WRITE ???
          JNE   P1FUNCCD           NO  - GENERATE CODE FOR  FUNCTION
 *
-         mvc   ltwrre,currre                                      pgc99
+         mvc   ltwrre,currre
 
 * saverowa returns r0 = offset, r5 = lit pool start address
          BRAS  R9,SAVEROWA
@@ -15212,6 +15286,7 @@ P1FUNWR  CLC   LTMAJFUN,WR_EX     WRITE ???
          STY   R0,GPSTARTA
          LA    R0,LTWRWORK       LOAD EXIT WRITE ANCHOR
          STY   R0,GPWORKA
+         DROP  R1
 *
          mvc   gp_error_buffer_len,=a(l'error_buffer) set max len
          xc    gp_error_reason,gp_error_reason     clear reason ..
@@ -15277,6 +15352,41 @@ P1wrnoex ds    0h
          jas   r9,saveaddr          the
          st    r0,ltwrtkrc          literal pool
 *
+* Check if mult threads will be writing to this EXTFILE
+*  Allocate DECBs and write buffers, and address from lit pool
+*         
+         L     R1,LTWREXTA       Address the EXTFILE area
+         USING EXTFILE,R1
+      if OC,EXTEXMO,EXTEXMO,nz  Has a set of blocks been defined
+*                               already for this EXTFILE thread?         
+         MVC  LTWREXMO,EXTEXMO  copy offset to logictbl
+       else  
+         LH    r15,EXTITHRD      Input thread count (calc in LTBLLOAD)
+         if CHI,R15,gt,1    More than one thread writing to EXTRFILE  
+*                           get more buffers
+* saverowa returns r0 = offset, r5 = lit pool start address
+         BRAS  R9,SAVEROWA
+         ST    R0,LTWREXMO        SAVE  OFFSET in logictbl
+         ST    R0,EXTEXMO         Save offset in extract area            
+*
+         aghi  R6,EXML-4      ADVANCE LITERAL POOL END
+*
+         lgr   R15,R0
+         agr   R15,R5
+         USING EXM,R15
+         MVC   EXMDDNAM,EXTDDNAM  copy DDNAME
+         MVC   EXMDCBA,EXTDCBA    copy DCB address
+*
+         BRAS  R9,GETBUFF         Get DECBs and buffers
+*
+         MVC   EXMDECBF,EXTDECBF    EXTRACT FILE FIRST   DECB ADDRESS
+         MVC   EXMDECBC,EXTDECBC    EXTRACT FILE CURRENT DECB ADDRESS
+         MVC   EXMRECAD,EXTRECAD    
+         MVC   EXMEOBAD,EXTEOBAD
+*
+* gill
+         endif
+      endif
          DROP  R1
 *
 ***********************************************************************

@@ -51,11 +51,17 @@ EXTPIPED DS    HL2             THREAD  DONE   COUNT  ("PIPED INPUT")
 EXTPIPEC DS    HL2             CHILD  THREAD  COUNT  ("PIPED INPUT")
 EXTBUFNO DS    HL2             NUMBER  OF   BUFFERS
 EXTBLKSI DS    HL2             BLOCKSIZE
-extflag  ds    x               Flage byte
+extflag  ds    x               Flag byte
 extfmtph equ   x'80'            This ddname is used in a Format Phase
+extmulob equ   x'40'            Extract uses multiple output buffers
+extnoloc equ   x'20'            No lock needed on single output buffer
          ds    xl1             spare
 EXTPUT_6431  DS    A           extract file amode 64 WRITE    ROUTINE
 EXTCHK_6431  DS    A           extract file amode 64 check    ROUTINE
+EXTIRE   DS    A             Last RE address (for establishing number
+*                              of threads that write to this EXTFILE)
+EXTEXMO  DS    A               Offset to extract area for mult buffers
+EXTITHRD DS    XL2             Input thread count writing to this EXT
          ds    0f
 *
 EXTFILEL EQU   *-EXTFILE
@@ -90,6 +96,26 @@ EXUBLKA  DS    A                Address data block
 *
 EXUEXUL  EQU   *-EXUEXU
                         SPACE 5
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*                                                                     *
+*        EXTRACT file control in lit pool - multi-threading
+*        IF MORE THAN ONE OUTPUT BUFFER PER EXTRFILE                  *
+*        -- i.e. to give better concurrency when many                 *
+*        partition and use physical I/O locking rather than record    *
+*        level locking for each output record.                        *
+*                                                                     *
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+EXM      DSECT   Extract file - multi-threading
+EXMDDNAM DS    CL8             EXTRACT FILE DDNAME
+EXMDCBA  DS    A               EXTRACT FILE DCB ADDRESS
+EXMDECBF DS    A               EXTRACT FILE FIRST DECB ADDRESS
+EXMDECBC DS    A               EXTRACT FILE CURRENT DECB ADDRESS
+EXMEOBAD DS    A               CURRENT END-OF-BUFFER ADDRESS
+EXMRECAD DS    A               CURRENT RECORD ADDRESS
+*
+EXML     EQU   *-EXM
+*
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *                                                                     *
 *        LITERAL POOL WRITE EXTRACT RECORD AREA ("LT_WR")             *

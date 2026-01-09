@@ -155,6 +155,7 @@ EVNTdecbp DS   A                  EVENT   FILE DECB pool ADDRESS
 EVNTbufp  DS   A                  EVENT   FILE buffer pool address
 EVNTbufps DS   A                  EVENT   FILE buffer pool size
 EVNTbufno DS   H                  EVENT   FILE buffer pool number
+EVNToutbn DS   H                  EVENT FILE o/p buffer for partition
 EVNTDECB DS    A                  EVENT   FILE DECB  ADDRESS (CURRENT)
 evntpgfs ds    a                  event file page fix start address
 evntpgfe ds    a                  event file page fix end address
@@ -162,6 +163,8 @@ evntpgfe ds    a                  event file page fix end address
 RECADDR  DS    AD                 EVENT   RECORD ADDRESS (CURRENT REC)
 RECEND   DS    ad                 EVENT   RECORD END     (CURRENT REC)
 EODADDR  DS    ad                 EVENT   BUFFER END-OF-DATA  ADDRESS
+WRTEOBAD DS    A                  end of write buffer this thread
+WRTRECAD DS    A                  next record address this thread
 *
 PREVRECA DS    ad                 PREVIOUS EVENT RECORD  ADDRESS
 event_file_cnt       ds  F       Total num event files read (main thrd)
@@ -749,7 +752,9 @@ workunit_first    ds a            first work unit table entry
 *
 iref_rcnt         ds xl8
 iref_bcnt         ds xl8
+         DS    0F
 *
+SAVESUB4 DS  18fd                 need another save area
 THRDLEN  EQU   *-THRDAREA
 thrdend  ds    0c
 *
