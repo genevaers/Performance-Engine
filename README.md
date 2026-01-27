@@ -47,7 +47,7 @@ Since the Git environment variables may need to be set from both a login session
 a sample shell script gitenv.sh is listed here.
 
 Sample gitenv.sh
-
+```
 #!/bin/sh
 ##############################################################################################
 ##
@@ -88,5 +88,5 @@ export _TAG_REDIR_OUT=txt
 #set git editor to create comments on encdoing ISO8859-1
 #git config --global core.editor "/bin/vi -W filecodeset=ISO8859-1"
 
-
+```
   
