@@ -12,13 +12,17 @@ This document explains how to build GenevERS and create the working product from
 
 ## Building GenevaERS
 
-There are two related but separate build processes. The one contained in DevOps is used to build Run Control Application, Performance Engine and Performance Engine Extensions and is explained in the README.MD. Workbench has its own self contained build processes described in its own README.MD.
+There are two related but separate build processes. The one contained in DevOps is used to build Run Control Application, Performance Engine and Performance Engine Extensions and is explained in the README.MD. Workbench has its own self contained build processes described in its own README.md.
 
-Links to the 2 README.DL document given here <<>>
+Links to the 2 README.md documents given here:
+
+[Performance Engine](https://github.com/genevaers/Performance-Engine/blob/main/README.md)
+
+[Workbench](https://github.com/genevaers/Workbench/blob/main/README.md)
 
 ## Enumerating results of build
 
-A description is given in each README.MD documents describing how you can name a version, specifically version, release etc.
+A description is given in each README.md documents describing how you can name a version, specifically version, release etc.
 
 * Are examples given there or should we give some here ? *
 
@@ -28,4 +32,4 @@ A description is given in each README.MD documents describing how you can name a
 
 ## Alternative way of building RCA
 
-* Do we want to explain all the details here or is that best done in the subordinate README's ? *
+* Do we want to explain all the details here or is that best done in the subordinate README's ? This relates directly to MVN as prerequisite for building RCA on ZOS *
