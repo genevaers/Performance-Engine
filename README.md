@@ -1,4 +1,6 @@
-# Performance-Engine               
+# Performance-Engine
+
+[Architecture & internals](ARCHITECTURE.md)
 
 ## Pre-Requisite Products for Build
 
